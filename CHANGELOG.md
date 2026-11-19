@@ -5,7 +5,8 @@
 - El historial muestra FPS medios, fotogramas analizables, tiempo con rostro válido y episodios de fallo de cámara por sesión.
 - El dashboard histórico muestra recuentos diarios, semanales y mensuales, duración promedio y horas de mayor uso.
 - Se puede exportar el historial a Excel con sesiones, eventos, métricas de calidad y resúmenes.
-
+- Al detener el monitoreo, se muestra un resumen con la duración, las alarmas, las ausencias de rostro y los demás eventos destacados.
+- Se conservan entre ejecuciones los umbrales de somnolencia y alarma y el estado del sonido. Restablecer guarda los valores predeterminados.
 - El monitoreo muestra avisos persistentes cuando no detecta el rostro o encuentra varias personas durante al menos dos segundos.
 - El historial resume los eventos de cada sesión por tipo, cantidad, duración total y duración máxima.
 - Al perder la señal de cámara se limpia la alerta visual anterior para evitar mostrar un estado desactualizado.

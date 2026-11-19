@@ -15,10 +15,6 @@ namespace FatigueDetect.Logica
             this.config = config ?? new Configuracion();
         }
 
-        // Los umbrales se leen de la configuración cada vez, así los cambios se aplican al instante.
-        private long DrowsyThresholdMs => (long)(config.SegundosSomnoliento * 1000);
-        private long AlarmThresholdMs => (long)(config.SegundosAlarma * 1000);
-
         public EyeState Evaluate(bool eyesDetected)
         {
             long now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
@@ -37,13 +33,18 @@ namespace FatigueDetect.Logica
 
                 long closed = now - eyesClosedSince;
 
-                if (closed >= AlarmThresholdMs)
+                AjustesDeteccion ajustes = config.Deteccion;
+                if (closed >= (long)(ajustes.SegundosAlarma * 1000))
                 {
                     currentState = EyeState.ALARMA_ACTIVADA;
                 }
-                else if (closed >= DrowsyThresholdMs)
+                else if (closed >= (long)(ajustes.SegundosSomnoliento * 1000))
                 {
                     currentState = EyeState.SOMNOLIENTO;
+                }
+                else
+                {
+                    currentState = EyeState.DESPIERTO;
                 }
             }
 

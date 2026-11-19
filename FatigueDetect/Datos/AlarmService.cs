@@ -18,8 +18,12 @@ namespace FatigueDetect.Datos
 
         public void Activar()
         {
-            // Si ya está sonando no la reinicia; si el sonido está desactivado en Configuración, no suena.
-            if (playing || !config.SonidoActivado) return;
+            if (!config.Deteccion.SonidoActivado)
+            {
+                Detener();
+                return;
+            }
+            if (playing) return;
 
             try
             {

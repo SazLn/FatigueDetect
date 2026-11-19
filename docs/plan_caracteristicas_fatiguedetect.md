@@ -14,12 +14,14 @@
 | Avisos de iluminación | Integrado en `main` | La vista previa indica el estado en directo. El monitoreo avisa ante oscuridad o sobreexposición persistente. |
 | Avisos en vivo de ausencia o varios rostros | Integrado en `main` | Aparecen después de dos segundos y se retiran al recuperar una detección válida. |
 | Resumen de eventos en el historial | Integrado en `main` | Agrupa por tipo y muestra cantidad, duración total, máxima y eventos sin duración. |
-| Métricas de calidad de sesión | Implementado | FPS medios, porcentaje de fotogramas analizables, tiempo con un rostro válido y episodios de fallo de cámara. Las sesiones previas conservan la calidad sin medición. |
-| Dashboard histórico básico | Implementado | Sesiones por día, semana y mes, duración promedio y franjas de mayor uso. |
-| Exportación a Excel | Implementado | Sesiones, eventos y resúmenes. Los gráficos en Excel quedan pendientes. |
+| Resumen al finalizar el monitoreo | Integrado en `main` | Muestra duración, alarmas, ausencias de rostro y conteos de los demás eventos destacados. |
+| Configuración persistente de detección y sonido | Integrado en `main` | Guarda y restablece los umbrales de somnolencia y alarma y el estado del sonido. |
+| Métricas de calidad de sesión | Integrado en `main` | FPS medios, porcentaje de fotogramas analizables, tiempo con un rostro válido y episodios de fallo de cámara. Las sesiones previas conservan la calidad sin medición. |
+| Dashboard histórico básico | Integrado en `main` | Sesiones por día, semana y mes, duración promedio y franjas de mayor uso. |
+| Exportación a Excel | Integrado en `main` | Sesiones, eventos y resúmenes. Los gráficos en Excel quedan pendientes. |
 | Resto de propuestas | Pendiente | Incluye puntos faciales, parpadeos, PERCLOS, cabeceos, distracción y análisis histórico avanzado. |
 
-La tabla reúne las funciones integradas y las implementadas en la rama de métricas, dashboard y Excel. El resto del plan conserva las propuestas y su alcance previsto.
+Esta sección refleja el estado actual de `main`. El resto del documento conserva las propuestas pendientes y su alcance previsto.
 
 ## Propósito del documento
 
@@ -589,17 +591,17 @@ Prioridad alta porque desbloquea los dashboards y evita rehacer el almacenamient
 5. Permitir seleccionar y probar la cámara, guardar la preferencia y compartirla entre biometría y monitoreo.
 6. Mostrar avisos de oscuridad y sobreexposición en la vista previa y durante el monitoreo.
 7. Mostrar avisos en vivo de ausencia o varios rostros y resumir los eventos en el historial. **Integrado en `main` mediante el PR #5.**
-8. Registrar FPS, porcentaje de fotogramas analizables, tiempo con rostro válido y fallos de cámara. **Implementado.**
+8. Registrar FPS, porcentaje de fotogramas analizables, tiempo con rostro válido y fallos de cámara. **Integrado en `main`.**
 
 ## Etapa 2: Dashboard inicial
 
 1. Rediseñar el monitoreo en vivo.
-2. Crear el resumen de sesión.
-3. Crear el análisis histórico básico con duración promedio. **Implementado.**
+2. Ampliar el resumen de sesión con las futuras métricas de calidad, fatiga y atención. El resumen básico al detener el monitoreo está integrado en `main`.
+3. Crear el análisis histórico básico con duración promedio. **Integrado en `main`.**
 4. Añadir filtros.
-5. Mostrar sesiones por día, semana y mes. **Implementado.**
-6. Mostrar horas de mayor uso. **Implementado.**
-7. Exportar sesiones, eventos y resúmenes a Excel. **Implementado.** Los gráficos quedan pendientes.
+5. Mostrar sesiones por día, semana y mes. **Integrado en `main`.**
+6. Mostrar horas de mayor uso. **Integrado en `main`.**
+7. Exportar sesiones, eventos y resúmenes a Excel. **Integrado en `main`.** Los gráficos quedan pendientes.
 
 ## Etapa 3: Puntos faciales y métricas de fatiga
 

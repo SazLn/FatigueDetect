@@ -276,7 +276,7 @@ namespace FatigueDetect.Presentacion
             lblVehiculo.Text = nueva.Vehiculo.TipoCarro + "  ·  Placa " + nueva.Vehiculo.Placa;
             lblAlarmas.Text = "Alarmas en esta sesión: 0";
             lblDuracion.Text = "Duración: 00:00:00";
-            capAlarma.Text = "Alarma a los " + config.SegundosAlarma.ToString("0.0") + " s";
+            capAlarma.Text = "Alarma a los " + config.Deteccion.SegundosAlarma.ToString("0.0") + " s";
 
             sinSenal.Text = "Iniciando cámara...";
             sinSenal.Visible = true;
@@ -311,7 +311,7 @@ namespace FatigueDetect.Presentacion
             lblVehiculo.Text = "Vehículo: —";
             lblAlarmas.Text = "Alarmas en esta sesión: —";
             lblDuracion.Text = "Duración: 00:00:00";
-            capAlarma.Text = "Alarma a los " + config.SegundosAlarma.ToString("0.0") + " s";
+            capAlarma.Text = "Alarma a los " + config.Deteccion.SegundosAlarma.ToString("0.0") + " s";
             alertaTiempo.Text = "0.0 s";
             barra.Valor = 0;
 
@@ -404,11 +404,12 @@ namespace FatigueDetect.Presentacion
 
                 double segundos = tiempoMs / 1000.0;
                 alertaTiempo.Text = segundos.ToString("0.0") + " s";
-                barra.Valor = segundos / Math.Max(0.1, config.SegundosAlarma);
-                capAlarma.Text = "Alarma a los " + config.SegundosAlarma.ToString("0.0") + " s";
+                AjustesDeteccion ajustes = config.Deteccion;
+                barra.Valor = segundos / Math.Max(0.1, ajustes.SegundosAlarma);
+                capAlarma.Text = "Alarma a los " + ajustes.SegundosAlarma.ToString("0.0") + " s";
 
-                grafica.UmbralSomnoliento = config.SegundosSomnoliento;
-                grafica.UmbralAlarma = config.SegundosAlarma;
+                grafica.UmbralSomnoliento = ajustes.SegundosSomnoliento;
+                grafica.UmbralAlarma = ajustes.SegundosAlarma;
                 if ((DateTime.Now - ultimoMuestreo).TotalMilliseconds >= MuestreoMs)
                 {
                     grafica.AgregarValor(segundos);
