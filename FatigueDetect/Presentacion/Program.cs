@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Text.Json;
 using System.Windows.Forms;
 using FatigueDetect.Datos;
 using FatigueDetect.Entidades;
@@ -22,6 +23,16 @@ namespace FatigueDetect.Presentacion
                 Path.Combine(carpeta, "historial.sqlite"), Path.Combine(carpeta, "historial.csv")));
             var catalogoTipos = new CatalogoTiposCarro(new TiposCarroRepository(Path.Combine(carpeta, "tipos_carro.txt")));
             var configuracion = new Configuracion();
+            var repositorioAjustes = new ConfiguracionDeteccionRepository(Path.Combine(carpeta, "configuracion.json"));
+            try
+            {
+                configuracion.Deteccion = repositorioAjustes.Leer();
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException or InvalidDataException)
+            {
+                MessageBox.Show("No se pudo leer la configuración de detección. Se usarán los valores predeterminados.\n" + ex.Message,
+                    "Configuración", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
             var preferenciaCamara = new PreferenciaCamara(Path.Combine(carpeta, "camara_preferida.txt"));
             try
             {
@@ -38,7 +49,8 @@ namespace FatigueDetect.Presentacion
                 new PerfilBiometricoRepository(Path.Combine(carpeta, "perfiles_biometricos.json")),
                 cascadaRostros, configuracion);
 
-            Application.Run(new MainForm(sesionService, catalogoTipos, configuracion, servicioBiometrico, preferenciaCamara));
+            Application.Run(new MainForm(sesionService, catalogoTipos, configuracion, servicioBiometrico,
+                preferenciaCamara, repositorioAjustes));
         }
     }
 }

@@ -1,6 +1,7 @@
 using System;
 using System.Drawing;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Windows.Forms;
 using FatigueDetect.Datos;
@@ -36,7 +37,8 @@ namespace FatigueDetect.Presentacion
         private EyeDetector? detectorOjos;
 
         public MainForm(SesionService sesionService, CatalogoTiposCarro catalogo, Configuracion config,
-            ServicioBiometrico servicioBiometrico, PreferenciaCamara preferenciaCamara)
+            ServicioBiometrico servicioBiometrico, PreferenciaCamara preferenciaCamara,
+            ConfiguracionDeteccionRepository repositorioAjustes)
         {
             this.sesionService = sesionService;
             this.catalogo = catalogo;
@@ -52,7 +54,7 @@ namespace FatigueDetect.Presentacion
             paginaInicio = new PaginaInicio(config);
             paginaRegistro = new PaginaRegistro(catalogo, servicioBiometrico);
             paginaHistorial = new PaginaHistorial(sesionService);
-            paginaConfig = new PaginaConfiguracion(config, preferenciaCamara);
+            paginaConfig = new PaginaConfiguracion(config, preferenciaCamara, repositorioAjustes);
 
             contenido.Dock = DockStyle.Fill;
             contenido.BackColor = Tema.Fondo;
@@ -232,22 +234,54 @@ namespace FatigueDetect.Presentacion
 
             paginaInicio.FinalizarSesion();
 
+            string? errorGuardado = null;
             try
             {
                 sesionService.Finalizar(sesion);
             }
             catch (Exception ex)
             {
-                MessageBox.Show(this,
-                    "No se pudo guardar la sesión en el historial.\n" + ex.Message,
-                    "Error al guardar", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                errorGuardado = "No se pudo guardar la sesión en el historial.\n" + ex.Message;
             }
 
             if (mostrarHistorial)
             {
-                paginaHistorial.Recargar(sesion);
-                Mostrar(paginaHistorial, btnHistorial);
+                MostrarResumenFinSesion(sesion, errorGuardado);
+                if (errorGuardado is null)
+                {
+                    paginaHistorial.Recargar(sesion);
+                    Mostrar(paginaHistorial, btnHistorial);
+                }
             }
+            else if (errorGuardado is not null)
+            {
+                MessageBox.Show(this, errorGuardado, "Error al guardar",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void MostrarResumenFinSesion(SesionConduccion sesion, string? errorGuardado)
+        {
+            var eventos = sesion.Eventos;
+            int ausencias = eventos.Count(evento => evento.Tipo == TipoEventoSesion.RostroNoDetectado);
+            var destacados = eventos
+                .Where(evento => evento.Tipo is not (TipoEventoSesion.Alarma or TipoEventoSesion.RostroNoDetectado))
+                .GroupBy(evento => evento.Tipo)
+                .OrderBy(grupo => grupo.Key)
+                .Select(grupo => $"• {PaginaHistorial.NombreEvento(grupo.Key)}: {grupo.Count()}")
+                .ToArray();
+
+            string mensaje = $"Duración: {Tema.FormatoDuracion(sesion.Duracion)}\n" +
+                $"Alarmas: {sesion.CantidadAlarmas}\n" +
+                $"Episodios sin rostro detectado: {ausencias}\n\n" +
+                (destacados.Length == 0 ? "Sin otros eventos destacados."
+                    : "Otros eventos destacados\n" + string.Join("\n", destacados));
+
+            if (errorGuardado is not null)
+                mensaje += "\n\n" + errorGuardado;
+
+            MessageBox.Show(this, mensaje, "Resumen de la sesión", MessageBoxButtons.OK,
+                errorGuardado is null ? MessageBoxIcon.Information : MessageBoxIcon.Warning);
         }
     }
 }

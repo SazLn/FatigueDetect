@@ -331,7 +331,7 @@ namespace FatigueDetect.Presentacion
                 dEventos.Items.Add($"Alarmas sin hora registrada · {alarmasSinHora}");
         }
 
-        private static string NombreEvento(TipoEventoSesion tipo) => tipo switch
+        internal static string NombreEvento(TipoEventoSesion tipo) => tipo switch
         {
             TipoEventoSesion.CierreOcularProlongado => "Posible cierre ocular prolongado",
             TipoEventoSesion.Alarma => "Alarma",
