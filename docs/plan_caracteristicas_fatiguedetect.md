@@ -14,9 +14,11 @@
 | Avisos de iluminación | Integrado en `main` | La vista previa indica el estado en directo. El monitoreo avisa ante oscuridad o sobreexposición persistente. |
 | Avisos en vivo de ausencia o varios rostros | Integrado en `main` | Aparecen después de dos segundos y se retiran al recuperar una detección válida. |
 | Resumen de eventos en el historial | Integrado en `main` | Agrupa por tipo y muestra cantidad, duración total, máxima y eventos sin duración. |
-| Resto de propuestas | Pendiente | Incluye puntos faciales, parpadeos, PERCLOS, cabeceos, distracción, dashboards y Excel. |
+| Resumen al finalizar el monitoreo | Integrado en `main` | Muestra duración, alarmas, ausencias de rostro y conteos de los demás eventos destacados. |
+| Configuración persistente de detección y sonido | Integrado en `main` | Guarda y restablece los umbrales de somnolencia y alarma y el estado del sonido. |
+| Resto de propuestas | Pendiente | Incluye métricas de calidad de sesión, dashboard histórico, exportación a Excel y detección mediante puntos faciales. |
 
-Esta sección refleja el estado de `main` después de la integración del PR #3. El resto del documento conserva las propuestas pendientes y su alcance previsto.
+Esta sección refleja el estado actual de `main`. El resto del documento conserva las propuestas pendientes y su alcance previsto.
 
 ## Propósito del documento
 
@@ -591,7 +593,7 @@ Prioridad alta porque desbloquea los dashboards y evita rehacer el almacenamient
 ## Etapa 2: Dashboard inicial
 
 1. Rediseñar el monitoreo en vivo.
-2. Crear el resumen de sesión.
+2. Ampliar el resumen de sesión con las futuras métricas de calidad, fatiga y atención. El resumen básico al detener el monitoreo está integrado en `main`.
 3. Crear el análisis histórico básico.
 4. Añadir filtros.
 5. Mostrar sesiones por día, semana y mes.
