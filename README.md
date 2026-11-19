@@ -21,6 +21,7 @@ Proyecto de inicio: `Presentacion`.
 - historial.csv (historial de versiones anteriores, si existe)
 - tipos_carro.txt
 - camara_preferida.txt (selección de cámara para este equipo)
+- configuracion.json (umbrales de somnolencia y alarma, y estado del sonido)
 - perfiles_biometricos.json (datos del conductor y descriptores numéricos del rostro; no contiene fotografías)
 
 ## Elegir la cámara y revisar la iluminación
@@ -30,6 +31,10 @@ Pulsa **Actualizar lista** después de conectar una cámara externa y **Ver vist
 el encuadre y la iluminación. La selección se guarda al cambiarla y se usa tanto para la captura
 facial como para el monitoreo. Si la cámara guardada se desconecta, vuelve a conectarla o selecciona otra.
 Puedes cambiar la cámara entre sesiones.
+
+En **Configuración**, usa **Guardar cambios** para aplicar los umbrales de detección
+y el sonido. Los valores se conservan entre ejecuciones. **Restablecer** aplica y
+guarda los valores predeterminados (1,5 s para somnolencia, 3 s para alarma y sonido activo).
 
 La vista previa indica si la imagen está oscura, sobreexpuesta o bien iluminada. En **Inicio**,
 el aviso aparece debajo del video cuando la imagen permanece demasiado oscura o sobreexpuesta
@@ -42,6 +47,10 @@ vuelve a detectarse únicamente al conductor. Si la cámara deja de entregar ima
 la interfaz muestra que no hay señal y limpia el aviso anterior.
 
 ## Historial y registro de eventos
+
+Al pulsar **Detener monitoreo**, aparece el resumen final de la sesión con su duración,
+el número de alarmas, los episodios sin rostro detectado y los demás eventos destacados
+agrupados por tipo.
 
 Al detener el monitoreo o cerrar la aplicación normalmente, se guardan la sesión y sus
 eventos en una sola operación de SQLite. En **Historial de sesiones**, selecciona una fila

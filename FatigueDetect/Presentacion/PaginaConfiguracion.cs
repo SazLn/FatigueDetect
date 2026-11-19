@@ -1,5 +1,6 @@
 using System;
 using System.Drawing;
+using System.IO;
 using System.Windows.Forms;
 using FatigueDetect.Datos;
 using FatigueDetect.Entidades;
@@ -10,21 +11,24 @@ namespace FatigueDetect.Presentacion
     public class PaginaConfiguracion : UserControl
     {
         private readonly Configuracion config;
+        private readonly ConfiguracionDeteccionRepository repositorioAjustes;
         private readonly PanelCamaraConfiguracion panelCamara;
         private readonly NumericUpDown somnolientoNum = new NumericUpDown();
         private readonly NumericUpDown alarmaNum = new NumericUpDown();
         private readonly CheckBox sonidoCheck = new CheckBox();
 
-        public PaginaConfiguracion(Configuracion config, PreferenciaCamara preferenciaCamara)
+        public PaginaConfiguracion(Configuracion config, PreferenciaCamara preferenciaCamara,
+            ConfiguracionDeteccionRepository repositorioAjustes)
         {
             this.config = config;
+            this.repositorioAjustes = repositorioAjustes;
 
             Dock = DockStyle.Fill;
             BackColor = Tema.Fondo;
             Padding = new Padding(22);
 
-            ConfigurarNumerico(somnolientoNum, 0.5M, 5M);
-            ConfigurarNumerico(alarmaNum, 1M, 10M);
+            ConfigurarNumerico(somnolientoNum, (decimal)AjustesDeteccion.MinimoSomnolencia, AjustesDeteccion.MaximoSomnolencia);
+            ConfigurarNumerico(alarmaNum, AjustesDeteccion.MinimoAlarma, AjustesDeteccion.MaximoAlarma);
 
             sonidoCheck.Text = "Reproducir el sonido de la alarma";
             sonidoCheck.Font = Tema.Fuente(11);
@@ -56,7 +60,7 @@ namespace FatigueDetect.Presentacion
             tabla.Controls.Add(sonidoCheck, 0, 6);
 
             tabla.Controls.Add(Tema.Etiqueta(
-                "Los cambios se aplican de inmediato, incluso durante una sesión, y se restablecen al cerrar el programa.",
+                "Al guardar o restablecer, los ajustes se aplican durante el monitoreo y se conservan al cerrar el programa.",
                 9, Tema.TextoSuave, Tema.Tarjeta), 0, 8);
 
             var botones = new FlowLayoutPanel
@@ -122,14 +126,10 @@ namespace FatigueDetect.Presentacion
 
         private void CargarValores()
         {
-            somnolientoNum.Value = Limitar((decimal)config.SegundosSomnoliento, somnolientoNum);
-            alarmaNum.Value = Limitar((decimal)config.SegundosAlarma, alarmaNum);
-            sonidoCheck.Checked = config.SonidoActivado;
-        }
-
-        private static decimal Limitar(decimal valor, NumericUpDown numerico)
-        {
-            return Math.Max(numerico.Minimum, Math.Min(numerico.Maximum, valor));
+            AjustesDeteccion ajustes = config.Deteccion;
+            somnolientoNum.Value = (decimal)ajustes.SegundosSomnoliento;
+            alarmaNum.Value = (decimal)ajustes.SegundosAlarma;
+            sonidoCheck.Checked = ajustes.SonidoActivado;
         }
 
         private void Guardar_Click(object? remitente, EventArgs evento)
@@ -142,20 +142,32 @@ namespace FatigueDetect.Presentacion
                 return;
             }
 
-            config.SegundosSomnoliento = (double)somnolientoNum.Value;
-            config.SegundosAlarma = (double)alarmaNum.Value;
-            config.SonidoActivado = sonidoCheck.Checked;
-
-            MessageBox.Show(FindForm(), "Configuración guardada.", "Listo",
-                MessageBoxButtons.OK, MessageBoxIcon.Information);
+            var ajustes = new AjustesDeteccion((double)somnolientoNum.Value, (double)alarmaNum.Value, sonidoCheck.Checked);
+            AplicarYGuardar(ajustes, "Configuración guardada.");
         }
 
         private void Restablecer_Click(object? remitente, EventArgs evento)
         {
-            config.SegundosSomnoliento = 1.5;
-            config.SegundosAlarma = 3.0;
-            config.SonidoActivado = true;
+            AplicarYGuardar(AjustesDeteccion.Predeterminados, "Valores predeterminados guardados.");
+        }
+
+        private void AplicarYGuardar(AjustesDeteccion ajustes, string confirmacion)
+        {
+            try
+            {
+                repositorioAjustes.Guardar(ajustes);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                MessageBox.Show(FindForm(), "No se pudo guardar la configuración.\n" + ex.Message,
+                    "Error al guardar", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            config.Deteccion = ajustes;
             CargarValores();
+            MessageBox.Show(FindForm(), confirmacion, "Configuración",
+                MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
     }
 }
