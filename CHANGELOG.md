@@ -2,6 +2,7 @@
 
 ## Sin publicar
 
+- El plan incorpora como pendientes gráficos de Excel más explicativos y una salida de audio seleccionable y comprobable para la alarma.
 - El historial filtra por fecha, conductor y vehículo. El dashboard y Excel aplican los mismos filtros.
 - El dashboard y Excel muestran gráficos de sesiones, alarmas por hora y eventos por gravedad, con intervalos entre alarmas. El historial añade una línea temporal por sesión.
 - La vista previa y el monitoreo detectan posibles imágenes tapadas, desenfocadas o congeladas. La selección de resolución y FPS se guarda entre ejecuciones.
