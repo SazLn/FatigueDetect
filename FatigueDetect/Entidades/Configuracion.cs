@@ -6,5 +6,6 @@ namespace FatigueDetect.Entidades
         public double SegundosSomnoliento { get; set; } = 1.5;
         public double SegundosAlarma { get; set; } = 3.0;
         public bool SonidoActivado { get; set; } = true;
+        public string? CamaraId { get; set; }
     }
 }

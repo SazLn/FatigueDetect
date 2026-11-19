@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using OpenCvSharp;
 using FatigueDetect.Datos;
 using FatigueDetect.Entidades;
@@ -8,18 +9,17 @@ using FatigueDetect.Entidades;
 namespace FatigueDetect.Logica
 {
     /// <summary>
-    /// Bucle de detección. Se crea uno por sesión: Iniciar() arranca el hilo y
-    /// Detener() lo para y espera a que termine.
+    /// Bucle de detección. Abre, lee y libera la cámara en el mismo hilo.
     /// </summary>
     public class DetectionController
     {
-        private readonly CameraService cameraService;
         private readonly IDetectorView view;
         private readonly FaceDetector faceDetector;
         private readonly EyeDetector eyeDetector;
         private readonly DrowsinessLogic drowsinessLogic;
         private readonly AlarmService alarmService;
         private readonly RegistroEventosSesion registro;
+        private readonly SesionConduccion sesion;
         private readonly object candadoEstado = new object();
         private DateTimeOffset ultimaInterrupcion = DateTimeOffset.MinValue;
 
@@ -27,38 +27,67 @@ namespace FatigueDetect.Logica
         private volatile bool running = false;
         private volatile bool paused = false;
 
-        public DetectionController(CameraService cameraService, IDetectorView view,
+        public DetectionController(IDetectorView view,
             FaceDetector faceDetector, EyeDetector eyeDetector,
             DrowsinessLogic drowsinessLogic, AlarmService alarmService,
             SesionConduccion sesion)
         {
-            this.cameraService = cameraService;
             this.view = view;
             this.faceDetector = faceDetector;
             this.eyeDetector = eyeDetector;
             this.drowsinessLogic = drowsinessLogic;
             this.alarmService = alarmService;
+            this.sesion = sesion;
             registro = new RegistroEventosSesion(sesion);
         }
 
-        public void Iniciar()
+        public Task IniciarAsync(string? camaraId, CancellationToken cancelacion)
         {
-            if (running) return;
-
+            var arranque = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             running = true;
-            hilo = new Thread(Bucle) { IsBackground = true };
-            hilo.Start();
+            hilo = HiloCapturaCamara.Iniciar(() => Bucle(camaraId, arranque, cancelacion));
+            return arranque.Task;
         }
 
-        private void Bucle()
+        private void Bucle(string? camaraId, TaskCompletionSource arranque, CancellationToken cancelacion)
         {
-            if (!cameraService.IsOpened())
+            try
             {
-                System.Console.WriteLine("Error con la cámara");
-                return;
-            }
+                using var camara = new CameraService(camaraId, cancelacion);
+                if (!camara.IsOpened())
+                    throw new InvalidOperationException("No se pudo abrir la cámara. Selecciona o prueba otra en Configuración, " +
+                        "cierra las aplicaciones que la usen y comprueba los permisos de cámara de Windows.");
 
-            while (running)
+                cancelacion.ThrowIfCancellationRequested();
+                sesion.Inicio = DateTime.Now;
+                arranque.SetResult();
+                ProcesarCaptura(camara, cancelacion);
+            }
+            catch (OperationCanceledException) when (cancelacion.IsCancellationRequested)
+            {
+                arranque.TrySetCanceled(cancelacion);
+            }
+            catch (Exception ex)
+            {
+                if (!arranque.TrySetException(ex) && running)
+                {
+                    System.Diagnostics.Trace.TraceError(ex.ToString());
+                    view.UpdateImage(null, EyeState.DESPIERTO, 0, null);
+                }
+            }
+            finally
+            {
+                lock (candadoEstado)
+                {
+                    running = false;
+                    InterrumpirObservacion(DateTimeOffset.UtcNow);
+                }
+            }
+        }
+
+        private void ProcesarCaptura(CameraService camara, CancellationToken cancelacion)
+        {
+            while (running && !cancelacion.IsCancellationRequested)
             {
                 if (paused)
                 {
@@ -66,7 +95,7 @@ namespace FatigueDetect.Logica
                     continue;
                 }
 
-                using Mat frame = cameraService.GetFrame();
+                using Mat frame = camara.GetFrame();
 
                 if (frame.Empty())
                 {
@@ -75,6 +104,7 @@ namespace FatigueDetect.Logica
                         if (running && !paused)
                             InterrumpirObservacion(DateTimeOffset.UtcNow);
                     }
+                    view.UpdateImage(null, EyeState.DESPIERTO, 0, null);
                     Thread.Sleep(10);
                     continue;
                 }
@@ -82,14 +112,12 @@ namespace FatigueDetect.Logica
                 DateTimeOffset instante = DateTimeOffset.UtcNow;
                 Cv2.Flip(frame, frame, FlipMode.Y);
                 Rect[] rostros = faceDetector.Detect(frame);
-                // Usa la luminancia de la imagen sin los recuadros dibujados.
-                using var gris = new Mat();
-                Cv2.CvtColor(frame, gris, ColorConversionCodes.BGR2GRAY);
-                double brillo = Cv2.Mean(gris).Val0;
+                EstadoIluminacion iluminacion = MedidorIluminacion.Evaluar(frame);
                 bool ojosDetectados = rostros.Length > 0 && DibujarRostroYOjos(frame, rostros);
 
                 EyeState estado;
                 long cierreMs;
+                EstadoIluminacion? avisoIluminacion;
                 lock (candadoEstado)
                 {
                     if (!running || paused || instante <= ultimaInterrupcion)
@@ -99,7 +127,7 @@ namespace FatigueDetect.Logica
                         ? drowsinessLogic.EvaluateSinRostro()
                         : drowsinessLogic.Evaluate(ojosDetectados);
                     cierreMs = drowsinessLogic.GetClosedDurationMs();
-                    registro.Observar(instante, rostros.Length, ojosDetectados, estado, brillo);
+                    avisoIluminacion = registro.Observar(instante, rostros.Length, ojosDetectados, estado, iluminacion);
 
                     if (estado == EyeState.ALARMA_ACTIVADA)
                         alarmService.Activar();
@@ -110,7 +138,7 @@ namespace FatigueDetect.Logica
                 var image = ImageUtils.MatToBitmap(frame);
                 try
                 {
-                    view.UpdateImage(image, estado, cierreMs);
+                    view.UpdateImage(image, estado, cierreMs, avisoIluminacion);
                 }
                 catch (Exception) when (!running)
                 {

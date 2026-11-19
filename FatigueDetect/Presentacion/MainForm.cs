@@ -1,6 +1,7 @@
 using System;
 using System.Drawing;
 using System.IO;
+using System.Threading;
 using System.Windows.Forms;
 using FatigueDetect.Datos;
 using FatigueDetect.Entidades;
@@ -29,13 +30,13 @@ namespace FatigueDetect.Presentacion
         // Sesión en curso (null cuando no se está monitoreando)
         private SesionConduccion? sesionActiva;
         private DetectionController? controlador;
-        private CameraService? camara;
+        private CancellationTokenSource? arranqueCamara;
 
         private FaceDetector? detectorRostros;
         private EyeDetector? detectorOjos;
 
         public MainForm(SesionService sesionService, CatalogoTiposCarro catalogo, Configuracion config,
-            ServicioBiometrico servicioBiometrico)
+            ServicioBiometrico servicioBiometrico, PreferenciaCamara preferenciaCamara)
         {
             this.sesionService = sesionService;
             this.catalogo = catalogo;
@@ -51,7 +52,7 @@ namespace FatigueDetect.Presentacion
             paginaInicio = new PaginaInicio(config);
             paginaRegistro = new PaginaRegistro(catalogo, servicioBiometrico);
             paginaHistorial = new PaginaHistorial(sesionService);
-            paginaConfig = new PaginaConfiguracion(config);
+            paginaConfig = new PaginaConfiguracion(config, preferenciaCamara);
 
             contenido.Dock = DockStyle.Fill;
             contenido.BackColor = Tema.Fondo;
@@ -71,7 +72,11 @@ namespace FatigueDetect.Presentacion
                 paginaHistorial.Recargar(null);
                 Mostrar(paginaHistorial, btnHistorial);
             };
-            btnConfig.Click += (remitente, evento) => Mostrar(paginaConfig, btnConfig);
+            btnConfig.Click += (remitente, evento) =>
+            {
+                Mostrar(paginaConfig, btnConfig);
+                paginaConfig.ActualizarCamaras();
+            };
 
             paginaRegistro.RegistroConfirmado += IniciarSesion;
             paginaInicio.DetenerSolicitado += () => DetenerSesion(true);
@@ -79,6 +84,8 @@ namespace FatigueDetect.Presentacion
 
             FormClosing += (remitente, evento) =>
             {
+                arranqueCamara?.Cancel();
+                paginaConfig.DetenerVistaPrevia();
                 // Cerrar la ventana también termina y guarda la sesión en curso.
                 if (sesionActiva != null)
                 {
@@ -131,6 +138,9 @@ namespace FatigueDetect.Presentacion
 
         private void Mostrar(Control pagina, BotonNavegacion boton)
         {
+            if (!ReferenceEquals(pagina, paginaConfig) && paginaConfig.Visible)
+                paginaConfig.DetenerVistaPrevia();
+
             foreach (Control c in contenido.Controls)
             {
                 c.Visible = ReferenceEquals(c, pagina);
@@ -147,8 +157,11 @@ namespace FatigueDetect.Presentacion
         //  Ciclo de una sesión
         // ------------------------------------------------------------------
 
-        private void IniciarSesion(string cedula, string nombre, string apellidos, string tipo, string placa)
+        private async void IniciarSesion(string cedula, string nombre, string apellidos, string tipo, string placa)
         {
+            if (arranqueCamara != null)
+                return;
+
             if (sesionActiva != null)
             {
                 MessageBox.Show(this,
@@ -157,51 +170,50 @@ namespace FatigueDetect.Presentacion
                 return;
             }
 
-            // 1. Cámara
-            var camaraNueva = new CameraService();
-            if (!camaraNueva.IsOpened())
-            {
-                camaraNueva.Dispose();
-                MessageBox.Show(this,
-                    "No se pudo abrir la cámara.\n\n" +
-                    "• Cierra otras aplicaciones que la usen (Zoom, Teams, navegador).\n" +
-                    "• Revisa en Windows: Configuración > Privacidad y seguridad > Cámara, " +
-                    "y activa \"Permitir que las aplicaciones de escritorio accedan a la cámara\".",
-                    "Cámara no disponible", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
-
-            // 2. Clasificadores (se cargan una sola vez)
+            using var cancelacion = new CancellationTokenSource();
+            arranqueCamara = cancelacion;
+            paginaConfig.HabilitarCamara(false);
+            DetectionController? preparando = null;
             try
             {
                 string rutaCascadas = Path.Combine(AppContext.BaseDirectory, "Resources", "cascades");
                 detectorRostros ??= new FaceDetector(Path.Combine(rutaCascadas, "haarcascade_frontalface_default.xml"));
                 detectorOjos ??= new EyeDetector(Path.Combine(rutaCascadas, "haarcascade_eye_tree_eyeglasses.xml"));
+
+                SesionConduccion sesion = sesionService.Iniciar(cedula, nombre, apellidos, tipo, placa);
+                preparando = new DetectionController(
+                    paginaInicio, detectorRostros, detectorOjos,
+                    new DrowsinessLogic(config), new AlarmService(config), sesion);
+                await preparando.IniciarAsync(config.CamaraId, cancelacion.Token);
+                cancelacion.Token.ThrowIfCancellationRequested();
+
+                sesion.Vehiculo.TipoCarro = catalogo.Registrar(tipo);
+                paginaRegistro.RecargarTipos();
+                paginaInicio.IniciarSesion(sesion);
+                paginaRegistro.Limpiar();
+                Mostrar(paginaInicio, btnInicio);
+
+                controlador = preparando;
+                sesionActiva = sesion;
+                preparando = null;
+            }
+            catch (OperationCanceledException) when (cancelacion.IsCancellationRequested)
+            {
+                // Se cerró la ventana mientras se abría la cámara.
             }
             catch (Exception ex)
             {
-                camaraNueva.Dispose();
-                MessageBox.Show(this, "No se pudieron cargar los clasificadores:\n" + ex.Message,
-                    "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return;
+                if (!IsDisposed && !cancelacion.IsCancellationRequested)
+                    MessageBox.Show(this, ex.Message, "No se pudo iniciar el monitoreo",
+                        MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
-
-            // 3. Sesión
-            string tipoCarro = catalogo.Registrar(tipo);   // si es nuevo, queda guardado
-            paginaRegistro.RecargarTipos();
-            SesionConduccion sesion = sesionService.Iniciar(cedula, nombre, apellidos, tipoCarro, placa);
-
-            camara = camaraNueva;
-            sesionActiva = sesion;
-            controlador = new DetectionController(
-                camaraNueva, paginaInicio, detectorRostros!, detectorOjos!,
-                new DrowsinessLogic(config), new AlarmService(config), sesion);
-
-            paginaInicio.IniciarSesion(sesion);
-            paginaRegistro.Limpiar();
-            Mostrar(paginaInicio, btnInicio);
-
-            controlador.Iniciar();
+            finally
+            {
+                preparando?.Detener();
+                arranqueCamara = null;
+                if (sesionActiva == null && !IsDisposed && !cancelacion.IsCancellationRequested)
+                    paginaConfig.HabilitarCamara(true);
+            }
         }
 
         private void DetenerSesion(bool mostrarHistorial)
@@ -213,11 +225,10 @@ namespace FatigueDetect.Presentacion
 
             SesionConduccion sesion = sesionActiva;
 
-            controlador?.Detener();   // para el hilo y la alarma
-            camara?.Dispose();        // apaga la cámara
+            controlador?.Detener();
             controlador = null;
-            camara = null;
             sesionActiva = null;
+            paginaConfig.HabilitarCamara(true);
 
             paginaInicio.FinalizarSesion();
 

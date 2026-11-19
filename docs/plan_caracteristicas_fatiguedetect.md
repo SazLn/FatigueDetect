@@ -5,12 +5,14 @@
 | Característica | Estado | Alcance actual |
 |---|---|---|
 | Registro e identificación facial local | Integrado en `main` | Plantillas numéricas locales y opción de eliminación. |
-| SQLite e importación de historial CSV | Implementado en `feature/sqlite-eventos` | Sesiones y eventos vinculados. Las filas válidas se importan una vez y el CSV se conserva. |
-| Fecha, hora y duración de eventos | Implementado en `feature/sqlite-eventos` | Marcas con milisegundos para eventos nuevos. Las alarmas antiguas conservan los datos disponibles. |
-| Cierre ocular prolongado y alarma | Implementado en `feature/sqlite-eventos` | Usa el detector actual y sus umbrales. Los cierres son estimados. |
-| Rostro no detectado, varios rostros y mala iluminación | Implementado en `feature/sqlite-eventos` | Registra episodios desde dos segundos. El rostro no detectado puede indicar salida de cuadro u oclusión. |
-| Cronología en el historial | Implementado en `feature/sqlite-eventos` | El detalle de cada sesión muestra tipo, hora y duración de sus eventos. |
-| Resto de propuestas | Pendiente | Incluye selección de cámara, alertas visuales nuevas, puntos faciales, parpadeos, PERCLOS, cabeceos, dashboards y Excel. |
+| SQLite e importación de historial CSV | Integrado en `main` | Sesiones y eventos vinculados. Las filas válidas se importan una vez y el CSV se conserva. |
+| Fecha, hora y duración de eventos | Integrado en `main` | Marcas con milisegundos para eventos nuevos. Las alarmas antiguas conservan los datos disponibles. |
+| Cierre ocular prolongado y alarma | Integrado en `main` | Usa el detector actual y sus umbrales. Los cierres son estimados. |
+| Rostro no detectado, varios rostros y mala iluminación | Integrado en `main` | Registra episodios desde dos segundos. El rostro no detectado puede indicar salida de cuadro u oclusión. |
+| Cronología en el historial | Integrado en `main` | El detalle de cada sesión muestra tipo, hora y duración de sus eventos. |
+| Selector de cámara y vista previa | Implementado en `feature/selector-camara-iluminacion` | Guarda la cámara elegida y la usa en el registro facial y el monitoreo. |
+| Avisos de iluminación | Implementado en `feature/selector-camara-iluminacion` | La vista previa indica el estado en directo. El monitoreo avisa ante oscuridad o sobreexposición persistente. |
+| Resto de propuestas | Pendiente | Incluye otras alertas visuales, puntos faciales, parpadeos, PERCLOS, cabeceos, dashboards y Excel. |
 
 Esta sección recoge el avance. El resto del documento conserva las propuestas y su alcance previsto.
 
