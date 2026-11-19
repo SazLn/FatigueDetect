@@ -12,5 +12,6 @@ namespace FatigueDetect.Entidades
         }
 
         public string? CamaraId { get; set; }
+        public FormatoCamara FormatoCamara { get; set; } = FormatoCamara.Automatico;
     }
 }

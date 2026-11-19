@@ -9,7 +9,10 @@ namespace FatigueDetect.Entidades
         RostroNoDetectado,
         VariosRostros,
         LuzInsuficiente,
-        LuzExcesiva
+        LuzExcesiva,
+        CamaraTapada,
+        CamaraDesenfocada,
+        CamaraCongelada
     }
 
     public sealed record EventoSesion(TipoEventoSesion Tipo, DateTimeOffset Inicio, DateTimeOffset? Fin)

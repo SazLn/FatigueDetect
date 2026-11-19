@@ -18,7 +18,10 @@
 | Configuración persistente de detección y sonido | Integrado en `main` | Guarda y restablece los umbrales de somnolencia y alarma y el estado del sonido. |
 | Métricas de calidad de sesión | Integrado en `main` | FPS medios, porcentaje de fotogramas analizables, tiempo con un rostro válido y episodios de fallo de cámara. Las sesiones previas conservan la calidad sin medición. |
 | Dashboard histórico básico | Integrado en `main` | Sesiones por día, semana y mes, duración promedio y franjas de mayor uso. |
-| Exportación a Excel | Integrado en `main` | Sesiones, eventos y resúmenes. Los gráficos en Excel quedan pendientes. |
+| Exportación a Excel | Integrado en `main` | Sesiones, eventos y resúmenes. |
+| Filtros y análisis histórico | Implementado | Fecha, conductor y vehículo. Dashboard con gráficos, alarmas por hora, intervalos y gravedad. |
+| Gráficos en Excel y línea temporal | Implementado | Gráficos editables vinculados a celdas y vista gráfica de episodios en cada sesión. |
+| Formato y calidad de cámara | Implementado | Resolución y FPS solicitados, avisos de imagen tapada, desenfocada o congelada y episodios guardados durante el monitoreo. Pendiente validar con cámaras físicas. |
 | Resto de propuestas | Pendiente | Incluye puntos faciales, parpadeos, PERCLOS, cabeceos, distracción y análisis histórico avanzado. |
 
 Esta sección refleja el estado actual de `main`. El resto del documento conserva las propuestas pendientes y su alcance previsto.
@@ -592,16 +595,18 @@ Prioridad alta porque desbloquea los dashboards y evita rehacer el almacenamient
 6. Mostrar avisos de oscuridad y sobreexposición en la vista previa y durante el monitoreo.
 7. Mostrar avisos en vivo de ausencia o varios rostros y resumir los eventos en el historial. **Integrado en `main` mediante el PR #5.**
 8. Registrar FPS, porcentaje de fotogramas analizables, tiempo con rostro válido y fallos de cámara. **Integrado en `main`.**
+9. Solicitar resolución y FPS, y detectar imágenes tapadas, desenfocadas o congeladas. **Implementado.**
 
 ## Etapa 2: Dashboard inicial
 
 1. Rediseñar el monitoreo en vivo.
 2. Ampliar el resumen de sesión con las futuras métricas de calidad, fatiga y atención. El resumen básico al detener el monitoreo está integrado en `main`.
 3. Crear el análisis histórico básico con duración promedio. **Integrado en `main`.**
-4. Añadir filtros.
+4. Añadir filtros por fecha, conductor y vehículo. **Implementado.**
 5. Mostrar sesiones por día, semana y mes. **Integrado en `main`.**
 6. Mostrar horas de mayor uso. **Integrado en `main`.**
-7. Exportar sesiones, eventos y resúmenes a Excel. **Integrado en `main`.** Los gráficos quedan pendientes.
+7. Exportar sesiones, eventos y resúmenes a Excel. **Integrado en `main`.** Los gráficos editables de sesiones, alarmas y gravedad están implementados.
+8. Mostrar alarmas por hora, tiempo entre alarmas, gravedad y línea temporal de la sesión. **Implementado.**
 
 ## Etapa 3: Puntos faciales y métricas de fatiga
 

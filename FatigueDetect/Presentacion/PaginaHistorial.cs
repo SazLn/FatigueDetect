@@ -15,6 +15,14 @@ namespace FatigueDetect.Presentacion
         private readonly SesionService sesionService;
 
         private DataGridView tabla = null!;
+        private List<SesionConduccion> sesiones = new();
+        private List<SesionConduccion> visibles = new();
+        private readonly DateTimePicker desde = new() { Format = DateTimePickerFormat.Short, ShowCheckBox = true, Checked = false };
+        private readonly DateTimePicker hasta = new() { Format = DateTimePickerFormat.Short, ShowCheckBox = true, Checked = false };
+        private readonly TextBox conductor = new() { PlaceholderText = "Nombre o cédula" };
+        private readonly TextBox vehiculo = new() { PlaceholderText = "Placa o tipo" };
+        private Button lineaTemporal = null!;
+        private Label estadoFiltros = null!;
         private Label dConductor = null!;
         private Label dCedula = null!;
         private Label dVehiculo = null!;
@@ -35,7 +43,7 @@ namespace FatigueDetect.Presentacion
             BackColor = Tema.Fondo;
             Padding = new Padding(22);
 
-            var raiz = Tema.TablaFilas(Tema.Fondo, 84, 0);
+            var raiz = Tema.TablaFilas(Tema.Fondo, 84, 70, 0);
 
             var encabezado = Tema.TablaFilas(Tema.Fondo, 42, 30);
             encabezado.Controls.Add(Tema.Etiqueta("Historial de sesiones", 20, Tema.Texto, Tema.Fondo, FontStyle.Bold), 0, 0);
@@ -78,10 +86,57 @@ namespace FatigueDetect.Presentacion
             cuerpo.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 32));
             cuerpo.Controls.Add(ConstruirTabla(), 0, 0);
             cuerpo.Controls.Add(ConstruirDetalle(), 1, 0);
-            raiz.Controls.Add(cuerpo, 0, 1);
+            raiz.Controls.Add(ConstruirFiltros(), 0, 1);
+            raiz.Controls.Add(cuerpo, 0, 2);
 
             Controls.Add(raiz);
             MostrarDetalle(null);
+        }
+
+        private Control ConstruirFiltros()
+        {
+            var filtros = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 5, RowCount = 2 };
+            filtros.RowStyles.Add(new RowStyle(SizeType.Absolute, 45));
+            filtros.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+            for (int i = 0; i < 4; i++)
+                filtros.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25));
+            filtros.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 126));
+
+            AgregarFiltro(filtros, 0, "Desde", desde);
+            AgregarFiltro(filtros, 1, "Hasta", hasta);
+            AgregarFiltro(filtros, 2, "Conductor", conductor);
+            AgregarFiltro(filtros, 3, "Vehículo", vehiculo);
+
+            Button limpiar = Tema.Boton("Limpiar filtros", Tema.TarjetaClara, Tema.Texto);
+            limpiar.Dock = DockStyle.Fill;
+            limpiar.Click += (_, _) =>
+            {
+                desde.Checked = hasta.Checked = false;
+                conductor.Clear();
+                vehiculo.Clear();
+                AplicarFiltros();
+            };
+            filtros.Controls.Add(limpiar, 4, 0);
+            estadoFiltros = Tema.Etiqueta("", 9, Tema.TextoSuave, Tema.Fondo);
+            filtros.Controls.Add(estadoFiltros, 0, 1);
+            filtros.SetColumnSpan(estadoFiltros, 5);
+
+            desde.ValueChanged += (_, _) => AplicarFiltros();
+            hasta.ValueChanged += (_, _) => AplicarFiltros();
+            conductor.TextChanged += (_, _) => AplicarFiltros();
+            vehiculo.TextChanged += (_, _) => AplicarFiltros();
+            return filtros;
+        }
+
+        private static void AgregarFiltro(TableLayoutPanel filtros, int columna, string etiqueta, Control control)
+        {
+            var campo = Tema.TablaFilas(Tema.Fondo, 18, 0);
+            campo.Margin = new Padding(0, 0, 10, 0);
+            campo.Controls.Add(Tema.Etiqueta(etiqueta, 9, Tema.TextoSuave, Tema.Fondo), 0, 0);
+            control.Dock = DockStyle.Fill;
+            control.AccessibleName = etiqueta;
+            campo.Controls.Add(control, 0, 1);
+            filtros.Controls.Add(campo, columna, 0);
         }
 
         private Control ConstruirTabla()
@@ -181,7 +236,7 @@ namespace FatigueDetect.Presentacion
         private Control ConstruirDetalle()
         {
             var tarjeta = new PanelRedondeado { Dock = DockStyle.Fill, Margin = new Padding(10, 0, 0, 0) };
-            var tabla2 = Tema.TablaFilas(Tema.Tarjeta, 36, 39, 39, 39, 39, 39, 39, 39, 39, 65, 26, 0, 26, 0);
+            var tabla2 = Tema.TablaFilas(Tema.Tarjeta, 36, 39, 39, 39, 39, 39, 39, 39, 39, 65, 26, 0, 26, 0, 42);
 
             tabla2.Controls.Add(Tema.Etiqueta("Detalle de la sesión", 13, Tema.Texto, Tema.Tarjeta, FontStyle.Bold), 0, 0);
             tabla2.Controls.Add(Dato("Conductor", out dConductor), 0, 1);
@@ -223,7 +278,23 @@ namespace FatigueDetect.Presentacion
             };
             tabla2.Controls.Add(dEventos, 0, 13);
 
-            tarjeta.Controls.Add(tabla2);
+            lineaTemporal = Tema.Boton("Ver línea temporal", Tema.TarjetaClara, Tema.Texto);
+            lineaTemporal.Dock = DockStyle.Fill;
+            lineaTemporal.Click += (_, _) =>
+            {
+                if (tabla.CurrentRow?.Tag is SesionConduccion sesion)
+                {
+                    using var vista = new VentanaLineaTemporal(sesion);
+                    vista.ShowDialog(this);
+                }
+            };
+            tabla2.Controls.Add(lineaTemporal, 0, 14);
+            var desplazamiento = new Panel { Dock = DockStyle.Fill, AutoScroll = true, BackColor = Tema.Tarjeta };
+            tabla2.Dock = DockStyle.Top;
+            desplazamiento.SizeChanged += (_, _) => tabla2.Height = Math.Max(570, desplazamiento.ClientSize.Height);
+            tabla2.Height = 570;
+            desplazamiento.Controls.Add(tabla2);
+            tarjeta.Controls.Add(desplazamiento);
             return tarjeta;
         }
 
@@ -240,7 +311,7 @@ namespace FatigueDetect.Presentacion
         /// <summary>Recarga la base de datos y selecciona la sesión indicada.</summary>
         public void Recargar(SesionConduccion? resaltar)
         {
-            List<SesionConduccion> sesiones;
+            Guid? seleccionada = resaltar?.Id ?? (tabla.CurrentRow?.Tag as SesionConduccion)?.Id;
             try
             {
                 sesiones = sesionService.ObtenerHistorial();
@@ -252,10 +323,24 @@ namespace FatigueDetect.Presentacion
                 sesiones = new List<SesionConduccion>();
             }
 
+            AplicarFiltros(seleccionada);
+        }
+
+        private void AplicarFiltros(Guid? resaltar = null)
+        {
+            resaltar ??= (tabla.CurrentRow?.Tag as SesionConduccion)?.Id;
+            var filtro = new FiltroHistorial(desde.Checked ? desde.Value.Date : null,
+                hasta.Checked ? hasta.Value.Date : null, conductor.Text, vehiculo.Text);
+            bool rangoValido = filtro.Desde <= filtro.Hasta || !filtro.Desde.HasValue || !filtro.Hasta.HasValue;
+            visibles = rangoValido ? sesiones.Where(filtro.Coincide).ToList() : new();
+            estadoFiltros.Text = rangoValido
+                ? $"{visibles.Count} de {sesiones.Count} sesiones"
+                : "La fecha inicial debe ser anterior o igual a la final.";
+            estadoFiltros.ForeColor = rangoValido ? Tema.TextoSuave : Tema.Rojo;
             tabla.Rows.Clear();
             DataGridViewRow? filaResaltada = null;
 
-            foreach (SesionConduccion s in sesiones.OrderByDescending(x => x.Inicio))
+            foreach (SesionConduccion s in visibles.OrderByDescending(x => x.Inicio))
             {
                 int indice = tabla.Rows.Add(
                     s.Inicio.ToString("dd/MM/yyyy HH:mm"),
@@ -272,7 +357,7 @@ namespace FatigueDetect.Presentacion
                 fila.Tag = s;
                 fila.Cells["estado"].Style.ForeColor = s.CantidadAlarmas > 0 ? Tema.Rojo : Tema.Verde;
 
-                if (s.Id == resaltar?.Id)
+                if (s.Id == resaltar)
                 {
                     filaResaltada = fila;
                 }
@@ -294,6 +379,7 @@ namespace FatigueDetect.Presentacion
 
         private void MostrarDetalle(SesionConduccion? s)
         {
+            lineaTemporal.Enabled = s != null;
             dResumen.Items.Clear();
             dEventos.Items.Clear();
             dCalidad.Text = s?.Calidad is CalidadSesion calidad
@@ -362,6 +448,9 @@ namespace FatigueDetect.Presentacion
             TipoEventoSesion.VariosRostros => "Varios rostros",
             TipoEventoSesion.LuzInsuficiente => "Luz insuficiente",
             TipoEventoSesion.LuzExcesiva => "Luz excesiva",
+            TipoEventoSesion.CamaraTapada => "Cámara tapada",
+            TipoEventoSesion.CamaraDesenfocada => "Cámara desenfocada",
+            TipoEventoSesion.CamaraCongelada => "Cámara congelada",
             _ => tipo.ToString()
         };
 
@@ -369,7 +458,7 @@ namespace FatigueDetect.Presentacion
         {
             try
             {
-                using var dashboard = new DashboardHistorial(new ResumenHistorial(sesionService.ObtenerHistorial()));
+                using var dashboard = new DashboardHistorial(new ResumenHistorial(visibles));
                 dashboard.ShowDialog(this);
             }
             catch (Exception ex)
@@ -394,8 +483,9 @@ namespace FatigueDetect.Presentacion
             try
             {
                 string ruta = dialogo.FileName;
+                var seleccion = visibles.ToArray();
                 await System.Threading.Tasks.Task.Run(() =>
-                    ExportadorHistorialExcel.Guardar(ruta, sesionService.ObtenerHistorial()));
+                    ExportadorHistorialExcel.Guardar(ruta, seleccion));
                 MessageBox.Show(this, "El historial se exportó correctamente.",
                     "Exportar Excel", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }

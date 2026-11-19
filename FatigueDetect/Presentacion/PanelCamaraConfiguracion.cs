@@ -16,6 +16,8 @@ namespace FatigueDetect.Presentacion
         private readonly Configuracion config;
         private readonly PreferenciaCamara preferencia;
         private readonly ComboBox selector = new ComboBox();
+        private readonly ComboBox resolucion = new() { DropDownStyle = ComboBoxStyle.DropDownList, Dock = DockStyle.Fill };
+        private readonly ComboBox fps = new() { DropDownStyle = ComboBoxStyle.DropDownList, Dock = DockStyle.Fill };
         private readonly Button actualizar = Tema.Boton("Actualizar lista", Tema.TarjetaClara, Tema.Texto);
         private readonly Button previsualizar = Tema.Boton("Ver vista previa", Tema.Azul, Color.White);
         private readonly PictureBox vista = new PictureBox();
@@ -34,7 +36,7 @@ namespace FatigueDetect.Presentacion
             BackColor = Tema.Fondo;
 
             var tarjeta = new PanelRedondeado { Dock = DockStyle.Fill };
-            var tabla = Tema.TablaFilas(Tema.Tarjeta, 36, 34, 0, 44, 49);
+            var tabla = Tema.TablaFilas(Tema.Tarjeta, 36, 34, 56, 0, 54, 49);
             tabla.Controls.Add(Tema.Etiqueta("Cámara", 12, Tema.Texto, Tema.Tarjeta, FontStyle.Bold), 0, 0);
 
             selector.DropDownStyle = ComboBoxStyle.DropDownList;
@@ -48,12 +50,13 @@ namespace FatigueDetect.Presentacion
             selector.SelectionChangeCommitted += GuardarSeleccion;
             tabla.Controls.Add(selector, 0, 1);
 
+            tabla.Controls.Add(ConstruirFormato(), 0, 2);
             vista.Dock = DockStyle.Fill;
             vista.SizeMode = PictureBoxSizeMode.Zoom;
             vista.BackColor = Tema.Fondo;
             vista.Margin = new Padding(0, 2, 0, 2);
-            tabla.Controls.Add(vista, 0, 2);
-            tabla.Controls.Add(estado, 0, 3);
+            tabla.Controls.Add(vista, 0, 3);
+            tabla.Controls.Add(estado, 0, 4);
 
             var botones = new TableLayoutPanel
             {
@@ -68,13 +71,54 @@ namespace FatigueDetect.Presentacion
             previsualizar.Click += VistaPrevia_Click;
             botones.Controls.Add(actualizar, 0, 0);
             botones.Controls.Add(previsualizar, 1, 0);
-            tabla.Controls.Add(botones, 0, 4);
+            tabla.Controls.Add(botones, 0, 5);
 
             tarjeta.Controls.Add(tabla);
             Controls.Add(tarjeta);
             reloj.Tick += (_, _) => MostrarCuadro();
             CargarOpciones(Array.Empty<DispositivoCamara>());
             MostrarEstado("La selección se guarda en este equipo.");
+        }
+
+        private Control ConstruirFormato()
+        {
+            var formato = config.FormatoCamara;
+            var resoluciones = new List<Resolucion>
+            {
+                new(0, 0), new(640, 480), new(1280, 720), new(1920, 1080), new(3840, 2160)
+            };
+            var seleccion = new Resolucion(formato.Ancho, formato.Alto);
+            if (!resoluciones.Contains(seleccion))
+                resoluciones.Add(seleccion);
+
+            var velocidades = new List<Velocidad> { new(0), new(15), new(24), new(30), new(60) };
+            var velocidad = new Velocidad(formato.Fps);
+            if (!velocidades.Contains(velocidad))
+                velocidades.Add(velocidad);
+
+            resolucion.DataSource = resoluciones;
+            resolucion.SelectedItem = seleccion;
+            fps.DataSource = velocidades;
+            fps.SelectedItem = velocidad;
+            resolucion.AccessibleName = "Resolución de cámara";
+            fps.AccessibleName = "FPS de cámara";
+            resolucion.SelectionChangeCommitted += GuardarSeleccion;
+            fps.SelectionChangeCommitted += GuardarSeleccion;
+
+            var fila = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2 };
+            fila.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 56));
+            fila.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 44));
+            fila.Controls.Add(Campo("Resolución", resolucion), 0, 0);
+            fila.Controls.Add(Campo("FPS solicitados", fps), 1, 0);
+            return fila;
+        }
+
+        private static Control Campo(string titulo, ComboBox control)
+        {
+            var campo = Tema.TablaFilas(Tema.Tarjeta, 20, 0);
+            campo.Controls.Add(Tema.Etiqueta(titulo, 9, Tema.TextoSuave, Tema.Tarjeta), 0, 0);
+            campo.Controls.Add(control, 0, 1);
+            return campo;
         }
 
         public void Recargar()
@@ -131,13 +175,19 @@ namespace FatigueDetect.Presentacion
 
             try
             {
-                preferencia.Guardar(opcion.Id);
+                var tamaño = (Resolucion)resolucion.SelectedItem!;
+                var velocidad = (Velocidad)fps.SelectedItem!;
+                var formato = new FormatoCamara(tamaño.Ancho, tamaño.Alto, velocidad.Fps);
+                preferencia.Guardar(opcion.Id, formato);
                 config.CamaraId = opcion.Id;
-                MostrarEstado("Cámara guardada.");
+                config.FormatoCamara = formato;
+                MostrarEstado("Ajustes de cámara guardados. Abre la vista previa para comprobar el formato.");
             }
             catch (Exception ex)
             {
                 selector.SelectedItem = selector.Items.Cast<Opcion>().First(c => MismaCamara(c.Id));
+                resolucion.SelectedItem = new Resolucion(config.FormatoCamara.Ancho, config.FormatoCamara.Alto);
+                fps.SelectedItem = new Velocidad(config.FormatoCamara.Fps);
                 MostrarEstado("No se pudo guardar la cámara. " + ex.Message, aviso: true);
             }
             ActualizarBotones();
@@ -186,7 +236,8 @@ namespace FatigueDetect.Presentacion
 
             try
             {
-                await HiloCapturaCamara.EjecutarAsync(() => Capturar(opcion.Id, cancelacion.Token));
+                var formato = config.FormatoCamara;
+                await HiloCapturaCamara.EjecutarAsync(() => Capturar(opcion.Id, formato, cancelacion.Token));
                 if (!IsDisposed && disponible)
                     MostrarEstado("Vista previa detenida.");
             }
@@ -213,33 +264,43 @@ namespace FatigueDetect.Presentacion
             }
         }
 
-        private void Capturar(string? id, CancellationToken token)
+        private void Capturar(string? id, FormatoCamara formato, CancellationToken token)
         {
             try
             {
-                using var camara = new CameraService(id, token);
+                using var camara = new CameraService(id, token, formato);
                 if (!camara.IsOpened())
                     throw new InvalidOperationException("No se pudo abrir la cámara. Comprueba los permisos de Windows y cierra otras aplicaciones que la usen.");
 
+                using var detector = new DetectorCalidadImagen();
                 var desdeUltimaImagen = Stopwatch.StartNew();
+                double fpsReportados = camara.FpsReportados;
+                var intervaloCuadro = Stopwatch.StartNew();
                 while (!token.IsCancellationRequested)
                 {
                     using Mat frame = camara.GetFrame();
                     if (frame.Empty())
                     {
+                        detector.Reiniciar();
                         if (desdeUltimaImagen.Elapsed >= TimeSpan.FromSeconds(2))
                             throw new InvalidOperationException("La cámara dejó de enviar imagen. Comprueba la conexión.");
                     }
                     else
                     {
                         desdeUltimaImagen.Restart();
+                        var problema = detector.Observar(frame, DateTimeOffset.UtcNow, out _);
+                        if (intervaloCuadro.ElapsedMilliseconds < 60)
+                            continue;
+
+                        intervaloCuadro.Restart();
                         Cv2.Flip(frame, frame, FlipMode.Y);
                         EstadoIluminacion iluminacion = MedidorIluminacion.Evaluar(frame);
                         Bitmap? imagen = ImageUtils.MatToBitmap(frame);
                         if (imagen != null)
-                            Interlocked.Exchange(ref pendiente, new Cuadro(imagen, iluminacion))?.Imagen.Dispose();
+                            Interlocked.Exchange(ref pendiente, new Cuadro(imagen, iluminacion, problema, fpsReportados))?.Imagen.Dispose();
                     }
-                    token.WaitHandle.WaitOne(60);
+                    if (frame.Empty())
+                        token.WaitHandle.WaitOne(20);
                 }
             }
             finally
@@ -258,8 +319,15 @@ namespace FatigueDetect.Presentacion
             Image? anterior = vista.Image;
             vista.Image = cuadro.Imagen;
             anterior?.Dispose();
-            MostrarEstado(AvisosIluminacion.Mensaje(cuadro.Iluminacion),
-                aviso: cuadro.Iluminacion != EstadoIluminacion.Adecuada);
+            string formato = $"{cuadro.Imagen.Width} × {cuadro.Imagen.Height}";
+            if (cuadro.FpsReportados > 0 && double.IsFinite(cuadro.FpsReportados))
+                formato += $" · {cuadro.FpsReportados:0.#} FPS informados";
+
+            string calidad = cuadro.Problema is TipoEventoSesion problema
+                ? AvisosIluminacion.Mensaje(problema)
+                : AvisosIluminacion.Mensaje(cuadro.Iluminacion);
+            MostrarEstado(formato + Environment.NewLine + calidad,
+                aviso: cuadro.Problema.HasValue || cuadro.Iluminacion != EstadoIluminacion.Adecuada);
         }
 
         private void LimpiarVista()
@@ -272,7 +340,7 @@ namespace FatigueDetect.Presentacion
 
         private void ActualizarBotones()
         {
-            selector.Enabled = actualizar.Enabled = disponible && captura == null;
+            selector.Enabled = actualizar.Enabled = resolucion.Enabled = fps.Enabled = disponible && captura == null;
             previsualizar.Text = captura == null ? "Ver vista previa" : "Detener vista previa";
             previsualizar.Enabled = disponible && (captura == null
                 ? selector.SelectedItem is Opcion { Conectada: true }
@@ -301,6 +369,17 @@ namespace FatigueDetect.Presentacion
             public override string ToString() => Nombre;
         }
 
-        private sealed record Cuadro(Bitmap Imagen, EstadoIluminacion Iluminacion);
+        private sealed record Resolucion(int Ancho, int Alto)
+        {
+            public override string ToString() => Ancho == 0 ? "Automática" : $"{Ancho} × {Alto}";
+        }
+
+        private sealed record Velocidad(int Fps)
+        {
+            public override string ToString() => Fps == 0 ? "Automáticos" : Fps.ToString();
+        }
+
+        private sealed record Cuadro(Bitmap Imagen, EstadoIluminacion Iluminacion,
+            TipoEventoSesion? Problema, double FpsReportados);
     }
 }

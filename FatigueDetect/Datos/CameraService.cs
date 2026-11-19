@@ -3,6 +3,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
 using OpenCvSharp;
+using FatigueDetect.Entidades;
 
 namespace FatigueDetect.Datos
 {
@@ -11,14 +12,14 @@ namespace FatigueDetect.Datos
         private static readonly SemaphoreSlim acceso = new(1, 1);
         private VideoCapture? camera;
 
-        public CameraService(string? dispositivoId, CancellationToken cancelacion = default)
+        public CameraService(string? dispositivoId, CancellationToken cancelacion = default, FormatoCamara? formato = null)
         {
             if (!acceso.Wait(TimeSpan.FromSeconds(2), cancelacion))
                 throw new InvalidOperationException("La aplicación está usando la cámara en otra pantalla.");
 
             try
             {
-                camera = Abrir(dispositivoId, cancelacion);
+                camera = Abrir(dispositivoId, cancelacion, formato ?? FormatoCamara.Automatico);
             }
             finally
             {
@@ -27,7 +28,7 @@ namespace FatigueDetect.Datos
             }
         }
 
-        private static VideoCapture? Abrir(string? dispositivoId, CancellationToken cancelacion)
+        private static VideoCapture? Abrir(string? dispositivoId, CancellationToken cancelacion, FormatoCamara formato)
         {
             cancelacion.ThrowIfCancellationRequested();
             if (dispositivoId != null)
@@ -37,7 +38,7 @@ namespace FatigueDetect.Datos
                 if (dispositivo == null)
                     throw new InvalidOperationException("La cámara seleccionada no está conectada. Vuelve a conectarla o cambia la selección en Configuración.");
 
-                return IntentarAbrir(dispositivo.Indice, VideoCaptureAPIs.DSHOW, cancelacion);
+                return IntentarAbrir(dispositivo.Indice, VideoCaptureAPIs.DSHOW, cancelacion, formato);
             }
 
             // Mantiene los intentos de respaldo para cámaras sin una entrada DirectShow.
@@ -53,7 +54,7 @@ namespace FatigueDetect.Datos
 
             foreach (int indice in indicesDirectShow)
             {
-                VideoCapture? intento = IntentarAbrir(indice, VideoCaptureAPIs.DSHOW, cancelacion);
+                VideoCapture? intento = IntentarAbrir(indice, VideoCaptureAPIs.DSHOW, cancelacion, formato);
                 if (intento != null)
                     return intento;
             }
@@ -62,7 +63,7 @@ namespace FatigueDetect.Datos
             {
                 foreach (VideoCaptureAPIs backend in new[] { VideoCaptureAPIs.MSMF, VideoCaptureAPIs.ANY })
                 {
-                    VideoCapture? intento = IntentarAbrir(indice, backend, cancelacion);
+                    VideoCapture? intento = IntentarAbrir(indice, backend, cancelacion, formato);
                     if (intento != null)
                         return intento;
                 }
@@ -70,14 +71,30 @@ namespace FatigueDetect.Datos
             return null;
         }
 
-        private static VideoCapture? IntentarAbrir(int indice, VideoCaptureAPIs backend, CancellationToken cancelacion)
+        private static VideoCapture? IntentarAbrir(int indice, VideoCaptureAPIs backend, CancellationToken cancelacion, FormatoCamara formato)
         {
             cancelacion.ThrowIfCancellationRequested();
             var intento = new VideoCapture();
             bool abierto = false;
             try
             {
-                abierto = intento.Open(indice, backend) && EntregaImagen(intento, cancelacion);
+                if (!intento.Open(indice, backend))
+                    return null;
+
+                if (formato.Ancho > 0)
+                {
+                    intento.Set(VideoCaptureProperties.FrameWidth, formato.Ancho);
+                    intento.Set(VideoCaptureProperties.FrameHeight, formato.Alto);
+                }
+                if (formato.Fps > 0)
+                    intento.Set(VideoCaptureProperties.Fps, formato.Fps);
+
+                abierto = EntregaImagen(intento, cancelacion);
+                if (!abierto && formato != FormatoCamara.Automatico)
+                {
+                    intento.Release();
+                    abierto = intento.Open(indice, backend) && EntregaImagen(intento, cancelacion);
+                }
                 return abierto ? intento : null;
             }
             finally
@@ -111,6 +128,8 @@ namespace FatigueDetect.Datos
         {
             return camera != null && camera.IsOpened();
         }
+
+        public double FpsReportados => camera?.Get(VideoCaptureProperties.Fps) ?? 0;
 
         public Mat GetFrame()
         {
