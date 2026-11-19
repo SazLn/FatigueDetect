@@ -42,8 +42,10 @@ namespace FatigueDetect.Datos
             var sesiones = new Dictionary<string, SesionConduccion>();
 
             using (SqliteCommand consulta = CrearComando(conexion, transaccion, """
-                SELECT Id, Cedula, Nombre, Apellidos, TipoCarro, Placa, InicioUtcMs, FinUtcMs, CantidadAlarmas
-                FROM Sesiones ORDER BY InicioUtcMs DESC, Id;
+                SELECT Id, Cedula, Nombre, Apellidos, TipoCarro, Placa, InicioUtcMs, FinUtcMs, CantidadAlarmas,
+                       Fotogramas, Analizables, TiempoActivoMs, TiempoRostroValidoMs, FallosCamara
+                FROM Sesiones LEFT JOIN CalidadSesiones ON CalidadSesiones.SesionId = Sesiones.Id
+                ORDER BY InicioUtcMs DESC, Id;
                 """))
             using (SqliteDataReader lector = consulta.ExecuteReader())
             {
@@ -60,7 +62,9 @@ namespace FatigueDetect.Datos
                         Vehiculo = new Vehiculo { TipoCarro = lector.GetString(4), Placa = lector.GetString(5) },
                         Inicio = LeerInstante(lector, 6).LocalDateTime,
                         Fin = lector.IsDBNull(7) ? null : LeerInstante(lector, 7).LocalDateTime,
-                        CantidadAlarmas = lector.GetInt32(8)
+                        CantidadAlarmas = lector.GetInt32(8),
+                        Calidad = lector.IsDBNull(9) ? null : new CalidadSesion(lector.GetInt64(9),
+                            lector.GetInt64(10), lector.GetInt64(11), lector.GetInt64(12), lector.GetInt64(13))
                     });
                 }
             }
@@ -139,6 +143,12 @@ namespace FatigueDetect.Datos
                     Tipo TEXT NOT NULL, InicioUtcMs INTEGER NOT NULL, FinUtcMs INTEGER,
                     DuracionMs INTEGER
                 );
+                CREATE TABLE IF NOT EXISTS CalidadSesiones (
+                    SesionId TEXT PRIMARY KEY NOT NULL REFERENCES Sesiones(Id) ON DELETE CASCADE,
+                    Fotogramas INTEGER NOT NULL, Analizables INTEGER NOT NULL,
+                    TiempoActivoMs INTEGER NOT NULL, TiempoRostroValidoMs INTEGER NOT NULL,
+                    FallosCamara INTEGER NOT NULL
+                );
                 CREATE INDEX IF NOT EXISTS IX_Sesiones_Inicio ON Sesiones (InicioUtcMs);
                 CREATE INDEX IF NOT EXISTS IX_Eventos_Sesion_Inicio ON Eventos (SesionId, InicioUtcMs);
                 CREATE TABLE IF NOT EXISTS Migraciones (Nombre TEXT PRIMARY KEY NOT NULL);
@@ -174,6 +184,22 @@ namespace FatigueDetect.Datos
             insercion.Parameters.AddWithValue("$alarmas", sesion.CantidadAlarmas);
             if (insercion.ExecuteNonQuery() == 0)
                 return;
+
+            if (sesion.Calidad is CalidadSesion calidad)
+            {
+                using SqliteCommand mediciones = CrearComando(conexion, transaccion, """
+                    INSERT INTO CalidadSesiones
+                        (SesionId, Fotogramas, Analizables, TiempoActivoMs, TiempoRostroValidoMs, FallosCamara)
+                    VALUES ($id, $fotogramas, $analizables, $activo, $rostro, $fallos);
+                    """);
+                mediciones.Parameters.AddWithValue("$id", sesion.Id.ToString());
+                mediciones.Parameters.AddWithValue("$fotogramas", calidad.Fotogramas);
+                mediciones.Parameters.AddWithValue("$analizables", calidad.Analizables);
+                mediciones.Parameters.AddWithValue("$activo", calidad.TiempoActivoMs);
+                mediciones.Parameters.AddWithValue("$rostro", calidad.TiempoRostroValidoMs);
+                mediciones.Parameters.AddWithValue("$fallos", calidad.FallosCamara);
+                mediciones.ExecuteNonQuery();
+            }
 
             using SqliteCommand eventos = CrearComando(conexion, transaccion, """
                 INSERT INTO Eventos (SesionId, Tipo, InicioUtcMs, FinUtcMs, DuracionMs)

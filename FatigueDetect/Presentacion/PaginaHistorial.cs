@@ -23,6 +23,7 @@ namespace FatigueDetect.Presentacion
         private Label dFin = null!;
         private Label dDuracion = null!;
         private Label dAlarmas = null!;
+        private Label dCalidad = null!;
         private ListBox dResumen = null!;
         private ListBox dEventos = null!;
 
@@ -41,7 +42,30 @@ namespace FatigueDetect.Presentacion
             Label archivo = Tema.Etiqueta(sesionService.RutaHistorial, 9.5f, Tema.TextoSuave, Tema.Fondo);
             archivo.AutoEllipsis = true;
             encabezado.Controls.Add(archivo, 0, 1);
-            raiz.Controls.Add(encabezado, 0, 0);
+            var cabecera = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 3,
+                RowCount = 1,
+                Margin = Padding.Empty
+            };
+            cabecera.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+            cabecera.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 122));
+            cabecera.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 132));
+            cabecera.Controls.Add(encabezado, 0, 0);
+
+            Button estadisticas = Tema.Boton("Estadísticas", Tema.TarjetaClara, Tema.Texto);
+            estadisticas.Anchor = AnchorStyles.None;
+            estadisticas.Width = 112;
+            estadisticas.Click += (remitente, evento) => MostrarEstadisticas();
+            cabecera.Controls.Add(estadisticas, 1, 0);
+
+            Button excel = Tema.Boton("Exportar Excel", Tema.TarjetaClara, Tema.Texto);
+            excel.Anchor = AnchorStyles.None;
+            excel.Width = 122;
+            excel.Click += (remitente, evento) => ExportarExcel();
+            cabecera.Controls.Add(excel, 2, 0);
+            raiz.Controls.Add(cabecera, 0, 0);
 
             var cuerpo = new TableLayoutPanel
             {
@@ -157,7 +181,7 @@ namespace FatigueDetect.Presentacion
         private Control ConstruirDetalle()
         {
             var tarjeta = new PanelRedondeado { Dock = DockStyle.Fill, Margin = new Padding(10, 0, 0, 0) };
-            var tabla2 = Tema.TablaFilas(Tema.Tarjeta, 36, 39, 39, 39, 39, 39, 39, 39, 39, 26, 116, 26, 0);
+            var tabla2 = Tema.TablaFilas(Tema.Tarjeta, 36, 39, 39, 39, 39, 39, 39, 39, 39, 65, 26, 0, 26, 0);
 
             tabla2.Controls.Add(Tema.Etiqueta("Detalle de la sesión", 13, Tema.Texto, Tema.Tarjeta, FontStyle.Bold), 0, 0);
             tabla2.Controls.Add(Dato("Conductor", out dConductor), 0, 1);
@@ -168,7 +192,9 @@ namespace FatigueDetect.Presentacion
             tabla2.Controls.Add(Dato("Fin", out dFin), 0, 6);
             tabla2.Controls.Add(Dato("Duración", out dDuracion), 0, 7);
             tabla2.Controls.Add(Dato("Alarmas activadas", out dAlarmas), 0, 8);
-            tabla2.Controls.Add(Tema.Etiqueta("Resumen de eventos", 9, Tema.TextoSuave, Tema.Tarjeta), 0, 9);
+            dCalidad = Tema.Etiqueta("Calidad: sin medición", 9, Tema.Texto, Tema.Tarjeta);
+            tabla2.Controls.Add(dCalidad, 0, 9);
+            tabla2.Controls.Add(Tema.Etiqueta("Resumen de eventos", 9, Tema.TextoSuave, Tema.Tarjeta), 0, 10);
 
             dResumen = new ListBox
             {
@@ -181,8 +207,8 @@ namespace FatigueDetect.Presentacion
                 IntegralHeight = false,
                 HorizontalScrollbar = true
             };
-            tabla2.Controls.Add(dResumen, 0, 10);
-            tabla2.Controls.Add(Tema.Etiqueta("Eventos de la sesión", 9, Tema.TextoSuave, Tema.Tarjeta), 0, 11);
+            tabla2.Controls.Add(dResumen, 0, 11);
+            tabla2.Controls.Add(Tema.Etiqueta("Eventos de la sesión", 9, Tema.TextoSuave, Tema.Tarjeta), 0, 12);
 
             dEventos = new ListBox
             {
@@ -195,7 +221,7 @@ namespace FatigueDetect.Presentacion
                 IntegralHeight = false,
                 HorizontalScrollbar = true
             };
-            tabla2.Controls.Add(dEventos, 0, 12);
+            tabla2.Controls.Add(dEventos, 0, 13);
 
             tarjeta.Controls.Add(tabla2);
             return tarjeta;
@@ -270,6 +296,11 @@ namespace FatigueDetect.Presentacion
         {
             dResumen.Items.Clear();
             dEventos.Items.Clear();
+            dCalidad.Text = s?.Calidad is CalidadSesion calidad
+                ? $"FPS: {calidad.Fps?.ToString("0.0") ?? "—"}   ·   Analizables: {calidad.ProporcionAnalizable?.ToString("P1") ?? "—"}\n" +
+                  $"Rostro válido: {calidad.TiempoRostroValido.TotalSeconds:0.0} s\n" +
+                  $"Fallos de cámara: {calidad.FallosCamara}"
+                : "Calidad: sin medición";
 
             if (s == null)
             {
@@ -296,23 +327,15 @@ namespace FatigueDetect.Presentacion
             dAlarmas.Text = s.CantidadAlarmas.ToString();
 
             List<EventoSesion> eventos = s.Eventos;
-            int alarmasSinHora = Math.Max(0,
-                s.CantidadAlarmas - eventos.Count(e => e.Tipo == TipoEventoSesion.Alarma));
-            foreach (IGrouping<TipoEventoSesion, EventoSesion> grupo in eventos
-                .GroupBy(e => e.Tipo).OrderBy(g => g.Key))
+            int alarmasSinHora = ResumenHistorial.AlarmasSinHora(s, eventos);
+            foreach (ResumenEvento resumen in ResumenHistorial.PorTipo(s, eventos))
             {
-                int cantidad = grupo.Count() + (grupo.Key == TipoEventoSesion.Alarma ? alarmasSinHora : 0);
-                List<long> duraciones = grupo.Select(e => e.DuracionMilisegundos)
-                    .Where(ms => ms.HasValue).Select(ms => ms!.Value).ToList();
-                string tiempo = duraciones.Count > 0
-                    ? $" · total {duraciones.Sum() / 1000.0:0.0} s · máximo {duraciones.Max() / 1000.0:0.0} s"
+                string tiempo = resumen.TotalMs.HasValue
+                    ? $" · total {resumen.TotalMs / 1000.0:0.0} s · máximo {resumen.MaximoMs / 1000.0:0.0} s"
                     : "";
-                int sinDuracion = cantidad - duraciones.Count;
-                string desconocidas = sinDuracion > 0 ? $" · {sinDuracion} sin duración" : "";
-                dResumen.Items.Add($"{NombreEvento(grupo.Key)} · {cantidad}{tiempo}{desconocidas}");
+                string desconocidas = resumen.SinDuracion > 0 ? $" · {resumen.SinDuracion} sin duración" : "";
+                dResumen.Items.Add($"{NombreEvento(resumen.Tipo)} · {resumen.Cantidad}{tiempo}{desconocidas}");
             }
-            if (alarmasSinHora > 0 && eventos.All(e => e.Tipo != TipoEventoSesion.Alarma))
-                dResumen.Items.Add($"Alarma · {alarmasSinHora} · {alarmasSinHora} sin duración");
             if (dResumen.Items.Count == 0)
                 dResumen.Items.Add("Sin eventos registrados");
 
@@ -331,7 +354,7 @@ namespace FatigueDetect.Presentacion
                 dEventos.Items.Add($"Alarmas sin hora registrada · {alarmasSinHora}");
         }
 
-        private static string NombreEvento(TipoEventoSesion tipo) => tipo switch
+        internal static string NombreEvento(TipoEventoSesion tipo) => tipo switch
         {
             TipoEventoSesion.CierreOcularProlongado => "Posible cierre ocular prolongado",
             TipoEventoSesion.Alarma => "Alarma",
@@ -341,6 +364,51 @@ namespace FatigueDetect.Presentacion
             TipoEventoSesion.LuzExcesiva => "Luz excesiva",
             _ => tipo.ToString()
         };
+
+        private void MostrarEstadisticas()
+        {
+            try
+            {
+                using var dashboard = new DashboardHistorial(new ResumenHistorial(sesionService.ObtenerHistorial()));
+                dashboard.ShowDialog(this);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(this, "No se pudieron consultar las estadísticas.\n" + ex.Message,
+                    "Estadísticas", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private async void ExportarExcel()
+        {
+            using var dialogo = new SaveFileDialog
+            {
+                Filter = "Libro de Excel (*.xlsx)|*.xlsx",
+                DefaultExt = "xlsx",
+                FileName = $"FatigueDetect-{DateTime.Today:yyyy-MM-dd}.xlsx"
+            };
+            if (dialogo.ShowDialog(this) != DialogResult.OK)
+                return;
+
+            Enabled = false;
+            try
+            {
+                string ruta = dialogo.FileName;
+                await System.Threading.Tasks.Task.Run(() =>
+                    ExportadorHistorialExcel.Guardar(ruta, sesionService.ObtenerHistorial()));
+                MessageBox.Show(this, "El historial se exportó correctamente.",
+                    "Exportar Excel", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(this, "No se pudo exportar el historial.\n" + ex.Message,
+                    "Exportar Excel", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            finally
+            {
+                Enabled = true;
+            }
+        }
 
         private void Eliminar_Click(object? remitente, EventArgs evento)
         {
