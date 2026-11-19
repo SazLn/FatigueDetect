@@ -395,7 +395,10 @@ namespace FatigueDetect.Presentacion
                     avisoCamara.Text = avisos;
 
                 if (imagen == null)
+                {
+                    AplicarSinSenal();
                     return;
+                }
 
                 AplicarEstado(estado, avisoRostro);
 
@@ -503,6 +506,14 @@ namespace FatigueDetect.Presentacion
             rostroMostrado = null;
             PintarTarjetaAlerta(Tema.Tarjeta, Tema.TextoSuave, "SIN SESIÓN",
                 "Inicia una sesión desde \"Registro / Persona\".");
+        }
+
+        private void AplicarSinSenal()
+        {
+            estadoMostrado = null;
+            rostroMostrado = null;
+            PintarTarjetaAlerta(Tema.Tarjeta, Tema.Ambar, "SIN SEÑAL DE CÁMARA",
+                "Comprueba la conexión y los permisos de la cámara.");
         }
 
         private void PintarTarjetaAlerta(Color fondo, Color acento, string titulo, string mensaje)

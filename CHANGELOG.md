@@ -2,6 +2,9 @@
 
 ## Sin publicar
 
+- El monitoreo muestra avisos persistentes cuando no detecta el rostro o encuentra varias personas durante al menos dos segundos.
+- El historial resume los eventos de cada sesión por tipo, cantidad, duración total y duración máxima.
+- Al perder la señal de cámara se limpia la alerta visual anterior para evitar mostrar un estado desactualizado.
 - Se actualizó el plan para marcar el selector de cámara y los avisos de iluminación como integrados en `main`, y se ajustó la lista de trabajo pendiente para reflejar la funcionalidad disponible.
 
 - Configuración permite elegir una cámara por nombre, guardar la selección y comprobar el encuadre y la iluminación en una vista previa.

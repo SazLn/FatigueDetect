@@ -12,7 +12,9 @@
 | Cronología en el historial | Integrado en `main` | El detalle de cada sesión muestra tipo, hora y duración de sus eventos. |
 | Selector de cámara y vista previa | Integrado en `main` | Guarda la cámara elegida y la usa en el registro facial y el monitoreo. |
 | Avisos de iluminación | Integrado en `main` | La vista previa indica el estado en directo. El monitoreo avisa ante oscuridad o sobreexposición persistente. |
-| Resto de propuestas | Pendiente | Incluye otras alertas visuales, puntos faciales, parpadeos, PERCLOS, cabeceos, dashboards y Excel. |
+| Avisos en vivo de ausencia o varios rostros | Implementado en PR #5, pendiente de integración | Aparecen después de dos segundos y se retiran al recuperar una detección válida. |
+| Resumen de eventos en el historial | Implementado en PR #5, pendiente de integración | Agrupa por tipo y muestra cantidad, duración total, máxima y eventos sin duración. |
+| Resto de propuestas | Pendiente | Incluye puntos faciales, parpadeos, PERCLOS, cabeceos, distracción, dashboards y Excel. |
 
 Esta sección refleja el estado de `main` después de la integración del PR #3. El resto del documento conserva las propuestas pendientes y su alcance previsto.
 
@@ -181,11 +183,11 @@ Las siguientes funciones ofrecen mucho valor y no dependen todavía de un modelo
 
 1. Guardar las sesiones y eventos en SQLite.
 2. Registrar inicio, fin, duración y hora exacta de cada evento.
-3. Detectar ausencia prolongada del conductor.
-4. Avisar si aparecen varias personas.
+3. Detectar ausencia prolongada del conductor y avisarla en vivo. **Implementado en PR #5, pendiente de integración.**
+4. Avisar si aparecen varias personas. **Implementado en PR #5, pendiente de integración.**
 5. Analizar si la imagen está oscura o sobreexpuesta y mostrar avisos en la vista previa y durante el monitoreo.
 6. Permitir seleccionar la cámara, guardar la preferencia y reutilizarla en biometría y monitoreo.
-7. Mostrar alertas visuales en vivo para las condiciones que todavía no se muestran.
+7. Mostrar alertas visuales en vivo para las condiciones que todavía no se muestran. **Ausencia y varios rostros implementados en PR #5; las alertas de futuros detectores siguen pendientes.**
 8. Registrar calidad de imagen, FPS y porcentaje de fotogramas analizables.
 9. Crear estadísticas de sesiones por día, semana, mes, hora y día de la semana.
 10. Crear un dashboard histórico inicial.
@@ -583,7 +585,8 @@ Prioridad alta porque desbloquea los dashboards y evita rehacer el almacenamient
 4. Registrar cierres oculares prolongados, alarmas, rostro ausente, varios rostros y condiciones de iluminación.
 5. Permitir seleccionar y probar la cámara, guardar la preferencia y compartirla entre biometría y monitoreo.
 6. Mostrar avisos de oscuridad y sobreexposición en la vista previa y durante el monitoreo.
-7. Ampliar los datos de calidad de detección y cámara.
+7. Mostrar avisos en vivo de ausencia o varios rostros y resumir los eventos en el historial. **Implementado en PR #5, pendiente de integración.**
+8. Ampliar los datos de calidad de detección y cámara.
 
 ## Etapa 2: Dashboard inicial
 
