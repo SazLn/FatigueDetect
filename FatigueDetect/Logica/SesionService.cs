@@ -7,9 +7,9 @@ namespace FatigueDetect.Logica
 {
     public class SesionService
     {
-        private readonly HistorialRepository repositorio;
+        private readonly HistorialSqliteRepository repositorio;
 
-        public SesionService(HistorialRepository repositorio)
+        public SesionService(HistorialSqliteRepository repositorio)
         {
             this.repositorio = repositorio;
         }

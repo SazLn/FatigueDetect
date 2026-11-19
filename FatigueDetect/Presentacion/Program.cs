@@ -18,7 +18,8 @@ namespace FatigueDetect.Presentacion
             string documentos = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
             string carpeta = Path.Combine(documentos, "FatigueDetect");
 
-            var sesionService = new SesionService(new HistorialRepository(Path.Combine(carpeta, "historial.csv")));
+            var sesionService = new SesionService(new HistorialSqliteRepository(
+                Path.Combine(carpeta, "historial.sqlite"), Path.Combine(carpeta, "historial.csv")));
             var catalogoTipos = new CatalogoTiposCarro(new TiposCarroRepository(Path.Combine(carpeta, "tipos_carro.txt")));
             var configuracion = new Configuracion();
             string cascadaRostros = Path.Combine(
