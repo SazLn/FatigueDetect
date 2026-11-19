@@ -19,8 +19,9 @@ namespace FatigueDetect.Logica
         private readonly EyeDetector eyeDetector;
         private readonly DrowsinessLogic drowsinessLogic;
         private readonly AlarmService alarmService;
-        private readonly SesionConduccion sesion;
-        private EyeState estadoAnterior = EyeState.DESPIERTO;
+        private readonly RegistroEventosSesion registro;
+        private readonly object candadoEstado = new object();
+        private DateTimeOffset ultimaInterrupcion = DateTimeOffset.MinValue;
 
         private Thread? hilo;
         private volatile bool running = false;
@@ -37,7 +38,7 @@ namespace FatigueDetect.Logica
             this.eyeDetector = eyeDetector;
             this.drowsinessLogic = drowsinessLogic;
             this.alarmService = alarmService;
-            this.sesion = sesion;
+            registro = new RegistroEventosSesion(sesion);
         }
 
         public void Iniciar()
@@ -69,37 +70,47 @@ namespace FatigueDetect.Logica
 
                 if (frame.Empty())
                 {
+                    lock (candadoEstado)
+                    {
+                        if (running && !paused)
+                            InterrumpirObservacion(DateTimeOffset.UtcNow);
+                    }
                     Thread.Sleep(10);
                     continue;
                 }
 
+                DateTimeOffset instante = DateTimeOffset.UtcNow;
                 Cv2.Flip(frame, frame, FlipMode.Y);
+                Rect[] rostros = faceDetector.Detect(frame);
+                // Usa la luminancia de la imagen sin los recuadros dibujados.
+                using var gris = new Mat();
+                Cv2.CvtColor(frame, gris, ColorConversionCodes.BGR2GRAY);
+                double brillo = Cv2.Mean(gris).Val0;
+                bool ojosDetectados = rostros.Length > 0 && DibujarRostroYOjos(frame, rostros);
 
-                bool ojosDetectados = ProcesarFrame(frame);
-
-                EyeState estado = drowsinessLogic.Evaluate(ojosDetectados);
-
-                // Cuenta una alarma cada vez que se ENTRA al estado de alarma
-                // (no una por cada frame mientras suena).
-                if (estado == EyeState.ALARMA_ACTIVADA && estadoAnterior != EyeState.ALARMA_ACTIVADA)
+                EyeState estado;
+                long cierreMs;
+                lock (candadoEstado)
                 {
-                    sesion.RegistrarAlarma();
-                }
-                estadoAnterior = estado;
+                    if (!running || paused || instante <= ultimaInterrupcion)
+                        continue;
 
-                if (drowsinessLogic.ShouldActivateAlarm())
-                {
-                    alarmService.Activar();
-                }
-                else
-                {
-                    alarmService.Detener();
+                    estado = rostros.Length == 0
+                        ? drowsinessLogic.EvaluateSinRostro()
+                        : drowsinessLogic.Evaluate(ojosDetectados);
+                    cierreMs = drowsinessLogic.GetClosedDurationMs();
+                    registro.Observar(instante, rostros.Length, ojosDetectados, estado, brillo);
+
+                    if (estado == EyeState.ALARMA_ACTIVADA)
+                        alarmService.Activar();
+                    else
+                        alarmService.Detener();
                 }
 
                 var image = ImageUtils.MatToBitmap(frame);
                 try
                 {
-                    view.UpdateImage(image, estado, drowsinessLogic.GetClosedDurationMs());
+                    view.UpdateImage(image, estado, cierreMs);
                 }
                 catch (Exception) when (!running)
                 {
@@ -108,17 +119,8 @@ namespace FatigueDetect.Logica
             }
         }
 
-        private bool ProcesarFrame(Mat frame)
+        private bool DibujarRostroYOjos(Mat frame, Rect[] rostros)
         {
-            Rect[] rostros = faceDetector.Detect(frame);
-
-            // Sin rostro → resetear todo inmediatamente
-            if (rostros.Length == 0)
-            {
-                drowsinessLogic.EvaluateSinRostro();
-                return false;
-            }
-
             // Solo el rostro más grande (el del conductor)
             Rect rostro = rostros.OrderByDescending(r => r.Width * r.Height).First();
             Cv2.Rectangle(frame, rostro, new Scalar(255, 0, 0), 2);
@@ -143,20 +145,34 @@ namespace FatigueDetect.Logica
         /// <summary>Para el hilo, espera a que termine y apaga la alarma.</summary>
         public void Detener()
         {
-            running = false;
-            alarmService.Detener();
+            lock (candadoEstado)
+            {
+                running = false;
+                InterrumpirObservacion(DateTimeOffset.UtcNow);
+            }
 
             if (hilo != null && hilo.IsAlive)
             {
                 hilo.Join(3000);
             }
-
-            alarmService.Detener();
         }
 
         public void SetPaused(bool paused)
         {
-            this.paused = paused;
+            lock (candadoEstado)
+            {
+                this.paused = paused;
+                if (paused)
+                    InterrumpirObservacion(DateTimeOffset.UtcNow);
+            }
+        }
+
+        private void InterrumpirObservacion(DateTimeOffset instante)
+        {
+            ultimaInterrupcion = instante;
+            registro.Interrumpir(instante);
+            drowsinessLogic.Reset();
+            alarmService.Detener();
         }
     }
 }

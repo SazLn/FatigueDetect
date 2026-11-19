@@ -9,7 +9,7 @@ using FatigueDetect.Logica;
 
 namespace FatigueDetect.Presentacion
 {
-    /// <summary>Pantalla "Historial de alertas": sesiones guardadas y detalle de la seleccionada.</summary>
+    /// <summary>Sesiones guardadas y cronología de eventos de la sesión seleccionada.</summary>
     public class PaginaHistorial : UserControl
     {
         private readonly SesionService sesionService;
@@ -23,7 +23,7 @@ namespace FatigueDetect.Presentacion
         private Label dFin = null!;
         private Label dDuracion = null!;
         private Label dAlarmas = null!;
-        private ListBox dHoras = null!;
+        private ListBox dEventos = null!;
 
         public PaginaHistorial(SesionService sesionService)
         {
@@ -36,8 +36,8 @@ namespace FatigueDetect.Presentacion
             var raiz = Tema.TablaFilas(Tema.Fondo, 84, 0);
 
             var encabezado = Tema.TablaFilas(Tema.Fondo, 42, 30);
-            encabezado.Controls.Add(Tema.Etiqueta("Historial de alertas", 20, Tema.Texto, Tema.Fondo, FontStyle.Bold), 0, 0);
-            Label archivo = Tema.Etiqueta("Archivo: " + sesionService.RutaHistorial, 9.5f, Tema.TextoSuave, Tema.Fondo);
+            encabezado.Controls.Add(Tema.Etiqueta("Historial de sesiones", 20, Tema.Texto, Tema.Fondo, FontStyle.Bold), 0, 0);
+            Label archivo = Tema.Etiqueta(sesionService.RutaHistorial, 9.5f, Tema.TextoSuave, Tema.Fondo);
             archivo.AutoEllipsis = true;
             encabezado.Controls.Add(archivo, 0, 1);
             raiz.Controls.Add(encabezado, 0, 0);
@@ -156,7 +156,7 @@ namespace FatigueDetect.Presentacion
         private Control ConstruirDetalle()
         {
             var tarjeta = new PanelRedondeado { Dock = DockStyle.Fill, Margin = new Padding(10, 0, 0, 0) };
-            var tabla2 = Tema.TablaFilas(Tema.Tarjeta, 36, 44, 44, 44, 44, 44, 44, 44, 44, 26, 0);
+            var tabla2 = Tema.TablaFilas(Tema.Tarjeta, 36, 39, 39, 39, 39, 39, 39, 39, 39, 26, 0);
 
             tabla2.Controls.Add(Tema.Etiqueta("Detalle de la sesión", 13, Tema.Texto, Tema.Tarjeta, FontStyle.Bold), 0, 0);
             tabla2.Controls.Add(Dato("Conductor", out dConductor), 0, 1);
@@ -166,10 +166,10 @@ namespace FatigueDetect.Presentacion
             tabla2.Controls.Add(Dato("Inicio", out dInicio), 0, 5);
             tabla2.Controls.Add(Dato("Fin", out dFin), 0, 6);
             tabla2.Controls.Add(Dato("Duración", out dDuracion), 0, 7);
-            tabla2.Controls.Add(Dato("Alarmas que sonaron", out dAlarmas), 0, 8);
-            tabla2.Controls.Add(Tema.Etiqueta("Hora de cada alarma", 9, Tema.TextoSuave, Tema.Tarjeta), 0, 9);
+            tabla2.Controls.Add(Dato("Alarmas activadas", out dAlarmas), 0, 8);
+            tabla2.Controls.Add(Tema.Etiqueta("Eventos de la sesión", 9, Tema.TextoSuave, Tema.Tarjeta), 0, 9);
 
-            dHoras = new ListBox
+            dEventos = new ListBox
             {
                 Dock = DockStyle.Fill,
                 BackColor = Tema.Tarjeta,
@@ -177,9 +177,10 @@ namespace FatigueDetect.Presentacion
                 BorderStyle = BorderStyle.None,
                 Font = Tema.Fuente(10),
                 Margin = new Padding(0),
-                IntegralHeight = false
+                IntegralHeight = false,
+                HorizontalScrollbar = true
             };
-            tabla2.Controls.Add(dHoras, 0, 10);
+            tabla2.Controls.Add(dEventos, 0, 10);
 
             tarjeta.Controls.Add(tabla2);
             return tarjeta;
@@ -188,14 +189,14 @@ namespace FatigueDetect.Presentacion
         // Título pequeño + valor en negrita.
         private static Control Dato(string titulo, out Label valor)
         {
-            var celda = Tema.TablaFilas(Tema.Tarjeta, 18, 24);
+            var celda = Tema.TablaFilas(Tema.Tarjeta, 16, 21);
             celda.Controls.Add(Tema.Etiqueta(titulo, 8.5f, Tema.TextoSuave, Tema.Tarjeta), 0, 0);
             valor = Tema.Etiqueta("—", 11, Tema.Texto, Tema.Tarjeta, FontStyle.Bold);
             celda.Controls.Add(valor, 0, 1);
             return celda;
         }
 
-        /// <summary>Vuelve a leer el archivo. Si se indica una sesión, queda seleccionada.</summary>
+        /// <summary>Recarga la base de datos y selecciona la sesión indicada.</summary>
         public void Recargar(SesionConduccion? resaltar)
         {
             List<SesionConduccion> sesiones;
@@ -222,7 +223,7 @@ namespace FatigueDetect.Presentacion
                     s.Vehiculo.TipoCarro,
                     s.Vehiculo.Placa,
                     s.Fin?.ToString("HH:mm:ss") ?? "-",
-                    Tema.FormatoDuracion(s.Duracion),
+                    s.Fin.HasValue ? Tema.FormatoDuracion(s.Duracion) : "—",
                     s.CantidadAlarmas,
                     s.CantidadAlarmas > 0 ? "Con alertas" : "Sin alertas");
 
@@ -230,9 +231,7 @@ namespace FatigueDetect.Presentacion
                 fila.Tag = s;
                 fila.Cells["estado"].Style.ForeColor = s.CantidadAlarmas > 0 ? Tema.Rojo : Tema.Verde;
 
-                if (resaltar != null &&
-                    s.Conductor.Cedula == resaltar.Conductor.Cedula &&
-                    s.Inicio.ToString("s") == resaltar.Inicio.ToString("s"))
+                if (s.Id == resaltar?.Id)
                 {
                     filaResaltada = fila;
                 }
@@ -254,7 +253,7 @@ namespace FatigueDetect.Presentacion
 
         private void MostrarDetalle(SesionConduccion? s)
         {
-            dHoras.Items.Clear();
+            dEventos.Items.Clear();
 
             if (s == null)
             {
@@ -266,7 +265,7 @@ namespace FatigueDetect.Presentacion
                 dFin.Text = "—";
                 dDuracion.Text = "—";
                 dAlarmas.Text = "—";
-                dHoras.Items.Add("Sin registros");
+                dEventos.Items.Add("Sin registros");
                 return;
             }
 
@@ -276,21 +275,34 @@ namespace FatigueDetect.Presentacion
             dPlaca.Text = s.Vehiculo.Placa;
             dInicio.Text = s.Inicio.ToString("dd/MM/yyyy HH:mm:ss");
             dFin.Text = s.Fin?.ToString("dd/MM/yyyy HH:mm:ss") ?? "-";
-            dDuracion.Text = Tema.FormatoDuracion(s.Duracion);
+            dDuracion.Text = s.Fin.HasValue ? Tema.FormatoDuracion(s.Duracion) : "—";
             dAlarmas.Text = s.CantidadAlarmas.ToString();
 
-            List<DateTime> horas = s.HorasAlarmas;
-            if (horas.Count == 0)
+            List<EventoSesion> eventos = s.Eventos;
+            if (eventos.Count == 0 && s.CantidadAlarmas == 0)
+                dEventos.Items.Add("Sin eventos registrados");
+
+            foreach (EventoSesion evento in eventos.OrderBy(e => e.Inicio))
             {
-                dHoras.Items.Add(s.CantidadAlarmas == 0 ? "Sin alarmas" : "Hora no registrada");
-            }
-            else
-            {
-                foreach (DateTime hora in horas)
+                string tipo = evento.Tipo switch
                 {
-                    dHoras.Items.Add(hora.ToString("HH:mm:ss"));
-                }
+                    TipoEventoSesion.CierreOcularProlongado => "Posible cierre ocular prolongado",
+                    TipoEventoSesion.Alarma => "Alarma",
+                    TipoEventoSesion.RostroNoDetectado => "Rostro no detectado",
+                    TipoEventoSesion.VariosRostros => "Varios rostros",
+                    TipoEventoSesion.LuzInsuficiente => "Luz insuficiente",
+                    TipoEventoSesion.LuzExcesiva => "Luz excesiva",
+                    _ => evento.Tipo.ToString()
+                };
+                string inicio = evento.Inicio.LocalDateTime.ToString("dd/MM HH:mm:ss.fff");
+                string duracion = evento.DuracionMilisegundos is long ms
+                    ? $" · {ms / 1000.0:0.000} s" : "";
+                dEventos.Items.Add($"{inicio} · {tipo}{duracion}");
             }
+
+            int alarmasSinHora = s.CantidadAlarmas - eventos.Count(e => e.Tipo == TipoEventoSesion.Alarma);
+            if (alarmasSinHora > 0)
+                dEventos.Items.Add($"Alarmas sin hora registrada · {alarmasSinHora}");
         }
 
         private void Eliminar_Click(object? remitente, EventArgs evento)
@@ -298,7 +310,7 @@ namespace FatigueDetect.Presentacion
             DialogResult respuesta = MessageBox.Show(
                 FindForm(),
                 "¿Está seguro de que desea borrar el historial?\n\n" +
-                "Se eliminarán TODOS los registros y esta acción no se puede deshacer.",
+                "Se eliminarán todas las sesiones y eventos guardados en SQLite. El CSV anterior se conserva.",
                 "Confirmar eliminación",
                 MessageBoxButtons.YesNo,
                 MessageBoxIcon.Warning,
@@ -319,7 +331,7 @@ namespace FatigueDetect.Presentacion
             catch (Exception ex)
             {
                 MessageBox.Show(FindForm(),
-                    "No se pudo eliminar el historial (¿está abierto en Excel?):\n" + ex.Message,
+                    "No se pudo eliminar el historial.\n" + ex.Message,
                     "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }

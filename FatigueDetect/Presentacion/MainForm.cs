@@ -18,7 +18,7 @@ namespace FatigueDetect.Presentacion
         private readonly Panel contenido = new Panel();
         private readonly BotonNavegacion btnInicio = new BotonNavegacion("Inicio");
         private readonly BotonNavegacion btnRegistro = new BotonNavegacion("Registro / Persona");
-        private readonly BotonNavegacion btnHistorial = new BotonNavegacion("Historial de alertas");
+        private readonly BotonNavegacion btnHistorial = new BotonNavegacion("Historial de sesiones");
         private readonly BotonNavegacion btnConfig = new BotonNavegacion("Configuración");
 
         private readonly PaginaInicio paginaInicio;
@@ -228,7 +228,7 @@ namespace FatigueDetect.Presentacion
             catch (Exception ex)
             {
                 MessageBox.Show(this,
-                    "No se pudo guardar el historial (¿está abierto en Excel?):\n" + ex.Message,
+                    "No se pudo guardar la sesión en el historial.\n" + ex.Message,
                     "Error al guardar", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
 

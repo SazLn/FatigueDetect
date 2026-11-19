@@ -10,8 +10,10 @@ namespace FatigueDetect.Entidades
     {
         private readonly object candado = new object();
         private readonly List<DateTime> horasAlarmas = new List<DateTime>();
+        private readonly List<EventoSesion> eventos = new List<EventoSesion>();
         private int cantidadAlarmas;
 
+        public Guid Id { get; init; } = Guid.NewGuid();
         public Conductor Conductor { get; set; } = new Conductor();
         public Vehiculo Vehiculo { get; set; } = new Vehiculo();
         public DateTime Inicio { get; set; }
@@ -30,12 +32,12 @@ namespace FatigueDetect.Entidades
             get { lock (candado) { return new List<DateTime>(horasAlarmas); } }
         }
 
-        public void RegistrarAlarma()
+        public void RegistrarAlarma(DateTimeOffset inicio)
         {
             lock (candado)
             {
                 cantidadAlarmas++;
-                horasAlarmas.Add(DateTime.Now);
+                horasAlarmas.Add(inicio.LocalDateTime);
             }
         }
 
@@ -45,6 +47,19 @@ namespace FatigueDetect.Entidades
             {
                 horasAlarmas.Clear();
                 horasAlarmas.AddRange(horas);
+            }
+        }
+
+        public List<EventoSesion> Eventos
+        {
+            get { lock (candado) { return new List<EventoSesion>(eventos); } }
+        }
+
+        public void RegistrarEvento(EventoSesion evento)
+        {
+            lock (candado)
+            {
+                eventos.Add(evento);
             }
         }
 
@@ -62,6 +77,6 @@ namespace FatigueDetect.Entidades
             }
         }
 
-        public TimeSpan Duracion => (Fin ?? DateTime.Now) - Inicio;
+        public TimeSpan Duracion => (Fin?.ToUniversalTime() ?? DateTime.UtcNow) - Inicio.ToUniversalTime();
     }
 }

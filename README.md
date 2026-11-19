@@ -6,20 +6,47 @@ Proyecto de inicio: `Presentacion`.
 | Proyecto     | Tipo                     | Referencias              | Paquetes NuGet                        |
 |--------------|--------------------------|--------------------------|---------------------------------------|
 | Entidades    | Biblioteca de clases     | -                        | -                                     |
-| Datos        | Biblioteca de clases     | Entidades                | OpenCvSharp4, OpenCvSharp4.Extensions |
+| Datos        | Biblioteca de clases     | Entidades                | OpenCvSharp4, OpenCvSharp4.Extensions, Microsoft.Data.Sqlite |
 | Logica       | Biblioteca de clases     | Entidades, Datos         | OpenCvSharp4                          |
 | Presentacion | Aplicacion Windows Forms | Logica, Datos, Entidades | OpenCvSharp4.runtime.win              |
 
 ## Pantallas (menu lateral)
 - Registro / Persona: cedula, nombre, apellidos, tipo de carro (editable) y placa (libre).
 - Inicio: camara en vivo, estado del conductor, grafica, nivel de atencion y alertas de la sesion.
-- Historial de alertas: sesiones guardadas, detalle con la hora de cada alarma, eliminar historial.
+- Historial de sesiones: sesiones guardadas, cronología de eventos y opción para eliminar el historial.
 - Configuracion: segundos para somnolencia y alarma, sonido de la alarma.
 
 ## Archivos guardados en Documentos\FatigueDetect\
-- historial.csv  (Cedula;Nombre;Apellidos;TipoCarro;Placa;Inicio;Fin;Alarmas;HorasAlarmas)
+- historial.sqlite (sesiones y eventos guardados localmente)
+- historial.csv (historial de versiones anteriores, si existe)
 - tipos_carro.txt
 - perfiles_biometricos.json (datos del conductor y descriptores numéricos del rostro; no contiene fotografías)
+
+## Historial y registro de eventos
+
+Al detener el monitoreo o cerrar la aplicación normalmente, se guardan la sesión y sus
+eventos en una sola operación de SQLite. En **Historial de sesiones**, selecciona una fila
+para ver los eventos en orden, con su hora de inicio y duración. SQLite conserva el inicio
+y el fin en UTC con precisión de milisegundos y la interfaz muestra la hora local.
+
+- **Posible cierre ocular prolongado.** Se registra desde que el detector deja de encontrar ambos
+  ojos hasta que los vuelve a detectar o se interrumpe el seguimiento, siempre que llegue al
+  umbral de somnolencia o alarma. La medición depende del detector de ojos actual.
+- **Alarma.** Se registra una vez por activación, aunque el sonido esté desactivado.
+- **Rostro no detectado, varios rostros, luz insuficiente o luz excesiva.** Se registran cuando
+  la condición dura al menos dos segundos. La iluminación se estima con el brillo promedio de la imagen.
+
+Pausar el monitoreo, perder la imagen o detener la sesión cierra los eventos activos.
+Los eventos se guardan al terminar la sesión, por lo que un cierre forzado puede perder la sesión en curso.
+
+En el primer acceso al historial se importan las filas válidas de `historial.csv`, si existe,
+y las horas de alarma disponibles. Los registros antiguos conservan su conteo original y
+las alarmas importadas tienen duración desconocida. El CSV se conserva como respaldo.
+Al usar **Eliminar historial**, se borran las sesiones y sus eventos en SQLite. El CSV
+se conserva y la importación no vuelve a ejecutarse.
+
+Consulta el [plan de características](docs/plan_caracteristicas_fatiguedetect.md)
+y el [registro de cambios](CHANGELOG.md).
 
 ## Identificación biométrica experimental
 
