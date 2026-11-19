@@ -10,11 +10,11 @@
 | Cierre ocular prolongado y alarma | Integrado en `main` | Usa el detector actual y sus umbrales. Los cierres son estimados. |
 | Rostro no detectado, varios rostros y mala iluminación | Integrado en `main` | Registra episodios desde dos segundos. El rostro no detectado puede indicar salida de cuadro u oclusión. |
 | Cronología en el historial | Integrado en `main` | El detalle de cada sesión muestra tipo, hora y duración de sus eventos. |
-| Selector de cámara y vista previa | Implementado en `feature/selector-camara-iluminacion` | Guarda la cámara elegida y la usa en el registro facial y el monitoreo. |
-| Avisos de iluminación | Implementado en `feature/selector-camara-iluminacion` | La vista previa indica el estado en directo. El monitoreo avisa ante oscuridad o sobreexposición persistente. |
+| Selector de cámara y vista previa | Integrado en `main` | Guarda la cámara elegida y la usa en el registro facial y el monitoreo. |
+| Avisos de iluminación | Integrado en `main` | La vista previa indica el estado en directo. El monitoreo avisa ante oscuridad o sobreexposición persistente. |
 | Resto de propuestas | Pendiente | Incluye otras alertas visuales, puntos faciales, parpadeos, PERCLOS, cabeceos, dashboards y Excel. |
 
-Esta sección recoge el avance. El resto del documento conserva las propuestas y su alcance previsto.
+Esta sección refleja el estado de `main` después de la integración del PR #3. El resto del documento conserva las propuestas pendientes y su alcance previsto.
 
 ## Propósito del documento
 
@@ -183,9 +183,9 @@ Las siguientes funciones ofrecen mucho valor y no dependen todavía de un modelo
 2. Registrar inicio, fin, duración y hora exacta de cada evento.
 3. Detectar ausencia prolongada del conductor.
 4. Avisar si aparecen varias personas.
-5. Analizar si la imagen está oscura, sobreexpuesta o borrosa.
-6. Permitir seleccionar la cámara.
-7. Mostrar alertas visuales en vivo.
+5. Analizar si la imagen está oscura o sobreexpuesta y mostrar avisos en la vista previa y durante el monitoreo.
+6. Permitir seleccionar la cámara, guardar la preferencia y reutilizarla en biometría y monitoreo.
+7. Mostrar alertas visuales en vivo para las condiciones que todavía no se muestran.
 8. Registrar calidad de imagen, FPS y porcentaje de fotogramas analizables.
 9. Crear estadísticas de sesiones por día, semana, mes, hora y día de la semana.
 10. Crear un dashboard histórico inicial.
@@ -577,14 +577,13 @@ Esta separación evita que la interfaz, la cámara y las reglas de negocio termi
 
 Prioridad alta porque desbloquea los dashboards y evita rehacer el almacenamiento después.
 
-1. Integrar SQLite.
-2. Crear tablas de conductores, vehículos, sesiones y eventos.
-3. Crear el motor central de eventos.
-4. Guardar inicio, fin, duración, gravedad y confianza.
-5. Migrar o importar el historial CSV existente.
-6. Añadir selección de cámara.
-7. Registrar calidad de iluminación y cámara.
-8. Registrar ausencias y varias personas.
+1. Integrar SQLite para sesiones y eventos.
+2. Importar una sola vez las filas válidas del historial CSV.
+3. Guardar inicio, fin y duración de los eventos disponibles.
+4. Registrar cierres oculares prolongados, alarmas, rostro ausente, varios rostros y condiciones de iluminación.
+5. Permitir seleccionar y probar la cámara, guardar la preferencia y compartirla entre biometría y monitoreo.
+6. Mostrar avisos de oscuridad y sobreexposición en la vista previa y durante el monitoreo.
+7. Ampliar los datos de calidad de detección y cámara.
 
 ## Etapa 2: Dashboard inicial
 

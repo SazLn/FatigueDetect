@@ -2,6 +2,8 @@
 
 ## Sin publicar
 
+- Se actualizó el plan para marcar el selector de cámara y los avisos de iluminación como integrados en `main`, y se ajustó la lista de trabajo pendiente para reflejar la funcionalidad disponible.
+
 - Configuración permite elegir una cámara por nombre, guardar la selección y comprobar el encuadre y la iluminación en una vista previa.
 - El monitoreo avisa cuando la imagen permanece oscura o sobreexpuesta durante dos segundos.
 

@@ -59,8 +59,9 @@ las alarmas importadas tienen duración desconocida. El CSV se conserva como res
 Al usar **Eliminar historial**, se borran las sesiones y sus eventos en SQLite. El CSV
 se conserva y la importación no vuelve a ejecutarse.
 
+El selector de cámara y los avisos de iluminación forman parte de `main` desde la integración del PR #3.
 Consulta el [plan de características](docs/plan_caracteristicas_fatiguedetect.md)
-y el [registro de cambios](CHANGELOG.md).
+y el [registro de cambios](CHANGELOG.md) para ver el estado actual y las funciones pendientes.
 
 ## Identificación biométrica experimental
 
