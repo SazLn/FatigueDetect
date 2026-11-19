@@ -15,19 +15,22 @@ namespace FatigueDetect.Logica
             this.sesion = sesion;
         }
 
-        public EstadoIluminacion? Observar(DateTimeOffset instante, int rostros, bool ojosDetectados,
+        public (EstadoIluminacion? Iluminacion, TipoEventoSesion? Rostro) Observar(
+            DateTimeOffset instante, int rostros, bool ojosDetectados,
             EyeState estado, EstadoIluminacion iluminacion)
         {
             bool cierre = rostros > 0 && !ojosDetectados;
             Actualizar(TipoEventoSesion.CierreOcularProlongado, cierre, instante,
                 estado is EyeState.SOMNOLIENTO or EyeState.ALARMA_ACTIVADA);
             Actualizar(TipoEventoSesion.Alarma, estado == EyeState.ALARMA_ACTIVADA, instante, true);
-            Actualizar(TipoEventoSesion.RostroNoDetectado, rostros == 0, instante);
-            Actualizar(TipoEventoSesion.VariosRostros, rostros > 1, instante);
+            bool rostroAusente = Actualizar(TipoEventoSesion.RostroNoDetectado, rostros == 0, instante);
+            bool variosRostros = Actualizar(TipoEventoSesion.VariosRostros, rostros > 1, instante);
             bool pocaLuz = Actualizar(TipoEventoSesion.LuzInsuficiente, iluminacion == EstadoIluminacion.Insuficiente, instante);
             bool muchaLuz = Actualizar(TipoEventoSesion.LuzExcesiva, iluminacion == EstadoIluminacion.Excesiva, instante);
 
-            return pocaLuz || muchaLuz ? iluminacion : null;
+            TipoEventoSesion? avisoRostro = rostroAusente ? TipoEventoSesion.RostroNoDetectado
+                : variosRostros ? TipoEventoSesion.VariosRostros : null;
+            return (pocaLuz || muchaLuz ? iluminacion : null, avisoRostro);
         }
 
         public void Interrumpir(DateTimeOffset instante)

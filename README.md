@@ -12,8 +12,8 @@ Proyecto de inicio: `Presentacion`.
 
 ## Pantallas (menu lateral)
 - Registro / Persona: cedula, nombre, apellidos, tipo de carro (editable) y placa (libre).
-- Inicio: cámara en vivo, estado del conductor, gráfica, nivel de atención y avisos de iluminación.
-- Historial de sesiones: sesiones guardadas, cronología de eventos y opción para eliminar el historial.
+- Inicio: cámara en vivo, estado del conductor, gráfica, nivel de atención y avisos de iluminación o problemas de encuadre.
+- Historial de sesiones: sesiones guardadas, resumen por tipo, cronología de eventos y opción para eliminar el historial.
 - Configuración: sensibilidad de detección, sonido de la alarma y selector de cámara con vista previa.
 
 ## Archivos guardados en Documentos\FatigueDetect\
@@ -36,12 +36,19 @@ el aviso aparece debajo del video cuando la imagen permanece demasiado oscura o 
 durante al menos dos segundos. Desaparece al corregir la iluminación. La estimación usa el brillo
 promedio de la imagen y el episodio se guarda en el historial al terminar la sesión.
 
+Durante el monitoreo también aparece un aviso si el rostro permanece ausente o si se
+detectan varias personas durante al menos dos segundos. El aviso desaparece cuando
+vuelve a detectarse únicamente al conductor. Si la cámara deja de entregar imagen,
+la interfaz muestra que no hay señal y limpia el aviso anterior.
+
 ## Historial y registro de eventos
 
 Al detener el monitoreo o cerrar la aplicación normalmente, se guardan la sesión y sus
 eventos en una sola operación de SQLite. En **Historial de sesiones**, selecciona una fila
 para ver los eventos en orden, con su hora de inicio y duración. SQLite conserva el inicio
 y el fin en UTC con precisión de milisegundos y la interfaz muestra la hora local.
+El detalle incluye un resumen por tipo con la cantidad de eventos, su duración total
+y la duración máxima disponible. Los eventos importados sin duración se indican por separado.
 
 - **Posible cierre ocular prolongado.** Se registra desde que el detector deja de encontrar ambos
   ojos hasta que los vuelve a detectar o se interrumpe el seguimiento, siempre que llegue al

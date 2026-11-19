@@ -23,6 +23,7 @@ namespace FatigueDetect.Presentacion
         private Label dFin = null!;
         private Label dDuracion = null!;
         private Label dAlarmas = null!;
+        private ListBox dResumen = null!;
         private ListBox dEventos = null!;
 
         public PaginaHistorial(SesionService sesionService)
@@ -156,7 +157,7 @@ namespace FatigueDetect.Presentacion
         private Control ConstruirDetalle()
         {
             var tarjeta = new PanelRedondeado { Dock = DockStyle.Fill, Margin = new Padding(10, 0, 0, 0) };
-            var tabla2 = Tema.TablaFilas(Tema.Tarjeta, 36, 39, 39, 39, 39, 39, 39, 39, 39, 26, 0);
+            var tabla2 = Tema.TablaFilas(Tema.Tarjeta, 36, 39, 39, 39, 39, 39, 39, 39, 39, 26, 116, 26, 0);
 
             tabla2.Controls.Add(Tema.Etiqueta("Detalle de la sesión", 13, Tema.Texto, Tema.Tarjeta, FontStyle.Bold), 0, 0);
             tabla2.Controls.Add(Dato("Conductor", out dConductor), 0, 1);
@@ -167,7 +168,21 @@ namespace FatigueDetect.Presentacion
             tabla2.Controls.Add(Dato("Fin", out dFin), 0, 6);
             tabla2.Controls.Add(Dato("Duración", out dDuracion), 0, 7);
             tabla2.Controls.Add(Dato("Alarmas activadas", out dAlarmas), 0, 8);
-            tabla2.Controls.Add(Tema.Etiqueta("Eventos de la sesión", 9, Tema.TextoSuave, Tema.Tarjeta), 0, 9);
+            tabla2.Controls.Add(Tema.Etiqueta("Resumen de eventos", 9, Tema.TextoSuave, Tema.Tarjeta), 0, 9);
+
+            dResumen = new ListBox
+            {
+                Dock = DockStyle.Fill,
+                BackColor = Tema.Tarjeta,
+                ForeColor = Tema.Texto,
+                BorderStyle = BorderStyle.None,
+                Font = Tema.Fuente(9),
+                Margin = new Padding(0),
+                IntegralHeight = false,
+                HorizontalScrollbar = true
+            };
+            tabla2.Controls.Add(dResumen, 0, 10);
+            tabla2.Controls.Add(Tema.Etiqueta("Eventos de la sesión", 9, Tema.TextoSuave, Tema.Tarjeta), 0, 11);
 
             dEventos = new ListBox
             {
@@ -180,7 +195,7 @@ namespace FatigueDetect.Presentacion
                 IntegralHeight = false,
                 HorizontalScrollbar = true
             };
-            tabla2.Controls.Add(dEventos, 0, 10);
+            tabla2.Controls.Add(dEventos, 0, 12);
 
             tarjeta.Controls.Add(tabla2);
             return tarjeta;
@@ -253,6 +268,7 @@ namespace FatigueDetect.Presentacion
 
         private void MostrarDetalle(SesionConduccion? s)
         {
+            dResumen.Items.Clear();
             dEventos.Items.Clear();
 
             if (s == null)
@@ -265,6 +281,7 @@ namespace FatigueDetect.Presentacion
                 dFin.Text = "—";
                 dDuracion.Text = "—";
                 dAlarmas.Text = "—";
+                dResumen.Items.Add("Sin registros");
                 dEventos.Items.Add("Sin registros");
                 return;
             }
@@ -279,31 +296,51 @@ namespace FatigueDetect.Presentacion
             dAlarmas.Text = s.CantidadAlarmas.ToString();
 
             List<EventoSesion> eventos = s.Eventos;
+            int alarmasSinHora = Math.Max(0,
+                s.CantidadAlarmas - eventos.Count(e => e.Tipo == TipoEventoSesion.Alarma));
+            foreach (IGrouping<TipoEventoSesion, EventoSesion> grupo in eventos
+                .GroupBy(e => e.Tipo).OrderBy(g => g.Key))
+            {
+                int cantidad = grupo.Count() + (grupo.Key == TipoEventoSesion.Alarma ? alarmasSinHora : 0);
+                List<long> duraciones = grupo.Select(e => e.DuracionMilisegundos)
+                    .Where(ms => ms.HasValue).Select(ms => ms!.Value).ToList();
+                string tiempo = duraciones.Count > 0
+                    ? $" · total {duraciones.Sum() / 1000.0:0.0} s · máximo {duraciones.Max() / 1000.0:0.0} s"
+                    : "";
+                int sinDuracion = cantidad - duraciones.Count;
+                string desconocidas = sinDuracion > 0 ? $" · {sinDuracion} sin duración" : "";
+                dResumen.Items.Add($"{NombreEvento(grupo.Key)} · {cantidad}{tiempo}{desconocidas}");
+            }
+            if (alarmasSinHora > 0 && eventos.All(e => e.Tipo != TipoEventoSesion.Alarma))
+                dResumen.Items.Add($"Alarma · {alarmasSinHora} · {alarmasSinHora} sin duración");
+            if (dResumen.Items.Count == 0)
+                dResumen.Items.Add("Sin eventos registrados");
+
             if (eventos.Count == 0 && s.CantidadAlarmas == 0)
                 dEventos.Items.Add("Sin eventos registrados");
 
             foreach (EventoSesion evento in eventos.OrderBy(e => e.Inicio))
             {
-                string tipo = evento.Tipo switch
-                {
-                    TipoEventoSesion.CierreOcularProlongado => "Posible cierre ocular prolongado",
-                    TipoEventoSesion.Alarma => "Alarma",
-                    TipoEventoSesion.RostroNoDetectado => "Rostro no detectado",
-                    TipoEventoSesion.VariosRostros => "Varios rostros",
-                    TipoEventoSesion.LuzInsuficiente => "Luz insuficiente",
-                    TipoEventoSesion.LuzExcesiva => "Luz excesiva",
-                    _ => evento.Tipo.ToString()
-                };
                 string inicio = evento.Inicio.LocalDateTime.ToString("dd/MM HH:mm:ss.fff");
                 string duracion = evento.DuracionMilisegundos is long ms
                     ? $" · {ms / 1000.0:0.000} s" : "";
-                dEventos.Items.Add($"{inicio} · {tipo}{duracion}");
+                dEventos.Items.Add($"{inicio} · {NombreEvento(evento.Tipo)}{duracion}");
             }
 
-            int alarmasSinHora = s.CantidadAlarmas - eventos.Count(e => e.Tipo == TipoEventoSesion.Alarma);
             if (alarmasSinHora > 0)
                 dEventos.Items.Add($"Alarmas sin hora registrada · {alarmasSinHora}");
         }
+
+        private static string NombreEvento(TipoEventoSesion tipo) => tipo switch
+        {
+            TipoEventoSesion.CierreOcularProlongado => "Posible cierre ocular prolongado",
+            TipoEventoSesion.Alarma => "Alarma",
+            TipoEventoSesion.RostroNoDetectado => "Rostro no detectado",
+            TipoEventoSesion.VariosRostros => "Varios rostros",
+            TipoEventoSesion.LuzInsuficiente => "Luz insuficiente",
+            TipoEventoSesion.LuzExcesiva => "Luz excesiva",
+            _ => tipo.ToString()
+        };
 
         private void Eliminar_Click(object? remitente, EventArgs evento)
         {

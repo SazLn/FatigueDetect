@@ -72,7 +72,7 @@ namespace FatigueDetect.Logica
                 if (!arranque.TrySetException(ex) && running)
                 {
                     System.Diagnostics.Trace.TraceError(ex.ToString());
-                    view.UpdateImage(null, EyeState.DESPIERTO, 0, null);
+                    view.UpdateImage(null, EyeState.DESPIERTO, 0, null, null);
                 }
             }
             finally
@@ -104,7 +104,7 @@ namespace FatigueDetect.Logica
                         if (running && !paused)
                             InterrumpirObservacion(DateTimeOffset.UtcNow);
                     }
-                    view.UpdateImage(null, EyeState.DESPIERTO, 0, null);
+                    view.UpdateImage(null, EyeState.DESPIERTO, 0, null, null);
                     Thread.Sleep(10);
                     continue;
                 }
@@ -118,6 +118,7 @@ namespace FatigueDetect.Logica
                 EyeState estado;
                 long cierreMs;
                 EstadoIluminacion? avisoIluminacion;
+                TipoEventoSesion? avisoRostro;
                 lock (candadoEstado)
                 {
                     if (!running || paused || instante <= ultimaInterrupcion)
@@ -127,7 +128,8 @@ namespace FatigueDetect.Logica
                         ? drowsinessLogic.EvaluateSinRostro()
                         : drowsinessLogic.Evaluate(ojosDetectados);
                     cierreMs = drowsinessLogic.GetClosedDurationMs();
-                    avisoIluminacion = registro.Observar(instante, rostros.Length, ojosDetectados, estado, iluminacion);
+                    (avisoIluminacion, avisoRostro) = registro.Observar(
+                        instante, rostros.Length, ojosDetectados, estado, iluminacion);
 
                     if (estado == EyeState.ALARMA_ACTIVADA)
                         alarmService.Activar();
@@ -138,7 +140,7 @@ namespace FatigueDetect.Logica
                 var image = ImageUtils.MatToBitmap(frame);
                 try
                 {
-                    view.UpdateImage(image, estado, cierreMs, avisoIluminacion);
+                    view.UpdateImage(image, estado, cierreMs, avisoIluminacion, avisoRostro);
                 }
                 catch (Exception) when (!running)
                 {
