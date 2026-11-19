@@ -19,6 +19,7 @@ namespace FatigueDetect.Logica
         private readonly DrowsinessLogic drowsinessLogic;
         private readonly AlarmService alarmService;
         private readonly RegistroEventosSesion registro;
+        private readonly MedicionCalidadSesion calidad = new();
         private readonly SesionConduccion sesion;
         private readonly object candadoEstado = new object();
         private DateTimeOffset ultimaInterrupcion = DateTimeOffset.MinValue;
@@ -60,6 +61,11 @@ namespace FatigueDetect.Logica
 
                 cancelacion.ThrowIfCancellationRequested();
                 sesion.Inicio = DateTime.Now;
+                lock (candadoEstado)
+                {
+                    if (running && !paused)
+                        calidad.Reanudar();
+                }
                 arranque.SetResult();
                 ProcesarCaptura(camara, cancelacion);
             }
@@ -80,6 +86,7 @@ namespace FatigueDetect.Logica
                 lock (candadoEstado)
                 {
                     running = false;
+                    calidad.Interrumpir();
                     InterrumpirObservacion(DateTimeOffset.UtcNow);
                 }
             }
@@ -95,14 +102,18 @@ namespace FatigueDetect.Logica
                     continue;
                 }
 
-                using Mat frame = camara.GetFrame();
+                DateTimeOffset inicioLectura = DateTimeOffset.UtcNow;
+                using Mat frame = LeerFotograma(camara, inicioLectura);
 
                 if (frame.Empty())
                 {
                     lock (candadoEstado)
                     {
-                        if (running && !paused)
+                        if (running && !paused && inicioLectura > ultimaInterrupcion)
+                        {
+                            calidad.RegistrarFallo();
                             InterrumpirObservacion(DateTimeOffset.UtcNow);
+                        }
                     }
                     view.UpdateImage(null, EyeState.DESPIERTO, 0, null, null);
                     Thread.Sleep(10);
@@ -121,8 +132,12 @@ namespace FatigueDetect.Logica
                 TipoEventoSesion? avisoRostro;
                 lock (candadoEstado)
                 {
-                    if (!running || paused || instante <= ultimaInterrupcion)
+                    if (!running || paused || inicioLectura <= ultimaInterrupcion)
                         continue;
+
+                    bool rostroValido = rostros.Length == 1;
+                    calidad.RegistrarFotograma(rostroValido,
+                        rostroValido && iluminacion == EstadoIluminacion.Adecuada);
 
                     estado = rostros.Length == 0
                         ? drowsinessLogic.EvaluateSinRostro()
@@ -146,6 +161,23 @@ namespace FatigueDetect.Logica
                 {
                     // La pantalla ya se cerró mientras se procesaba el último frame.
                 }
+            }
+        }
+
+        private Mat LeerFotograma(CameraService camara, DateTimeOffset inicioLectura)
+        {
+            try
+            {
+                return camara.GetFrame();
+            }
+            catch
+            {
+                lock (candadoEstado)
+                {
+                    if (running && !paused && inicioLectura > ultimaInterrupcion)
+                        calidad.RegistrarFallo();
+                }
+                throw;
             }
         }
 
@@ -178,6 +210,8 @@ namespace FatigueDetect.Logica
             lock (candadoEstado)
             {
                 running = false;
+                calidad.Interrumpir();
+                sesion.Calidad = calidad.Resumen();
                 InterrumpirObservacion(DateTimeOffset.UtcNow);
             }
 
@@ -193,7 +227,14 @@ namespace FatigueDetect.Logica
             {
                 this.paused = paused;
                 if (paused)
+                {
+                    calidad.Interrumpir();
                     InterrumpirObservacion(DateTimeOffset.UtcNow);
+                }
+                else if (running)
+                {
+                    calidad.Reanudar();
+                }
             }
         }
 

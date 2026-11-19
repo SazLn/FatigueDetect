@@ -18,6 +18,7 @@ namespace FatigueDetect.Entidades
         public Vehiculo Vehiculo { get; set; } = new Vehiculo();
         public DateTime Inicio { get; set; }
         public DateTime? Fin { get; set; }
+        public CalidadSesion? Calidad { get; set; }
 
         // Las alarmas se registran desde el hilo de detección, por eso se protegen con lock.
         public int CantidadAlarmas

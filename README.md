@@ -8,16 +8,16 @@ Proyecto de inicio: `Presentacion`.
 | Entidades    | Biblioteca de clases     | -                        | -                                     |
 | Datos        | Biblioteca de clases     | Entidades                | OpenCvSharp4, OpenCvSharp4.Extensions, Microsoft.Data.Sqlite |
 | Logica       | Biblioteca de clases     | Entidades, Datos         | OpenCvSharp4                          |
-| Presentacion | Aplicacion Windows Forms | Logica, Datos, Entidades | OpenCvSharp4.runtime.win              |
+| Presentacion | Aplicacion Windows Forms | Logica, Datos, Entidades | OpenCvSharp4.runtime.win, ClosedXML   |
 
 ## Pantallas (menu lateral)
 - Registro / Persona: cedula, nombre, apellidos, tipo de carro (editable) y placa (libre).
 - Inicio: cámara en vivo, estado del conductor, gráfica, nivel de atención y avisos de iluminación o problemas de encuadre.
-- Historial de sesiones: sesiones guardadas, resumen por tipo, cronología de eventos y opción para eliminar el historial.
+- Historial de sesiones: sesiones guardadas, métricas de calidad, resumen por tipo, cronología de eventos, estadísticas y exportación a Excel.
 - Configuración: sensibilidad de detección, sonido de la alarma y selector de cámara con vista previa.
 
 ## Archivos guardados en Documentos\FatigueDetect\
-- historial.sqlite (sesiones y eventos guardados localmente)
+- historial.sqlite (sesiones, eventos y métricas de calidad guardados localmente)
 - historial.csv (historial de versiones anteriores, si existe)
 - tipos_carro.txt
 - camara_preferida.txt (selección de cámara para este equipo)
@@ -72,12 +72,27 @@ Los eventos se guardan al terminar la sesión, por lo que un cierre forzado pued
 En el primer acceso al historial se importan las filas válidas de `historial.csv`, si existe,
 y las horas de alarma disponibles. Los registros antiguos conservan su conteo original y
 las alarmas importadas tienen duración desconocida. El CSV se conserva como respaldo.
-Al usar **Eliminar historial**, se borran las sesiones y sus eventos en SQLite. El CSV
+Al usar **Eliminar historial**, se borran las sesiones, sus eventos y sus métricas en SQLite. El CSV
 se conserva y la importación no vuelve a ejecutarse.
 
 El selector de cámara y los avisos de iluminación forman parte de `main` desde la integración del PR #3.
 Consulta el [plan de características](docs/plan_caracteristicas_fatiguedetect.md)
 y el [registro de cambios](CHANGELOG.md) para ver el estado actual y las funciones pendientes.
+
+## Calidad de sesión, estadísticas y Excel
+
+El detalle de una sesión nueva muestra:
+
+- **FPS medios.** Fotogramas procesados divididos por el tiempo de monitoreo activo. Los intervalos sin señal cuentan como tiempo activo. Las pausas quedan fuera.
+- **Fotogramas analizables.** Porcentaje de fotogramas procesados con exactamente un rostro detectado e iluminación adecuada.
+- **Tiempo con rostro válido.** Suma de los intervalos entre fotogramas consecutivos con exactamente un rostro. Las pausas y los fallos de lectura interrumpen el intervalo.
+- **Fallos de cámara.** Una lectura vacía o fallida inicia un episodio. Las lecturas fallidas consecutivas se cuentan como un solo episodio hasta que vuelve la imagen o se pausa el monitoreo. La medición empieza cuando la cámara abre correctamente.
+
+Las sesiones anteriores conservan sus datos y muestran «Calidad: sin medición».
+
+En **Historial de sesiones → Estadísticas**, consulta el total de sesiones y su duración promedio, con desgloses por día, semana, mes y hora de inicio. Se usa la hora local, las semanas comienzan el lunes y las franjas horarias se ordenan por número de sesiones. El promedio usa las sesiones con hora de finalización.
+
+En **Historial de sesiones → Exportar Excel**, elige dónde guardar el archivo .xlsx. Contiene el resumen general, las sesiones con métricas de calidad, los eventos con hora, el resumen de eventos por sesión y los desgloses históricos. Los ID de sesión vinculan las hojas. Las celdas correspondientes a valores desconocidos quedan vacías. El archivo incluye los datos personales que aparecen en el historial.
 
 ## Identificación biométrica experimental
 
