@@ -36,13 +36,15 @@ namespace FatigueDetect.Logica
 
         private readonly PerfilBiometricoRepository repositorio;
         private readonly string rutaCascada;
+        private readonly Configuracion config;
         private readonly ExtractorDescriptorFacial extractor = new ExtractorDescriptorFacial();
         private readonly SemaphoreSlim operacion = new SemaphoreSlim(1, 1);
 
-        public ServicioBiometrico(PerfilBiometricoRepository repositorio, string rutaCascada)
+        public ServicioBiometrico(PerfilBiometricoRepository repositorio, string rutaCascada, Configuracion config)
         {
             this.repositorio = repositorio;
             this.rutaCascada = rutaCascada;
+            this.config = config;
         }
 
         public bool TienePerfil(string cedula) => repositorio.Existe(cedula);
@@ -129,8 +131,9 @@ namespace FatigueDetect.Logica
 
             try
             {
-                return await Task.Run(() => CapturarDescriptor(requeridas, progreso, cancelacion),
-                    cancelacion).ConfigureAwait(false);
+                string? camaraId = config.CamaraId;
+                return await HiloCapturaCamara.EjecutarAsync(() =>
+                    CapturarDescriptor(camaraId, requeridas, progreso, cancelacion)).ConfigureAwait(false);
             }
             finally
             {
@@ -138,10 +141,10 @@ namespace FatigueDetect.Logica
             }
         }
 
-        private float[] CapturarDescriptor(int requeridas,
+        private float[] CapturarDescriptor(string? camaraId, int requeridas,
             IProgress<ProgresoCapturaBiometrica> progreso, CancellationToken cancelacion)
         {
-            using var camara = new CameraService();
+            using var camara = new CameraService(camaraId, cancelacion);
             if (!camara.IsOpened())
             {
                 throw new InvalidOperationException(

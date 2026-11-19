@@ -1,19 +1,21 @@
 using System;
 using System.Drawing;
 using System.Windows.Forms;
+using FatigueDetect.Datos;
 using FatigueDetect.Entidades;
 
 namespace FatigueDetect.Presentacion
 {
-    /// <summary>Pantalla "Configuración": sensibilidad de la detección y sonido.</summary>
+    /// <summary>Pantalla de configuración de detección, sonido y cámara.</summary>
     public class PaginaConfiguracion : UserControl
     {
         private readonly Configuracion config;
+        private readonly PanelCamaraConfiguracion panelCamara;
         private readonly NumericUpDown somnolientoNum = new NumericUpDown();
         private readonly NumericUpDown alarmaNum = new NumericUpDown();
         private readonly CheckBox sonidoCheck = new CheckBox();
 
-        public PaginaConfiguracion(Configuracion config)
+        public PaginaConfiguracion(Configuracion config, PreferenciaCamara preferenciaCamara)
         {
             this.config = config;
 
@@ -33,14 +35,14 @@ namespace FatigueDetect.Presentacion
 
             CargarValores();
 
-            var raiz = Tema.TablaFilas(Tema.Fondo, 84, 370, 0);
+            var raiz = Tema.TablaFilas(Tema.Fondo, 84, 0);
 
             var encabezado = Tema.TablaFilas(Tema.Fondo, 42, 30);
             encabezado.Controls.Add(Tema.Etiqueta("Configuración", 20, Tema.Texto, Tema.Fondo, FontStyle.Bold), 0, 0);
-            encabezado.Controls.Add(Tema.Etiqueta("Ajusta la sensibilidad de la detección de fatiga.", 10, Tema.TextoSuave, Tema.Fondo), 0, 1);
+            encabezado.Controls.Add(Tema.Etiqueta("Ajusta la detección de fatiga y configura la cámara.", 10, Tema.TextoSuave, Tema.Fondo), 0, 1);
             raiz.Controls.Add(encabezado, 0, 0);
 
-            var tarjeta = new PanelRedondeado { Dock = DockStyle.Left, Width = 620 };
+            var tarjeta = new PanelRedondeado { Dock = DockStyle.Fill, Margin = new Padding(0, 0, 8, 0) };
             var tabla = Tema.TablaFilas(Tema.Tarjeta, 36, 24, 44, 24, 44, 14, 44, 18, 44, 50);
 
             tabla.Controls.Add(Tema.Etiqueta("Sensibilidad de la detección", 12, Tema.Texto, Tema.Tarjeta, FontStyle.Bold), 0, 0);
@@ -78,10 +80,22 @@ namespace FatigueDetect.Presentacion
             tabla.Controls.Add(botones, 0, 9);
 
             tarjeta.Controls.Add(tabla);
-            raiz.Controls.Add(tarjeta, 0, 1);
+            panelCamara = new PanelCamaraConfiguracion(config, preferenciaCamara);
+            var columnas = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 1, Margin = new Padding(0) };
+            columnas.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 48));
+            columnas.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 52));
+            columnas.Controls.Add(tarjeta, 0, 0);
+            columnas.Controls.Add(panelCamara, 1, 0);
+            raiz.Controls.Add(columnas, 0, 1);
 
             Controls.Add(raiz);
         }
+
+        public void ActualizarCamaras() => panelCamara.Recargar();
+
+        public void HabilitarCamara(bool habilitar) => panelCamara.Habilitar(habilitar);
+
+        public void DetenerVistaPrevia() => panelCamara.DetenerVistaPrevia();
 
         private static void ConfigurarNumerico(NumericUpDown numerico, decimal minimo, decimal maximo)
         {

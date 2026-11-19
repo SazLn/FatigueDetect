@@ -27,6 +27,7 @@ namespace FatigueDetect.Presentacion
         // Cámara
         private readonly PictureBox camaraBox = new PictureBox();
         private Label sinSenal = null!;
+        private Label avisoLuz = null!;
         private Label lblDuracion = null!;
         private Button pausarBtn = null!;
         private Button detenerBtn = null!;
@@ -101,7 +102,7 @@ namespace FatigueDetect.Presentacion
         private Control ConstruirCamara()
         {
             var tarjeta = new PanelRedondeado { Dock = DockStyle.Fill, Margin = new Padding(6) };
-            var tabla = Tema.TablaFilas(Tema.Tarjeta, 30, 0, 52);
+            var tabla = Tema.TablaFilas(Tema.Tarjeta, 30, 0, 28, 52);
 
             var cabecera = new TableLayoutPanel
             {
@@ -128,6 +129,10 @@ namespace FatigueDetect.Presentacion
             camaraBox.Controls.Add(sinSenal);
             tabla.Controls.Add(camaraBox, 0, 1);
 
+            avisoLuz = Tema.Etiqueta("", 10, Tema.Ambar, Tema.Tarjeta, FontStyle.Bold);
+            avisoLuz.AccessibleName = "Aviso de iluminación";
+            tabla.Controls.Add(avisoLuz, 0, 2);
+
             var botones = new FlowLayoutPanel
             {
                 Dock = DockStyle.Fill,
@@ -146,12 +151,13 @@ namespace FatigueDetect.Presentacion
             {
                 pausado = !pausado;
                 pausarBtn.Text = pausado ? "Reanudar" : "Pausar";
+                avisoLuz.Text = "";
                 PausaSolicitada?.Invoke(pausado);
             };
 
             botones.Controls.Add(detenerBtn);
             botones.Controls.Add(pausarBtn);
-            tabla.Controls.Add(botones, 0, 2);
+            tabla.Controls.Add(botones, 0, 3);
 
             tarjeta.Controls.Add(tabla);
             return tarjeta;
@@ -271,6 +277,7 @@ namespace FatigueDetect.Presentacion
 
             sinSenal.Text = "Iniciando cámara...";
             sinSenal.Visible = true;
+            avisoLuz.Text = "";
 
             AplicarEstado(EyeState.DESPIERTO);
             medidor.Actualizar(1.0, Tema.Verde, "ALTO");
@@ -294,6 +301,7 @@ namespace FatigueDetect.Presentacion
 
             sinSenal.Text = "Sin sesión activa.\nVe a \"Registro / Persona\" para iniciar el monitoreo.";
             sinSenal.Visible = true;
+            avisoLuz.Text = "";
 
             lblConductor.Text = "Conductor: —";
             lblCedula.Text = "C.C. —";
@@ -314,7 +322,7 @@ namespace FatigueDetect.Presentacion
         //  IDetectorView (se llama desde el hilo de detección)
         // ------------------------------------------------------------------
 
-        public void UpdateImage(Bitmap? image, EyeState estado, long tiempoMs)
+        public void UpdateImage(Bitmap? image, EyeState estado, long tiempoMs, EstadoIluminacion? avisoIluminacion)
         {
             // Si la pantalla sigue ocupada con el cuadro anterior, se descarta este.
             if (IsDisposed || !IsHandleCreated || Interlocked.CompareExchange(ref actualizando, 1, 0) != 0)
@@ -325,7 +333,7 @@ namespace FatigueDetect.Presentacion
 
             try
             {
-                BeginInvoke(new Action(() => Actualizar(image, estado, tiempoMs)));
+                BeginInvoke(new Action(() => Actualizar(image, estado, tiempoMs, avisoIluminacion)));
             }
             catch (Exception)
             {
@@ -344,24 +352,36 @@ namespace FatigueDetect.Presentacion
         //  Actualización de la pantalla (hilo de la interfaz)
         // ------------------------------------------------------------------
 
-        private void Actualizar(Bitmap? imagen, EyeState estado, long tiempoMs)
+        private void Actualizar(Bitmap? imagen, EyeState estado, long tiempoMs, EstadoIluminacion? avisoIluminacion)
         {
             try
             {
                 SesionConduccion? actual = sesion;
-                if (actual == null || IsDisposed)
+                if (actual == null || IsDisposed || pausado)
                 {
                     imagen?.Dispose();
                     return;
                 }
 
-                if (imagen != null)
+                if (imagen == null)
+                {
+                    sinSenal.Text = "Sin señal de cámara";
+                    sinSenal.Visible = true;
+                }
+                else
                 {
                     sinSenal.Visible = false;
-                    Image? vieja = camaraBox.Image;
-                    camaraBox.Image = imagen;
-                    vieja?.Dispose();
                 }
+
+                Image? vieja = camaraBox.Image;
+                camaraBox.Image = imagen;
+                vieja?.Dispose();
+                string aviso = avisoIluminacion is EstadoIluminacion luz ? AvisosIluminacion.Mensaje(luz) : "";
+                if (avisoLuz.Text != aviso)
+                    avisoLuz.Text = aviso;
+
+                if (imagen == null)
+                    return;
 
                 AplicarEstado(estado);
 

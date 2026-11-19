@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using FatigueDetect.Entidades;
 using OpenCvSharp;
 
 namespace FatigueDetect.Datos
@@ -40,12 +41,13 @@ namespace FatigueDetect.Datos
             Cv2.Resize(gris, normalizada, new Size(Lado, Lado));
 
             Cv2.MeanStdDev(normalizada, out Scalar media, out Scalar desviacion);
-            if (media.Val0 < 38)
+            EstadoIluminacion iluminacion = MedidorIluminacion.Clasificar(media.Val0);
+            if (iluminacion == EstadoIluminacion.Insuficiente)
             {
                 mensaje = "Hay poca luz. Ilumina tu rostro de frente.";
                 return false;
             }
-            if (media.Val0 > 220)
+            if (iluminacion == EstadoIluminacion.Excesiva)
             {
                 mensaje = "La imagen está sobreexpuesta. Reduce la luz directa.";
                 return false;

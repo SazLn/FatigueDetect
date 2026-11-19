@@ -12,15 +12,29 @@ Proyecto de inicio: `Presentacion`.
 
 ## Pantallas (menu lateral)
 - Registro / Persona: cedula, nombre, apellidos, tipo de carro (editable) y placa (libre).
-- Inicio: camara en vivo, estado del conductor, grafica, nivel de atencion y alertas de la sesion.
+- Inicio: cámara en vivo, estado del conductor, gráfica, nivel de atención y avisos de iluminación.
 - Historial de sesiones: sesiones guardadas, cronología de eventos y opción para eliminar el historial.
-- Configuracion: segundos para somnolencia y alarma, sonido de la alarma.
+- Configuración: sensibilidad de detección, sonido de la alarma y selector de cámara con vista previa.
 
 ## Archivos guardados en Documentos\FatigueDetect\
 - historial.sqlite (sesiones y eventos guardados localmente)
 - historial.csv (historial de versiones anteriores, si existe)
 - tipos_carro.txt
+- camara_preferida.txt (selección de cámara para este equipo)
 - perfiles_biometricos.json (datos del conductor y descriptores numéricos del rostro; no contiene fotografías)
+
+## Elegir la cámara y revisar la iluminación
+
+En **Configuración → Cámara**, elige la cámara por el nombre que muestra Windows o selecciona **Automática**.
+Pulsa **Actualizar lista** después de conectar una cámara externa y **Ver vista previa** para comprobar
+el encuadre y la iluminación. La selección se guarda al cambiarla y se usa tanto para la captura
+facial como para el monitoreo. Si la cámara guardada se desconecta, vuelve a conectarla o selecciona otra.
+Puedes cambiar la cámara entre sesiones.
+
+La vista previa indica si la imagen está oscura, sobreexpuesta o bien iluminada. En **Inicio**,
+el aviso aparece debajo del video cuando la imagen permanece demasiado oscura o sobreexpuesta
+durante al menos dos segundos. Desaparece al corregir la iluminación. La estimación usa el brillo
+promedio de la imagen y el episodio se guarda en el historial al terminar la sesión.
 
 ## Historial y registro de eventos
 

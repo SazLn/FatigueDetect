@@ -15,7 +15,8 @@ namespace FatigueDetect.Logica
             this.sesion = sesion;
         }
 
-        public void Observar(DateTimeOffset instante, int rostros, bool ojosDetectados, EyeState estado, double brillo)
+        public EstadoIluminacion? Observar(DateTimeOffset instante, int rostros, bool ojosDetectados,
+            EyeState estado, EstadoIluminacion iluminacion)
         {
             bool cierre = rostros > 0 && !ojosDetectados;
             Actualizar(TipoEventoSesion.CierreOcularProlongado, cierre, instante,
@@ -23,8 +24,10 @@ namespace FatigueDetect.Logica
             Actualizar(TipoEventoSesion.Alarma, estado == EyeState.ALARMA_ACTIVADA, instante, true);
             Actualizar(TipoEventoSesion.RostroNoDetectado, rostros == 0, instante);
             Actualizar(TipoEventoSesion.VariosRostros, rostros > 1, instante);
-            Actualizar(TipoEventoSesion.LuzInsuficiente, brillo < 38, instante);
-            Actualizar(TipoEventoSesion.LuzExcesiva, brillo > 220, instante);
+            bool pocaLuz = Actualizar(TipoEventoSesion.LuzInsuficiente, iluminacion == EstadoIluminacion.Insuficiente, instante);
+            bool muchaLuz = Actualizar(TipoEventoSesion.LuzExcesiva, iluminacion == EstadoIluminacion.Excesiva, instante);
+
+            return pocaLuz || muchaLuz ? iluminacion : null;
         }
 
         public void Interrumpir(DateTimeOffset instante)
@@ -35,13 +38,13 @@ namespace FatigueDetect.Logica
             activos.Clear();
         }
 
-        private void Actualizar(TipoEventoSesion tipo, bool presente, DateTimeOffset instante, bool? confirmado = null)
+        private bool Actualizar(TipoEventoSesion tipo, bool presente, DateTimeOffset instante, bool? confirmado = null)
         {
             if (!presente)
             {
                 if (activos.Remove(tipo, out Intervalo? anterior))
                     Guardar(tipo, anterior, instante);
-                return;
+                return false;
             }
 
             if (!activos.TryGetValue(tipo, out Intervalo? intervalo))
@@ -56,6 +59,7 @@ namespace FatigueDetect.Logica
                 if (tipo == TipoEventoSesion.Alarma)
                     sesion.RegistrarAlarma(intervalo.Inicio);
             }
+            return intervalo.Confirmado;
         }
 
         private void Guardar(TipoEventoSesion tipo, Intervalo intervalo, DateTimeOffset fin)
