@@ -18,7 +18,12 @@
 | Configuración persistente de detección y sonido | Integrado en `main` | Guarda y restablece los umbrales de somnolencia y alarma y el estado del sonido. |
 | Métricas de calidad de sesión | Integrado en `main` | FPS medios, porcentaje de fotogramas analizables, tiempo con un rostro válido y episodios de fallo de cámara. Las sesiones previas conservan la calidad sin medición. |
 | Dashboard histórico básico | Integrado en `main` | Sesiones por día, semana y mes, duración promedio y franjas de mayor uso. |
-| Exportación a Excel | Integrado en `main` | Sesiones, eventos y resúmenes. Los gráficos en Excel quedan pendientes. |
+| Exportación a Excel | Integrado en `main` | Sesiones, eventos y resúmenes. |
+| Filtros y análisis histórico | Integrado en `main` | Fecha, conductor y vehículo. Dashboard con gráficos, alarmas por hora, intervalos y gravedad. |
+| Gráficos en Excel y línea temporal | Integrado en `main` | Gráficos editables vinculados a celdas y vista gráfica de episodios en cada sesión. |
+| Formato y calidad de cámara | Integrado en `main` | Resolución y FPS solicitados, avisos de imagen tapada, desenfocada o congelada y episodios guardados durante el monitoreo. |
+| Gráficos de Excel explicativos | Pendiente | Mejorar diseño, títulos, unidades, leyendas y contexto para que cada gráfico permita interpretar los datos sin depender de las tablas. |
+| Salida de audio para la alarma | Pendiente | Permitir seleccionar y probar parlantes, audífonos u otra salida de reproducción disponible en Windows, guardar la preferencia y usar la salida predeterminada como respaldo. |
 | Resto de propuestas | Pendiente | Incluye puntos faciales, parpadeos, PERCLOS, cabeceos, distracción y análisis histórico avanzado. |
 
 Esta sección refleja el estado actual de `main`. El resto del documento conserva las propuestas pendientes y su alcance previsto.
@@ -77,6 +82,7 @@ La dificultad de programar una función y la dificultad de hacerla confiable no 
 | Guardar un historial completo | **Baja-media** | Pasar del CSV a una base de datos SQLite que almacene sesiones, eventos y métricas sin depender de archivos abiertos en Excel. |
 | Exportar los datos a Excel | **Baja-media** | Crear un archivo `.xlsx` con sesiones, eventos y resúmenes. Exportar las tablas es sencillo; incluir gráficos editables dentro de Excel requiere más trabajo. |
 | Incluir gráficos en el archivo de Excel | **Media** | Agregar tendencias, distribución de eventos y comparaciones. Hay que elegir una librería compatible y revisar sus condiciones de licencia. |
+| Hacer los gráficos de Excel autoexplicativos | **Baja-media** | Mejorar títulos, etiquetas, unidades, leyendas, colores y textos de interpretación. Cada gráfico debe indicar qué representa, el periodo analizado y la conclusión principal, sin obligar a consultar otra hoja. |
 | Mejorar la estética del dashboard | **Media** | Rediseñar jerarquías, colores, tarjetas, gráficos, estados vacíos y navegación. Es conveniente hacerlo después de definir qué datos se mostrarán. |
 | Crear más paneles para separar la información | **Baja-media** | Dividir el monitoreo en vivo, el resumen de sesión, el análisis histórico y la configuración para evitar una pantalla sobrecargada. |
 
@@ -87,6 +93,7 @@ La dificultad de programar una función y la dificultad de hacerla confiable no 
 | Elegir entre cámara integrada y cámara externa | **Baja** | Enumerar las cámaras disponibles, mostrar una vista previa y recordar la cámara preferida. |
 | Cambiar resolución y fotogramas por segundo | **Baja-media** | Permitir elegir calidad y rendimiento según la cámara y el equipo. |
 | Probar la cámara desde Configuración | **Baja** | Abrir una vista previa antes de iniciar la sesión y mostrar si el rostro, la iluminación y la posición son adecuados. |
+| Seleccionar y probar la salida de audio | **Baja-media** | Enumerar las salidas de reproducción disponibles en Windows, permitir elegir parlantes o audífonos, reproducir una alarma de prueba y recordar la selección. Si el dispositivo deja de estar disponible, usar la salida predeterminada y mostrar un aviso. |
 
 ---
 
@@ -198,6 +205,8 @@ Las siguientes funciones ofrecen mucho valor y no dependen todavía de un modelo
 10. Crear un dashboard histórico inicial.
 11. Exportar tablas y resúmenes básicos a Excel.
 12. Mostrar una línea temporal de alarmas, ausencias y problemas de cámara.
+13. Mejorar los gráficos de Excel con títulos, etiquetas, unidades y explicaciones que permitan entenderlos por sí solos.
+14. Permitir seleccionar parlantes u otra salida de audio y reproducir una alarma de prueba desde Configuración.
 
 Estas características crean la infraestructura necesaria para añadir después métricas más avanzadas sin tener que rehacer el almacenamiento y los dashboards.
 
@@ -398,6 +407,7 @@ Este panel ayudaría a configurar el sistema y a entender por qué una detecció
 - Umbral de distracción.
 - Sensibilidad de cabeceos.
 - Configuración de sonidos y alertas.
+- Selector de salida de audio de Windows para parlantes o audífonos, con prueba de alarma y respaldo en el dispositivo predeterminado.
 - Configuración de evidencias.
 - Tiempo de conservación de datos.
 - Prueba de cámara y altavoz.
@@ -592,16 +602,20 @@ Prioridad alta porque desbloquea los dashboards y evita rehacer el almacenamient
 6. Mostrar avisos de oscuridad y sobreexposición en la vista previa y durante el monitoreo.
 7. Mostrar avisos en vivo de ausencia o varios rostros y resumir los eventos en el historial. **Integrado en `main` mediante el PR #5.**
 8. Registrar FPS, porcentaje de fotogramas analizables, tiempo con rostro válido y fallos de cámara. **Integrado en `main`.**
+9. Solicitar resolución y FPS, y detectar imágenes tapadas, desenfocadas o congeladas. **Integrado en `main`.**
 
 ## Etapa 2: Dashboard inicial
 
 1. Rediseñar el monitoreo en vivo.
 2. Ampliar el resumen de sesión con las futuras métricas de calidad, fatiga y atención. El resumen básico al detener el monitoreo está integrado en `main`.
 3. Crear el análisis histórico básico con duración promedio. **Integrado en `main`.**
-4. Añadir filtros.
+4. Añadir filtros por fecha, conductor y vehículo. **Integrado en `main`.**
 5. Mostrar sesiones por día, semana y mes. **Integrado en `main`.**
 6. Mostrar horas de mayor uso. **Integrado en `main`.**
-7. Exportar sesiones, eventos y resúmenes a Excel. **Integrado en `main`.** Los gráficos quedan pendientes.
+7. Exportar sesiones, eventos y resúmenes a Excel. **Integrado en `main`.** Los gráficos editables de sesiones, alarmas y gravedad están implementados.
+8. Mostrar alarmas por hora, tiempo entre alarmas, gravedad y línea temporal de la sesión. **Integrado en `main`.**
+9. Mejorar los gráficos de Excel para que incluyan contexto, unidades, leyendas y conclusiones comprensibles sin consultar las tablas. **Pendiente.**
+10. Seleccionar y probar la salida de audio para la alarma, conservar la preferencia y usar la salida predeterminada como respaldo. **Pendiente.**
 
 ## Etapa 3: Puntos faciales y métricas de fatiga
 

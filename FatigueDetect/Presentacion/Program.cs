@@ -36,7 +36,7 @@ namespace FatigueDetect.Presentacion
             var preferenciaCamara = new PreferenciaCamara(Path.Combine(carpeta, "camara_preferida.txt"));
             try
             {
-                configuracion.CamaraId = preferenciaCamara.Leer();
+                (configuracion.CamaraId, configuracion.FormatoCamara) = preferenciaCamara.Leer();
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {

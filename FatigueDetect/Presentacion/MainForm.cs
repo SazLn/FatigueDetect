@@ -186,7 +186,7 @@ namespace FatigueDetect.Presentacion
                 preparando = new DetectionController(
                     paginaInicio, detectorRostros, detectorOjos,
                     new DrowsinessLogic(config), new AlarmService(config), sesion);
-                await preparando.IniciarAsync(config.CamaraId, cancelacion.Token);
+                await preparando.IniciarAsync(config.CamaraId, cancelacion.Token, config.FormatoCamara);
                 cancelacion.Token.ThrowIfCancellationRequested();
 
                 sesion.Vehiculo.TipoCarro = catalogo.Registrar(tipo);

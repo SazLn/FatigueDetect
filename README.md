@@ -20,7 +20,7 @@ Proyecto de inicio: `Presentacion`.
 - historial.sqlite (sesiones, eventos y métricas de calidad guardados localmente)
 - historial.csv (historial de versiones anteriores, si existe)
 - tipos_carro.txt
-- camara_preferida.txt (selección de cámara para este equipo)
+- camara_preferida.txt (cámara, resolución y FPS solicitados para este equipo)
 - configuracion.json (umbrales de somnolencia y alarma, y estado del sonido)
 - perfiles_biometricos.json (datos del conductor y descriptores numéricos del rostro; no contiene fotografías)
 
@@ -30,7 +30,7 @@ En **Configuración → Cámara**, elige la cámara por el nombre que muestra Wi
 Pulsa **Actualizar lista** después de conectar una cámara externa y **Ver vista previa** para comprobar
 el encuadre y la iluminación. La selección se guarda al cambiarla y se usa tanto para la captura
 facial como para el monitoreo. Si la cámara guardada se desconecta, vuelve a conectarla o selecciona otra.
-Puedes cambiar la cámara entre sesiones.
+Puedes cambiar la cámara, la resolución y los FPS entre sesiones. La vista previa muestra el tamaño recibido y, si el controlador los informa, los FPS negociados. Si la cámara admite otro formato, puede usarlo aunque hayas seleccionado un valor distinto. La frecuencia medida durante el monitoreo aparece en el historial.
 
 En **Configuración**, usa **Guardar cambios** para aplicar los umbrales de detección
 y el sonido. Los valores se conservan entre ejecuciones. **Restablecer** aplica y
@@ -45,6 +45,8 @@ Durante el monitoreo también aparece un aviso si el rostro permanece ausente o 
 detectan varias personas durante al menos dos segundos. El aviso desaparece cuando
 vuelve a detectarse únicamente al conductor. Si la cámara deja de entregar imagen,
 la interfaz muestra que no hay señal y limpia el aviso anterior.
+
+La vista previa y el monitoreo avisan si la imagen parece tapada o desenfocada durante dos segundos, o si las muestras de imagen se repiten durante tres segundos. Estas señales se estiman por oscuridad y contraste, nitidez y repetición. Un encuadre oscuro, uniforme o completamente estático puede dar un falso aviso. Durante el monitoreo se guardan los episodios confirmados y los cuadros sospechosos quedan fuera del análisis de fatiga.
 
 ## Historial y registro de eventos
 
@@ -90,9 +92,11 @@ El detalle de una sesión nueva muestra:
 
 Las sesiones anteriores conservan sus datos y muestran «Calidad: sin medición».
 
-En **Historial de sesiones → Estadísticas**, consulta el total de sesiones y su duración promedio, con desgloses por día, semana, mes y hora de inicio. Se usa la hora local, las semanas comienzan el lunes y las franjas horarias se ordenan por número de sesiones. El promedio usa las sesiones con hora de finalización.
+En **Historial de sesiones**, filtra por fecha inicial y final inclusivas, nombre o cédula, y placa o tipo de vehículo. La tabla, las estadísticas y el Excel usan esa misma selección. Selecciona una sesión y pulsa **Ver línea temporal** para ver la hora y duración de cada episodio. Las alarmas antiguas sin hora se indican con un recuento.
 
-En **Historial de sesiones → Exportar Excel**, elige dónde guardar el archivo .xlsx. Contiene el resumen general, las sesiones con métricas de calidad, los eventos con hora, el resumen de eventos por sesión y los desgloses históricos. Los ID de sesión vinculan las hojas. Las celdas correspondientes a valores desconocidos quedan vacías. El archivo incluye los datos personales que aparecen en el historial.
+En **Historial de sesiones → Estadísticas**, consulta el total de sesiones y su duración promedio, con desgloses por día, semana, mes y hora de inicio. Se usa la hora local, las semanas comienzan el lunes y las franjas horarias se ordenan por número de sesiones. El promedio usa las sesiones con hora de finalización. Las alarmas por hora se cuentan según su hora local de inicio. El intervalo entre alarmas usa inicios consecutivos dentro de una misma sesión con todas sus horas registradas. La gravedad es **alta** para alarmas, **media** para posibles cierres prolongados y problemas de cámara, y **baja** para avisos de encuadre o iluminación.
+
+En **Historial de sesiones → Exportar Excel**, elige dónde guardar el archivo .xlsx. Contiene el resumen general, las sesiones con métricas de calidad, los eventos con hora, el resumen de eventos por sesión y los desgloses históricos. Los ID de sesión vinculan las hojas. El libro incluye gráficos editables de sesiones, alarmas por hora y eventos por gravedad, vinculados a los datos de sus hojas. Los gráficos por periodo muestran hasta 24 filas. La tabla conserva todos los periodos. Las celdas correspondientes a valores desconocidos quedan vacías. El archivo incluye los datos personales que aparecen en el historial.
 
 ## Identificación biométrica experimental
 

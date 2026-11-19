@@ -17,20 +17,30 @@ namespace FatigueDetect.Logica
 
         public (EstadoIluminacion? Iluminacion, TipoEventoSesion? Rostro) Observar(
             DateTimeOffset instante, int rostros, bool ojosDetectados,
-            EyeState estado, EstadoIluminacion iluminacion)
+            EyeState estado, EstadoIluminacion iluminacion, bool analisisDisponible = true)
         {
-            bool cierre = rostros > 0 && !ojosDetectados;
+            bool cierre = analisisDisponible && rostros > 0 && !ojosDetectados;
             Actualizar(TipoEventoSesion.CierreOcularProlongado, cierre, instante,
                 estado is EyeState.SOMNOLIENTO or EyeState.ALARMA_ACTIVADA);
-            Actualizar(TipoEventoSesion.Alarma, estado == EyeState.ALARMA_ACTIVADA, instante, true);
-            bool rostroAusente = Actualizar(TipoEventoSesion.RostroNoDetectado, rostros == 0, instante);
-            bool variosRostros = Actualizar(TipoEventoSesion.VariosRostros, rostros > 1, instante);
-            bool pocaLuz = Actualizar(TipoEventoSesion.LuzInsuficiente, iluminacion == EstadoIluminacion.Insuficiente, instante);
-            bool muchaLuz = Actualizar(TipoEventoSesion.LuzExcesiva, iluminacion == EstadoIluminacion.Excesiva, instante);
+            Actualizar(TipoEventoSesion.Alarma, analisisDisponible && estado == EyeState.ALARMA_ACTIVADA, instante, true);
+            bool rostroAusente = Actualizar(TipoEventoSesion.RostroNoDetectado, analisisDisponible && rostros == 0, instante);
+            bool variosRostros = Actualizar(TipoEventoSesion.VariosRostros, analisisDisponible && rostros > 1, instante);
+            bool pocaLuz = Actualizar(TipoEventoSesion.LuzInsuficiente, analisisDisponible && iluminacion == EstadoIluminacion.Insuficiente, instante);
+            bool muchaLuz = Actualizar(TipoEventoSesion.LuzExcesiva, analisisDisponible && iluminacion == EstadoIluminacion.Excesiva, instante);
 
             TipoEventoSesion? avisoRostro = rostroAusente ? TipoEventoSesion.RostroNoDetectado
                 : variosRostros ? TipoEventoSesion.VariosRostros : null;
             return (pocaLuz || muchaLuz ? iluminacion : null, avisoRostro);
+        }
+
+        public void ObservarCamara(DateTimeOffset instante, TipoEventoSesion? indicio, TipoEventoSesion? confirmado)
+        {
+            Actualizar(TipoEventoSesion.CamaraTapada, indicio == TipoEventoSesion.CamaraTapada,
+                instante, confirmado == TipoEventoSesion.CamaraTapada);
+            Actualizar(TipoEventoSesion.CamaraDesenfocada, indicio == TipoEventoSesion.CamaraDesenfocada,
+                instante, confirmado == TipoEventoSesion.CamaraDesenfocada);
+            Actualizar(TipoEventoSesion.CamaraCongelada, indicio == TipoEventoSesion.CamaraCongelada,
+                instante, confirmado == TipoEventoSesion.CamaraCongelada);
         }
 
         public void Interrumpir(DateTimeOffset instante)

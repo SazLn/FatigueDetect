@@ -326,7 +326,7 @@ namespace FatigueDetect.Presentacion
         // ------------------------------------------------------------------
 
         public void UpdateImage(Bitmap? image, EyeState estado, long tiempoMs,
-            EstadoIluminacion? avisoIluminacion, TipoEventoSesion? avisoRostro)
+            EstadoIluminacion? avisoIluminacion, TipoEventoSesion? avisoRostro, TipoEventoSesion? avisoCalidad = null)
         {
             // Si la pantalla sigue ocupada con el cuadro anterior, se descarta este.
             if (IsDisposed || !IsHandleCreated || Interlocked.CompareExchange(ref actualizando, 1, 0) != 0)
@@ -337,7 +337,7 @@ namespace FatigueDetect.Presentacion
 
             try
             {
-                BeginInvoke(new Action(() => Actualizar(image, estado, tiempoMs, avisoIluminacion, avisoRostro)));
+                BeginInvoke(new Action(() => Actualizar(image, estado, tiempoMs, avisoIluminacion, avisoRostro, avisoCalidad)));
             }
             catch (Exception)
             {
@@ -357,7 +357,7 @@ namespace FatigueDetect.Presentacion
         // ------------------------------------------------------------------
 
         private void Actualizar(Bitmap? imagen, EyeState estado, long tiempoMs,
-            EstadoIluminacion? avisoIluminacion, TipoEventoSesion? avisoRostro)
+            EstadoIluminacion? avisoIluminacion, TipoEventoSesion? avisoRostro, TipoEventoSesion? avisoCalidad = null)
         {
             try
             {
@@ -389,7 +389,7 @@ namespace FatigueDetect.Presentacion
                 };
                 string avisoLuzTexto = avisoIluminacion is EstadoIluminacion luz
                     ? AvisosIluminacion.Mensaje(luz) : "";
-                string avisos = string.Join(Environment.NewLine,
+                string avisos = avisoCalidad is TipoEventoSesion problema ? AvisosIluminacion.Mensaje(problema) : string.Join(Environment.NewLine,
                     new[] { avisoRostroTexto, avisoLuzTexto }.Where(texto => texto.Length > 0));
                 if (avisoCamara.Text != avisos)
                     avisoCamara.Text = avisos;
@@ -397,6 +397,12 @@ namespace FatigueDetect.Presentacion
                 if (imagen == null)
                 {
                     AplicarSinSenal();
+                    return;
+                }
+
+                if (avisoCalidad.HasValue)
+                {
+                    AplicarSinSenal("IMAGEN NO ANALIZABLE", avisos);
                     return;
                 }
 
@@ -509,12 +515,12 @@ namespace FatigueDetect.Presentacion
                 "Inicia una sesión desde \"Registro / Persona\".");
         }
 
-        private void AplicarSinSenal()
+        private void AplicarSinSenal(string titulo = "SIN SEÑAL DE CÁMARA",
+            string mensaje = "Comprueba la conexión y los permisos de la cámara.")
         {
             estadoMostrado = null;
             rostroMostrado = null;
-            PintarTarjetaAlerta(Tema.Tarjeta, Tema.Ambar, "SIN SEÑAL DE CÁMARA",
-                "Comprueba la conexión y los permisos de la cámara.");
+            PintarTarjetaAlerta(Tema.Tarjeta, Tema.Ambar, titulo, mensaje);
         }
 
         private void PintarTarjetaAlerta(Color fondo, Color acento, string titulo, string mensaje)

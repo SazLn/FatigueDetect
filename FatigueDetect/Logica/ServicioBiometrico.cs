@@ -144,7 +144,7 @@ namespace FatigueDetect.Logica
         private float[] CapturarDescriptor(string? camaraId, int requeridas,
             IProgress<ProgresoCapturaBiometrica> progreso, CancellationToken cancelacion)
         {
-            using var camara = new CameraService(camaraId, cancelacion);
+            using var camara = new CameraService(camaraId, cancelacion, config.FormatoCamara);
             if (!camara.IsOpened())
             {
                 throw new InvalidOperationException(
