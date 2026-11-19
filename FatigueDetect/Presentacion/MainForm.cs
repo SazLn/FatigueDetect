@@ -34,7 +34,8 @@ namespace FatigueDetect.Presentacion
         private FaceDetector? detectorRostros;
         private EyeDetector? detectorOjos;
 
-        public MainForm(SesionService sesionService, CatalogoTiposCarro catalogo, Configuracion config)
+        public MainForm(SesionService sesionService, CatalogoTiposCarro catalogo, Configuracion config,
+            ServicioBiometrico servicioBiometrico)
         {
             this.sesionService = sesionService;
             this.catalogo = catalogo;
@@ -48,7 +49,7 @@ namespace FatigueDetect.Presentacion
             Font = Tema.Fuente(10);
 
             paginaInicio = new PaginaInicio(config);
-            paginaRegistro = new PaginaRegistro(catalogo);
+            paginaRegistro = new PaginaRegistro(catalogo, servicioBiometrico);
             paginaHistorial = new PaginaHistorial(sesionService);
             paginaConfig = new PaginaConfiguracion(config);
 
