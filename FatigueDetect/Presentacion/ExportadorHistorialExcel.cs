@@ -19,11 +19,16 @@ namespace FatigueDetect.Presentacion
             var detalle = CrearHoja(libro, "Sesiones", "ID de sesión", "Conductor", "Cédula",
                 "Vehículo", "Placa", "Inicio local", "Fin local", "Duración (s)", "Alarmas",
                 "FPS", "Fotogramas analizables", "Rostro válido (s)", "Fallos de cámara",
-                "Parpadeos", "Cierres prolongados", "Cabeceos", "PERCLOS de sesión", "Tiempo ocular válido (s)");
+                "Parpadeos", "Microsueños", "Cabeceos", "PERCLOS de sesión", "Tiempo ocular válido (s)",
+                "Parpadeos por minuto", "Parpadeos cortos", "Parpadeos prolongados", "Cierres anómalos",
+                "Duración promedio de parpadeo (ms)", "Duración mínima de parpadeo (ms)",
+                "Duración máxima de parpadeo (ms)", "Microsueño más largo (s)", "Cierre más largo (s)",
+                "Tiempo con ojos cerrados (s)", "Diferencia ocular promedio");
             detalle.Columns(6, 7).Style.DateFormat.Format = "yyyy-mm-dd hh:mm:ss";
-            FormatoDecimal(detalle, 8, 10, 12, 18);
+            FormatoDecimal(detalle, 8, 10, 12, 18, 19, 23, 24, 25, 26, 27, 28, 29);
             detalle.Column(11).Style.NumberFormat.Format = "0.00%";
             detalle.Column(17).Style.NumberFormat.Format = "0.00%";
+            detalle.Column(29).Style.NumberFormat.Format = "0.00%";
 
             var eventos = CrearHoja(libro, "Eventos", "ID de sesión", "Tipo", "Inicio local",
                 "Fin local", "Duración (s)", "Gravedad", "Desde alarma anterior (s)");
@@ -33,20 +38,37 @@ namespace FatigueDetect.Presentacion
             var tipos = CrearHoja(libro, "Resumen de eventos", "ID de sesión", "Tipo", "Cantidad",
                 "Duración total (s)", "Duración máxima (s)", "Sin duración", "Gravedad");
             FormatoDecimal(tipos, 4, 5);
-            int filaSesion = 2, filaEvento = 2, filaTipo = 2;
+            var evolucionPerclos = CrearHoja(libro, "Evolución PERCLOS", "ID de sesión", "Conductor",
+                "Instante local", "PERCLOS 60 s");
+            evolucionPerclos.Column(3).Style.DateFormat.Format = "yyyy-mm-dd hh:mm:ss";
+            evolucionPerclos.Column(4).Style.NumberFormat.Format = "0.00%";
+            int filaSesion = 2, filaEvento = 2, filaTipo = 2, filaPerclos = 2;
 
             foreach (SesionConduccion sesion in sesiones)
             {
                 string id = sesion.Id.ToString();
                 CalidadSesion? calidad = sesion.Calidad;
                 MetricasFatiga? fatiga = sesion.MetricasFatiga;
+                MetricasFatiga? detalleOcular = fatiga is { VersionMetricasOculares: >= 1 } ? fatiga : null;
                 Escribir(detalle, filaSesion++, id, sesion.Conductor.NombreCompleto,
                     sesion.Conductor.Cedula, sesion.Vehiculo.TipoCarro, sesion.Vehiculo.Placa,
                     sesion.Inicio, sesion.Fin, sesion.Fin.HasValue ? sesion.Duracion.TotalSeconds : null,
                     sesion.CantidadAlarmas, calidad?.Fps, calidad?.ProporcionAnalizable,
                     calidad?.TiempoRostroValido.TotalSeconds, calidad?.FallosCamara,
-                    fatiga?.Parpadeos, fatiga?.CierresProlongados, fatiga?.Cabeceos, fatiga?.Perclos,
-                    fatiga?.TiempoOcularValidoMs / 1000.0);
+                    fatiga?.Parpadeos, fatiga?.Microsuenos, fatiga?.Cabeceos, fatiga?.Perclos,
+                    fatiga?.TiempoOcularValidoMs / 1000.0, fatiga?.ParpadeosPorMinuto,
+                    detalleOcular?.ParpadeosCortos, detalleOcular?.ParpadeosProlongados,
+                    detalleOcular?.CierresAnomalos, detalleOcular?.DuracionParpadeoPromedioMs,
+                    detalleOcular?.DuracionParpadeoMinMs, detalleOcular?.DuracionParpadeoMaxMs,
+                    detalleOcular?.MicrosuenoMasLargoMs / 1000.0, detalleOcular?.CierreMasLargoMs / 1000.0,
+                    fatiga?.TiempoOcularCerradoMs / 1000.0, detalleOcular?.DiferenciaAperturaPromedio);
+
+                if (fatiga is not null)
+                {
+                    foreach (MuestraPerclos muestra in fatiga.EvolucionPerclos)
+                        Escribir(evolucionPerclos, filaPerclos++, id, sesion.Conductor.NombreCompleto,
+                            muestra.Instante.LocalDateTime, muestra.Valor);
+                }
 
                 List<EventoSesion> registrados = sesion.Eventos;
                 var intervalos = ResumenHistorial.IntervalosEntreAlertas(sesion, registrados)

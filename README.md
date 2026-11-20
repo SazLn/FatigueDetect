@@ -61,9 +61,9 @@ y el fin en UTC con precisión de milisegundos y la interfaz muestra la hora loc
 El detalle incluye un resumen por tipo con la cantidad de eventos, su duración total
 y la duración máxima disponible. Los eventos importados sin duración se indican por separado.
 
-- **Posible cierre ocular prolongado.** Se registra cuando la apertura estimada de ambos ojos permanece
-  bajo el umbral durante el tiempo de somnolencia configurado. El evento termina al reabrir los ojos
-  o al interrumpirse la observación.
+- **Posible microsueño.** Se registra cuando la apertura estimada de ambos ojos permanece bajo el umbral
+  durante el tiempo de somnolencia configurado. El evento termina al reabrir los ojos o al interrumpirse
+  la observación.
 - **Posible cabeceo.** Se registra al completar un descenso de la cabeza y volver cerca de la postura calibrada.
 - **Alarma.** Se registra una vez por activación, aunque el sonido esté desactivado.
 - **Rostro no detectado, varios rostros, luz insuficiente o luz excesiva.** Se registran cuando
@@ -108,6 +108,24 @@ La validación en una cámara Windows real confirmó el funcionamiento básico. 
 pruebas con distintas cámaras, iluminación y personas. La procedencia y la conversión se detallan en
 [la ficha del modelo](FatigueDetect/Presentacion/Resources/modelos/ORIGEN.md).
 
+### Métricas oculares avanzadas de la propuesta
+
+La rama `feature/metricas-oculares-avanzadas` amplía cada sesión con estas mediciones:
+
+- Frecuencia de parpadeos por minuto de tiempo ocular válido.
+- Duración mínima, promedio y máxima de los parpadeos.
+- Parpadeos cortos de 60 a 200 ms y prolongados de más de 200 a 400 ms.
+- Cierres anómalos de más de 400 ms que no alcanzan el umbral de microsueño.
+- Microsueños desde el umbral de somnolencia configurado, cierre más largo y microsueño más largo.
+- Tiempo total y porcentaje del tiempo ocular válido con ambos ojos cerrados.
+- Diferencia promedio entre la apertura estimada del ojo izquierdo y derecho.
+- Evolución de PERCLOS con muestras cada 10 s y al interrumpir la observación.
+
+Las métricas se muestran en vivo y en el resumen final, se guardan en SQLite y aparecen en el historial y Excel.
+La exportación añade las columnas avanzadas a **Sesiones** y una hoja **Evolución PERCLOS**. Las sesiones anteriores
+conservan las métricas disponibles y muestran el detalle nuevo como «sin medición». Esta propuesta requiere validar
+la clasificación y los umbrales con una cámara Windows antes de decidir su integración en `main`.
+
 ## Calidad de sesión, estadísticas y Excel
 
 El detalle de una sesión nueva muestra:
@@ -123,7 +141,7 @@ En **Historial de sesiones**, filtra por fecha inicial y final inclusivas, nombr
 
 En **Historial de sesiones → Estadísticas**, consulta el total de sesiones y su duración promedio, con desgloses por día, semana, mes y hora de inicio. Se usa la hora local, las semanas comienzan el lunes y las franjas horarias se ordenan por número de sesiones. El promedio usa las sesiones con hora de finalización. Las alarmas por hora se cuentan según su hora local de inicio. El intervalo entre alarmas usa inicios consecutivos dentro de una misma sesión con todas sus horas registradas. La gravedad es **alta** para alarmas, **media** para posibles cierres prolongados y problemas de cámara, y **baja** para avisos de encuadre o iluminación.
 
-En **Historial de sesiones → Exportar Excel**, elige dónde guardar el archivo .xlsx. Contiene el resumen general, las sesiones con métricas de calidad, los eventos con hora, el resumen de eventos por sesión y los desgloses históricos. Los ID de sesión vinculan las hojas. El libro incluye gráficos editables de sesiones, alarmas por hora y eventos por gravedad, vinculados a los datos de sus hojas. Los gráficos por periodo muestran hasta 24 filas. La tabla conserva todos los periodos. Las celdas correspondientes a valores desconocidos quedan vacías. El archivo incluye los datos personales que aparecen en el historial.
+En **Historial de sesiones → Exportar Excel**, elige dónde guardar el archivo .xlsx. Contiene el resumen general, las sesiones con métricas de calidad y fatiga, la evolución de PERCLOS, los eventos con hora, el resumen de eventos por sesión y los desgloses históricos. Los ID de sesión vinculan las hojas. El libro incluye gráficos editables de sesiones, alarmas por hora y eventos por gravedad, vinculados a los datos de sus hojas. Los gráficos por periodo muestran hasta 24 filas. La tabla conserva todos los periodos. Las celdas correspondientes a valores desconocidos quedan vacías. El archivo incluye los datos personales que aparecen en el historial.
 
 ## Identificación biométrica experimental
 

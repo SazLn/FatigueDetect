@@ -264,7 +264,9 @@ namespace FatigueDetect.Presentacion
             var eventos = sesion.Eventos;
             int ausencias = eventos.Count(evento => evento.Tipo == TipoEventoSesion.RostroNoDetectado);
             var destacados = eventos
-                .Where(evento => evento.Tipo is not (TipoEventoSesion.Alarma or TipoEventoSesion.RostroNoDetectado))
+                .Where(evento => evento.Tipo is not (TipoEventoSesion.Alarma or TipoEventoSesion.RostroNoDetectado
+                    or TipoEventoSesion.CierreOcularProlongado or TipoEventoSesion.CierreOcularAnomalo
+                    or TipoEventoSesion.Cabeceo))
                 .GroupBy(evento => evento.Tipo)
                 .OrderBy(grupo => grupo.Key)
                 .Select(grupo => $"• {PaginaHistorial.NombreEvento(grupo.Key)}: {grupo.Count()}")
@@ -274,8 +276,13 @@ namespace FatigueDetect.Presentacion
                 $"Alarmas: {sesion.CantidadAlarmas}\n" +
                 $"Episodios sin rostro detectado: {ausencias}\n" +
                 (sesion.MetricasFatiga is MetricasFatiga fatiga
-                    ? $"Parpadeos: {fatiga.Parpadeos} · Cierres prolongados: {fatiga.CierresProlongados}\n" +
-                      $"Posibles cabeceos: {fatiga.Cabeceos} · PERCLOS: {fatiga.Perclos?.ToString("P1") ?? "—"}\n"
+                    ? $"Parpadeos: {fatiga.Parpadeos} ({fatiga.ParpadeosPorMinuto?.ToString("0.0") ?? "—"}/min)" +
+                      $" · Microsueños: {fatiga.Microsuenos}\n" +
+                      $"Cortos: {fatiga.ParpadeosCortos} · Prolongados: {fatiga.ParpadeosProlongados}" +
+                      $" · Cierres anómalos: {fatiga.CierresAnomalos}\n" +
+                      $"PERCLOS: {fatiga.Perclos?.ToString("P1") ?? "—"} · Tiempo cerrado: {fatiga.TiempoOcularCerradoMs / 1000.0:0.0} s\n" +
+                      $"Cierre más largo: {fatiga.CierreMasLargoMs / 1000.0:0.000} s" +
+                      $" · Posibles cabeceos: {fatiga.Cabeceos}\n"
                     : "") + "\n" +
                 (destacados.Length == 0 ? "Sin otros eventos destacados."
                     : "Otros eventos destacados\n" + string.Join("\n", destacados));

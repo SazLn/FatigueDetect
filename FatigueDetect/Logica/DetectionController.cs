@@ -246,7 +246,7 @@ namespace FatigueDetect.Logica
         {
             ultimaInterrupcion = instante;
             registro.Interrumpir(instante);
-            fatiga.Interrumpir(drowsinessLogic.UmbralCierreProlongado);
+            fatiga.Interrumpir(instante, drowsinessLogic.UmbralCierreProlongado);
             alarmService.Detener();
         }
     }

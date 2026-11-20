@@ -2,6 +2,9 @@
 
 ## Sin publicar
 
+- La propuesta de métricas oculares avanzadas calcula parpadeos por minuto y sus duraciones mínima, promedio y máxima, y separa parpadeos cortos, prolongados, cierres anómalos y posibles microsueños.
+- Guarda el cierre y el microsueño más largos, el tiempo total con ojos cerrados, la diferencia promedio entre ojos y la evolución de PERCLOS cada 10 segundos.
+- Las nuevas métricas aparecen en vivo, en el resumen final, el historial y Excel. SQLite migra las sesiones existentes y conserva como desconocido el detalle que no se midió anteriormente.
 - Se integró la medición de fatiga con 468 puntos faciales mediante ONNX, apertura ocular por ojo, conteo de parpadeos, cierres prolongados, PERCLOS de 60 segundos y acumulado por sesión.
 - El monitoreo muestra ángulos de cabeza y detecta posibles cabeceos. Los conteos, tiempos oculares y eventos se guardan en SQLite y aparecen en el historial y Excel.
 - La validación manual inicial con cámara Windows confirmó el funcionamiento básico. Siguen pendientes la calibración de umbrales y pruebas con más cámaras, iluminación y personas.
