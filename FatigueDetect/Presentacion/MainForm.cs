@@ -34,7 +34,6 @@ namespace FatigueDetect.Presentacion
         private CancellationTokenSource? arranqueCamara;
 
         private FaceDetector? detectorRostros;
-        private EyeDetector? detectorOjos;
 
         public MainForm(SesionService sesionService, CatalogoTiposCarro catalogo, Configuracion config,
             ServicioBiometrico servicioBiometrico, PreferenciaCamara preferenciaCamara,
@@ -180,11 +179,11 @@ namespace FatigueDetect.Presentacion
             {
                 string rutaCascadas = Path.Combine(AppContext.BaseDirectory, "Resources", "cascades");
                 detectorRostros ??= new FaceDetector(Path.Combine(rutaCascadas, "haarcascade_frontalface_default.xml"));
-                detectorOjos ??= new EyeDetector(Path.Combine(rutaCascadas, "haarcascade_eye_tree_eyeglasses.xml"));
+                string modeloFacial = Path.Combine(AppContext.BaseDirectory, "Resources", "modelos", "face-landmark.onnx");
 
                 SesionConduccion sesion = sesionService.Iniciar(cedula, nombre, apellidos, tipo, placa);
                 preparando = new DetectionController(
-                    paginaInicio, detectorRostros, detectorOjos,
+                    paginaInicio, detectorRostros, modeloFacial,
                     new DrowsinessLogic(config), new AlarmService(config), sesion);
                 await preparando.IniciarAsync(config.CamaraId, cancelacion.Token, config.FormatoCamara);
                 cancelacion.Token.ThrowIfCancellationRequested();
@@ -273,7 +272,11 @@ namespace FatigueDetect.Presentacion
 
             string mensaje = $"Duración: {Tema.FormatoDuracion(sesion.Duracion)}\n" +
                 $"Alarmas: {sesion.CantidadAlarmas}\n" +
-                $"Episodios sin rostro detectado: {ausencias}\n\n" +
+                $"Episodios sin rostro detectado: {ausencias}\n" +
+                (sesion.MetricasFatiga is MetricasFatiga fatiga
+                    ? $"Parpadeos: {fatiga.Parpadeos} · Cierres prolongados: {fatiga.CierresProlongados}\n" +
+                      $"Posibles cabeceos: {fatiga.Cabeceos} · PERCLOS: {fatiga.Perclos?.ToString("P1") ?? "—"}\n"
+                    : "") + "\n" +
                 (destacados.Length == 0 ? "Sin otros eventos destacados."
                     : "Otros eventos destacados\n" + string.Join("\n", destacados));
 

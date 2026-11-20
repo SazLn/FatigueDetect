@@ -1,5 +1,5 @@
 using System;
-using System.Linq;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using OpenCvSharp;
@@ -15,13 +15,17 @@ namespace FatigueDetect.Logica
     {
         private readonly IDetectorView view;
         private readonly FaceDetector faceDetector;
-        private readonly EyeDetector eyeDetector;
+        private readonly string rutaModeloFacial;
         private readonly DrowsinessLogic drowsinessLogic;
         private readonly AlarmService alarmService;
         private readonly RegistroEventosSesion registro;
         private readonly MedicionCalidadSesion calidad = new();
+        private readonly RastreadorFatiga fatiga;
         private readonly SesionConduccion sesion;
         private readonly object candadoEstado = new object();
+        private readonly DateTimeOffset origenUtc = DateTimeOffset.UtcNow;
+        private readonly Stopwatch reloj = Stopwatch.StartNew();
+        private DateTimeOffset Ahora => origenUtc + reloj.Elapsed;
         private DateTimeOffset ultimaInterrupcion = DateTimeOffset.MinValue;
 
         private Thread? hilo;
@@ -29,17 +33,18 @@ namespace FatigueDetect.Logica
         private volatile bool paused = false;
 
         public DetectionController(IDetectorView view,
-            FaceDetector faceDetector, EyeDetector eyeDetector,
+            FaceDetector faceDetector, string rutaModeloFacial,
             DrowsinessLogic drowsinessLogic, AlarmService alarmService,
             SesionConduccion sesion)
         {
             this.view = view;
             this.faceDetector = faceDetector;
-            this.eyeDetector = eyeDetector;
+            this.rutaModeloFacial = rutaModeloFacial;
             this.drowsinessLogic = drowsinessLogic;
             this.alarmService = alarmService;
             this.sesion = sesion;
             registro = new RegistroEventosSesion(sesion);
+            fatiga = new RastreadorFatiga(sesion);
         }
 
         public Task IniciarAsync(string? camaraId, CancellationToken cancelacion, FormatoCamara? formato = null)
@@ -55,6 +60,7 @@ namespace FatigueDetect.Logica
         {
             try
             {
+                using var detectorFacial = new DetectorPuntosFaciales(rutaModeloFacial);
                 using var camara = new CameraService(camaraId, cancelacion, formato);
                 if (!camara.IsOpened())
                     throw new InvalidOperationException("No se pudo abrir la cámara. Selecciona o prueba otra en Configuración, " +
@@ -68,7 +74,7 @@ namespace FatigueDetect.Logica
                         calidad.Reanudar();
                 }
                 arranque.SetResult();
-                ProcesarCaptura(camara, cancelacion);
+                ProcesarCaptura(camara, detectorFacial, cancelacion);
             }
             catch (OperationCanceledException) when (cancelacion.IsCancellationRequested)
             {
@@ -88,12 +94,13 @@ namespace FatigueDetect.Logica
                 {
                     running = false;
                     calidad.Interrumpir();
-                    InterrumpirObservacion(DateTimeOffset.UtcNow);
+                    InterrumpirObservacion(Ahora);
                 }
             }
         }
 
-        private void ProcesarCaptura(CameraService camara, CancellationToken cancelacion)
+        private void ProcesarCaptura(CameraService camara, DetectorPuntosFaciales detectorFacial,
+            CancellationToken cancelacion)
         {
             using var detectorCalidad = new DetectorCalidadImagen();
             DateTimeOffset ultimaContinuidad = DateTimeOffset.MinValue;
@@ -105,7 +112,7 @@ namespace FatigueDetect.Logica
                     continue;
                 }
 
-                DateTimeOffset inicioLectura = DateTimeOffset.UtcNow;
+                DateTimeOffset inicioLectura = Ahora;
                 using Mat frame = LeerFotograma(camara, inicioLectura);
 
                 if (frame.Empty())
@@ -115,7 +122,7 @@ namespace FatigueDetect.Logica
                         if (running && !paused && inicioLectura > ultimaInterrupcion)
                         {
                             calidad.RegistrarFallo();
-                            InterrumpirObservacion(DateTimeOffset.UtcNow);
+                            InterrumpirObservacion(Ahora);
                         }
                     }
                     view.UpdateImage(null, EyeState.DESPIERTO, 0, null, null);
@@ -123,7 +130,7 @@ namespace FatigueDetect.Logica
                     continue;
                 }
 
-                DateTimeOffset instante = DateTimeOffset.UtcNow;
+                DateTimeOffset instante = Ahora;
                 TipoEventoSesion? avisoCalidad;
                 TipoEventoSesion? indicio;
                 lock (candadoEstado)
@@ -137,13 +144,16 @@ namespace FatigueDetect.Logica
                     }
                     avisoCalidad = detectorCalidad.Observar(frame, instante, out indicio);
                 }
-                Cv2.Flip(frame, frame, FlipMode.Y);
                 Rect[] rostros = indicio.HasValue ? Array.Empty<Rect>() : faceDetector.Detect(frame);
                 EstadoIluminacion iluminacion = MedidorIluminacion.Evaluar(frame);
-                bool ojosDetectados = rostros.Length > 0 && DibujarRostroYOjos(frame, rostros);
+                MedicionFacial? medicion = rostros.Length == 1 && iluminacion == EstadoIluminacion.Adecuada
+                    ? detectorFacial.Medir(frame, rostros[0]) : null;
+                foreach (Rect rostro in rostros)
+                    Cv2.Rectangle(frame, rostro, new Scalar(255, 0, 0), 2);
+                Cv2.Flip(frame, frame, FlipMode.Y);
 
                 EyeState estado;
-                long cierreMs;
+                FatigaEnVivo lectura;
                 EstadoIluminacion? avisoIluminacion;
                 TipoEventoSesion? avisoRostro;
                 lock (candadoEstado)
@@ -157,12 +167,10 @@ namespace FatigueDetect.Logica
                     calidad.RegistrarFotograma(rostroValido,
                         rostroValido && iluminacion == EstadoIluminacion.Adecuada);
 
-                    estado = rostros.Length == 0
-                        ? drowsinessLogic.EvaluateSinRostro()
-                        : drowsinessLogic.Evaluate(ojosDetectados);
-                    cierreMs = drowsinessLogic.GetClosedDurationMs();
+                    lectura = fatiga.Observar(instante, medicion, drowsinessLogic.UmbralCierreProlongado);
+                    estado = drowsinessLogic.Evaluar(lectura.CierreMs);
                     (avisoIluminacion, avisoRostro) = registro.Observar(
-                        instante, rostros.Length, ojosDetectados, estado, iluminacion, analisisDisponible);
+                        instante, rostros.Length, estado, iluminacion, analisisDisponible);
 
                     if (estado == EyeState.ALARMA_ACTIVADA)
                         alarmService.Activar();
@@ -173,7 +181,7 @@ namespace FatigueDetect.Logica
                 var image = ImageUtils.MatToBitmap(frame);
                 try
                 {
-                    view.UpdateImage(image, estado, cierreMs, avisoIluminacion, avisoRostro, avisoCalidad);
+                    view.UpdateImage(image, estado, lectura.CierreMs, avisoIluminacion, avisoRostro, avisoCalidad, lectura);
                 }
                 catch (Exception) when (!running)
                 {
@@ -199,29 +207,6 @@ namespace FatigueDetect.Logica
             }
         }
 
-        private bool DibujarRostroYOjos(Mat frame, Rect[] rostros)
-        {
-            // Solo el rostro más grande (el del conductor)
-            Rect rostro = rostros.OrderByDescending(r => r.Width * r.Height).First();
-            Cv2.Rectangle(frame, rostro, new Scalar(255, 0, 0), 2);
-
-            using Mat regionRostro = new Mat(frame, rostro);
-            Rect[] ojos = eyeDetector.Detect(regionRostro);
-
-            foreach (Rect ojo in ojos)
-            {
-                var ojoEnFrame = new Rect(
-                    rostro.X + ojo.X,
-                    rostro.Y + ojo.Y + (int)(rostro.Height * 0.25),
-                    ojo.Width,
-                    ojo.Height);
-                Cv2.Rectangle(frame, ojoEnFrame, new Scalar(0, 255, 0), 2);
-            }
-
-            // 2 ojos detectados → despierto; si no → ojos cerrados
-            return ojos.Length >= 2;
-        }
-
         /// <summary>Para el hilo, espera a que termine y apaga la alarma.</summary>
         public void Detener()
         {
@@ -230,7 +215,8 @@ namespace FatigueDetect.Logica
                 running = false;
                 calidad.Interrumpir();
                 sesion.Calidad = calidad.Resumen();
-                InterrumpirObservacion(DateTimeOffset.UtcNow);
+                InterrumpirObservacion(Ahora);
+                sesion.MetricasFatiga = fatiga.Resumen;
             }
 
             if (hilo != null && hilo.IsAlive)
@@ -247,7 +233,7 @@ namespace FatigueDetect.Logica
                 if (paused)
                 {
                     calidad.Interrumpir();
-                    InterrumpirObservacion(DateTimeOffset.UtcNow);
+                    InterrumpirObservacion(Ahora);
                 }
                 else if (running)
                 {
@@ -260,7 +246,7 @@ namespace FatigueDetect.Logica
         {
             ultimaInterrupcion = instante;
             registro.Interrumpir(instante);
-            drowsinessLogic.Reset();
+            fatiga.Interrumpir(drowsinessLogic.UmbralCierreProlongado);
             alarmService.Detener();
         }
     }

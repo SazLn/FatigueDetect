@@ -43,8 +43,10 @@ namespace FatigueDetect.Datos
 
             using (SqliteCommand consulta = CrearComando(conexion, transaccion, """
                 SELECT Id, Cedula, Nombre, Apellidos, TipoCarro, Placa, InicioUtcMs, FinUtcMs, CantidadAlarmas,
-                       Fotogramas, Analizables, TiempoActivoMs, TiempoRostroValidoMs, FallosCamara
+                       Fotogramas, Analizables, TiempoActivoMs, TiempoRostroValidoMs, FallosCamara,
+                       Parpadeos, CierresProlongados, Cabeceos, TiempoOcularValidoMs, TiempoOcularCerradoMs
                 FROM Sesiones LEFT JOIN CalidadSesiones ON CalidadSesiones.SesionId = Sesiones.Id
+                LEFT JOIN MetricasFatigaSesiones ON MetricasFatigaSesiones.SesionId = Sesiones.Id
                 ORDER BY InicioUtcMs DESC, Id;
                 """))
             using (SqliteDataReader lector = consulta.ExecuteReader())
@@ -64,7 +66,9 @@ namespace FatigueDetect.Datos
                         Fin = lector.IsDBNull(7) ? null : LeerInstante(lector, 7).LocalDateTime,
                         CantidadAlarmas = lector.GetInt32(8),
                         Calidad = lector.IsDBNull(9) ? null : new CalidadSesion(lector.GetInt64(9),
-                            lector.GetInt64(10), lector.GetInt64(11), lector.GetInt64(12), lector.GetInt64(13))
+                            lector.GetInt64(10), lector.GetInt64(11), lector.GetInt64(12), lector.GetInt64(13)),
+                        MetricasFatiga = lector.IsDBNull(14) ? null : new MetricasFatiga(lector.GetInt32(14),
+                            lector.GetInt32(15), lector.GetInt32(16), lector.GetInt64(17), lector.GetInt64(18))
                     });
                 }
             }
@@ -149,6 +153,11 @@ namespace FatigueDetect.Datos
                     TiempoActivoMs INTEGER NOT NULL, TiempoRostroValidoMs INTEGER NOT NULL,
                     FallosCamara INTEGER NOT NULL
                 );
+                CREATE TABLE IF NOT EXISTS MetricasFatigaSesiones (
+                    SesionId TEXT PRIMARY KEY NOT NULL REFERENCES Sesiones(Id) ON DELETE CASCADE,
+                    Parpadeos INTEGER NOT NULL, CierresProlongados INTEGER NOT NULL, Cabeceos INTEGER NOT NULL,
+                    TiempoOcularValidoMs INTEGER NOT NULL, TiempoOcularCerradoMs INTEGER NOT NULL
+                );
                 CREATE INDEX IF NOT EXISTS IX_Sesiones_Inicio ON Sesiones (InicioUtcMs);
                 CREATE INDEX IF NOT EXISTS IX_Eventos_Sesion_Inicio ON Eventos (SesionId, InicioUtcMs);
                 CREATE TABLE IF NOT EXISTS Migraciones (Nombre TEXT PRIMARY KEY NOT NULL);
@@ -198,6 +207,22 @@ namespace FatigueDetect.Datos
                 mediciones.Parameters.AddWithValue("$activo", calidad.TiempoActivoMs);
                 mediciones.Parameters.AddWithValue("$rostro", calidad.TiempoRostroValidoMs);
                 mediciones.Parameters.AddWithValue("$fallos", calidad.FallosCamara);
+                mediciones.ExecuteNonQuery();
+            }
+
+            if (sesion.MetricasFatiga is MetricasFatiga fatiga)
+            {
+                using SqliteCommand mediciones = CrearComando(conexion, transaccion, """
+                    INSERT INTO MetricasFatigaSesiones
+                        (SesionId, Parpadeos, CierresProlongados, Cabeceos, TiempoOcularValidoMs, TiempoOcularCerradoMs)
+                    VALUES ($id, $parpadeos, $cierres, $cabeceos, $valido, $cerrado);
+                    """);
+                mediciones.Parameters.AddWithValue("$id", sesion.Id.ToString());
+                mediciones.Parameters.AddWithValue("$parpadeos", fatiga.Parpadeos);
+                mediciones.Parameters.AddWithValue("$cierres", fatiga.CierresProlongados);
+                mediciones.Parameters.AddWithValue("$cabeceos", fatiga.Cabeceos);
+                mediciones.Parameters.AddWithValue("$valido", fatiga.TiempoOcularValidoMs);
+                mediciones.Parameters.AddWithValue("$cerrado", fatiga.TiempoOcularCerradoMs);
                 mediciones.ExecuteNonQuery();
             }
 

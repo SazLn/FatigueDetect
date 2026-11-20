@@ -30,6 +30,7 @@ namespace FatigueDetect.Presentacion
         private readonly PictureBox camaraBox = new PictureBox();
         private Label sinSenal = null!;
         private Label avisoCamara = null!;
+        private Label metricasFaciales = null!;
         private Label lblDuracion = null!;
         private Button pausarBtn = null!;
         private Button detenerBtn = null!;
@@ -104,7 +105,7 @@ namespace FatigueDetect.Presentacion
         private Control ConstruirCamara()
         {
             var tarjeta = new PanelRedondeado { Dock = DockStyle.Fill, Margin = new Padding(6) };
-            var tabla = Tema.TablaFilas(Tema.Tarjeta, 30, 0, 48, 52);
+            var tabla = Tema.TablaFilas(Tema.Tarjeta, 30, 0, 48, 58, 52);
 
             var cabecera = new TableLayoutPanel
             {
@@ -134,6 +135,8 @@ namespace FatigueDetect.Presentacion
             avisoCamara = Tema.Etiqueta("", 10, Tema.Ambar, Tema.Tarjeta, FontStyle.Bold);
             avisoCamara.AccessibleName = "Avisos de cámara";
             tabla.Controls.Add(avisoCamara, 0, 2);
+            metricasFaciales = Tema.Etiqueta("", 9, Tema.Texto, Tema.Tarjeta);
+            tabla.Controls.Add(metricasFaciales, 0, 3);
 
             var botones = new FlowLayoutPanel
             {
@@ -154,12 +157,13 @@ namespace FatigueDetect.Presentacion
                 pausado = !pausado;
                 pausarBtn.Text = pausado ? "Reanudar" : "Pausar";
                 avisoCamara.Text = "";
+                metricasFaciales.Text = pausado ? "Medición facial en pausa" : "";
                 PausaSolicitada?.Invoke(pausado);
             };
 
             botones.Controls.Add(detenerBtn);
             botones.Controls.Add(pausarBtn);
-            tabla.Controls.Add(botones, 0, 3);
+            tabla.Controls.Add(botones, 0, 4);
 
             tarjeta.Controls.Add(tabla);
             return tarjeta;
@@ -281,9 +285,10 @@ namespace FatigueDetect.Presentacion
             sinSenal.Text = "Iniciando cámara...";
             sinSenal.Visible = true;
             avisoCamara.Text = "";
+            metricasFaciales.Text = "Mira al frente con los ojos abiertos para calibrar.";
 
             AplicarEstado(EyeState.DESPIERTO);
-            medidor.Actualizar(1.0, Tema.Verde, "ALTO");
+            medidor.Actualizar(0, Tema.TextoSuave, "—");
             ActualizarListaAlertas();
             reloj.Start();
         }
@@ -305,6 +310,7 @@ namespace FatigueDetect.Presentacion
             sinSenal.Text = "Sin sesión activa.\nVe a \"Registro / Persona\" para iniciar el monitoreo.";
             sinSenal.Visible = true;
             avisoCamara.Text = "";
+            metricasFaciales.Text = "";
 
             lblConductor.Text = "Conductor: —";
             lblCedula.Text = "C.C. —";
@@ -326,7 +332,8 @@ namespace FatigueDetect.Presentacion
         // ------------------------------------------------------------------
 
         public void UpdateImage(Bitmap? image, EyeState estado, long tiempoMs,
-            EstadoIluminacion? avisoIluminacion, TipoEventoSesion? avisoRostro, TipoEventoSesion? avisoCalidad = null)
+            EstadoIluminacion? avisoIluminacion, TipoEventoSesion? avisoRostro,
+            TipoEventoSesion? avisoCalidad = null, FatigaEnVivo? fatiga = null)
         {
             // Si la pantalla sigue ocupada con el cuadro anterior, se descarta este.
             if (IsDisposed || !IsHandleCreated || Interlocked.CompareExchange(ref actualizando, 1, 0) != 0)
@@ -337,7 +344,7 @@ namespace FatigueDetect.Presentacion
 
             try
             {
-                BeginInvoke(new Action(() => Actualizar(image, estado, tiempoMs, avisoIluminacion, avisoRostro, avisoCalidad)));
+                BeginInvoke(new Action(() => Actualizar(image, estado, tiempoMs, avisoIluminacion, avisoRostro, avisoCalidad, fatiga)));
             }
             catch (Exception)
             {
@@ -357,7 +364,8 @@ namespace FatigueDetect.Presentacion
         // ------------------------------------------------------------------
 
         private void Actualizar(Bitmap? imagen, EyeState estado, long tiempoMs,
-            EstadoIluminacion? avisoIluminacion, TipoEventoSesion? avisoRostro, TipoEventoSesion? avisoCalidad = null)
+            EstadoIluminacion? avisoIluminacion, TipoEventoSesion? avisoRostro,
+            TipoEventoSesion? avisoCalidad, FatigaEnVivo? fatiga)
         {
             try
             {
@@ -393,6 +401,7 @@ namespace FatigueDetect.Presentacion
                     new[] { avisoRostroTexto, avisoLuzTexto }.Where(texto => texto.Length > 0));
                 if (avisoCamara.Text != avisos)
                     avisoCamara.Text = avisos;
+                MostrarMetricasFaciales(fatiga);
 
                 if (imagen == null)
                 {
@@ -403,6 +412,12 @@ namespace FatigueDetect.Presentacion
                 if (avisoCalidad.HasValue)
                 {
                     AplicarSinSenal("IMAGEN NO ANALIZABLE", avisos);
+                    return;
+                }
+
+                if (fatiga?.AperturaIzquierda is null && avisoRostro is null)
+                {
+                    AplicarSinSenal("ESTADO OCULAR SIN MEDICIÓN", "Mira al frente con los ojos abiertos y revisa la iluminación.");
                     return;
                 }
 
@@ -422,7 +437,10 @@ namespace FatigueDetect.Presentacion
                     ultimoMuestreo = DateTime.Now;
                 }
 
-                ActualizarMedidor(estado, actual);
+                if (fatiga?.AperturaIzquierda is null)
+                    medidor.Actualizar(0, Tema.TextoSuave, "—");
+                else
+                    ActualizarMedidor(estado, actual);
 
                 int alarmas = actual.CantidadAlarmas;
                 if (alarmas != alarmasMostradas)
@@ -436,6 +454,23 @@ namespace FatigueDetect.Presentacion
             {
                 Interlocked.Exchange(ref actualizando, 0);
             }
+        }
+
+        private void MostrarMetricasFaciales(FatigaEnVivo? fatiga)
+        {
+            if (fatiga is null)
+            {
+                metricasFaciales.Text = "Medición facial no disponible";
+                return;
+            }
+
+            string pose = fatiga.Angulos is { } angulos
+                ? $"Cabeza desde el frente: vertical {angulos.Vertical:0}° · horizontal {angulos.Horizontal:0}° · lateral {angulos.Lateral:0}°"
+                : "Cabeza: —";
+            metricasFaciales.Text =
+                $"Apertura izq./der.: {fatiga.AperturaIzquierda?.ToString("P0") ?? "—"} / {fatiga.AperturaDerecha?.ToString("P0") ?? "—"}" +
+                $"   ·   PERCLOS 60 s: {fatiga.Perclos?.ToString("P1") ?? "—"}\n" +
+                $"Parpadeos {fatiga.Acumulado.Parpadeos} · Cierres {fatiga.Acumulado.CierresProlongados} · Cabeceos {fatiga.Acumulado.Cabeceos}\n{pose}";
         }
 
         private void ActualizarMedidor(EyeState estado, SesionConduccion actual)
@@ -520,6 +555,9 @@ namespace FatigueDetect.Presentacion
         {
             estadoMostrado = null;
             rostroMostrado = null;
+            alertaTiempo.Text = "—";
+            barra.Valor = 0;
+            medidor.Actualizar(0, Tema.TextoSuave, "—");
             PintarTarjetaAlerta(Tema.Tarjeta, Tema.Ambar, titulo, mensaje);
         }
 
