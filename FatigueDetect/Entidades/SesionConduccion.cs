@@ -19,6 +19,7 @@ namespace FatigueDetect.Entidades
         public DateTime Inicio { get; set; }
         public DateTime? Fin { get; set; }
         public CalidadSesion? Calidad { get; set; }
+        public MetricasFatiga? MetricasFatiga { get; set; }
 
         // Las alarmas se registran desde el hilo de detección, por eso se protegen con lock.
         public int CantidadAlarmas

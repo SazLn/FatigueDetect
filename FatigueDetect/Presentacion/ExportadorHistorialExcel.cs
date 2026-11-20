@@ -18,10 +18,12 @@ namespace FatigueDetect.Presentacion
 
             var detalle = CrearHoja(libro, "Sesiones", "ID de sesión", "Conductor", "Cédula",
                 "Vehículo", "Placa", "Inicio local", "Fin local", "Duración (s)", "Alarmas",
-                "FPS", "Fotogramas analizables", "Rostro válido (s)", "Fallos de cámara");
+                "FPS", "Fotogramas analizables", "Rostro válido (s)", "Fallos de cámara",
+                "Parpadeos", "Cierres prolongados", "Cabeceos", "PERCLOS de sesión", "Tiempo ocular válido (s)");
             detalle.Columns(6, 7).Style.DateFormat.Format = "yyyy-mm-dd hh:mm:ss";
-            FormatoDecimal(detalle, 8, 10, 12);
+            FormatoDecimal(detalle, 8, 10, 12, 18);
             detalle.Column(11).Style.NumberFormat.Format = "0.00%";
+            detalle.Column(17).Style.NumberFormat.Format = "0.00%";
 
             var eventos = CrearHoja(libro, "Eventos", "ID de sesión", "Tipo", "Inicio local",
                 "Fin local", "Duración (s)", "Gravedad", "Desde alarma anterior (s)");
@@ -37,11 +39,14 @@ namespace FatigueDetect.Presentacion
             {
                 string id = sesion.Id.ToString();
                 CalidadSesion? calidad = sesion.Calidad;
+                MetricasFatiga? fatiga = sesion.MetricasFatiga;
                 Escribir(detalle, filaSesion++, id, sesion.Conductor.NombreCompleto,
                     sesion.Conductor.Cedula, sesion.Vehiculo.TipoCarro, sesion.Vehiculo.Placa,
                     sesion.Inicio, sesion.Fin, sesion.Fin.HasValue ? sesion.Duracion.TotalSeconds : null,
                     sesion.CantidadAlarmas, calidad?.Fps, calidad?.ProporcionAnalizable,
-                    calidad?.TiempoRostroValido.TotalSeconds, calidad?.FallosCamara);
+                    calidad?.TiempoRostroValido.TotalSeconds, calidad?.FallosCamara,
+                    fatiga?.Parpadeos, fatiga?.CierresProlongados, fatiga?.Cabeceos, fatiga?.Perclos,
+                    fatiga?.TiempoOcularValidoMs / 1000.0);
 
                 List<EventoSesion> registrados = sesion.Eventos;
                 var intervalos = ResumenHistorial.IntervalosEntreAlertas(sesion, registrados)

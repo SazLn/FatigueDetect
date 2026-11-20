@@ -16,12 +16,9 @@ namespace FatigueDetect.Logica
         }
 
         public (EstadoIluminacion? Iluminacion, TipoEventoSesion? Rostro) Observar(
-            DateTimeOffset instante, int rostros, bool ojosDetectados,
+            DateTimeOffset instante, int rostros,
             EyeState estado, EstadoIluminacion iluminacion, bool analisisDisponible = true)
         {
-            bool cierre = analisisDisponible && rostros > 0 && !ojosDetectados;
-            Actualizar(TipoEventoSesion.CierreOcularProlongado, cierre, instante,
-                estado is EyeState.SOMNOLIENTO or EyeState.ALARMA_ACTIVADA);
             Actualizar(TipoEventoSesion.Alarma, analisisDisponible && estado == EyeState.ALARMA_ACTIVADA, instante, true);
             bool rostroAusente = Actualizar(TipoEventoSesion.RostroNoDetectado, analisisDisponible && rostros == 0, instante);
             bool variosRostros = Actualizar(TipoEventoSesion.VariosRostros, analisisDisponible && rostros > 1, instante);

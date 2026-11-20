@@ -56,7 +56,8 @@ namespace FatigueDetect.Logica
         {
             TipoEventoSesion.Alarma => GravedadEvento.Alta,
             TipoEventoSesion.CierreOcularProlongado or TipoEventoSesion.CamaraTapada
-                or TipoEventoSesion.CamaraDesenfocada or TipoEventoSesion.CamaraCongelada => GravedadEvento.Media,
+                or TipoEventoSesion.CamaraDesenfocada or TipoEventoSesion.CamaraCongelada
+                or TipoEventoSesion.Cabeceo => GravedadEvento.Media,
             _ => GravedadEvento.Baja
         };
 

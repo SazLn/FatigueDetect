@@ -236,7 +236,7 @@ namespace FatigueDetect.Presentacion
         private Control ConstruirDetalle()
         {
             var tarjeta = new PanelRedondeado { Dock = DockStyle.Fill, Margin = new Padding(10, 0, 0, 0) };
-            var tabla2 = Tema.TablaFilas(Tema.Tarjeta, 36, 39, 39, 39, 39, 39, 39, 39, 39, 65, 26, 0, 26, 0, 42);
+            var tabla2 = Tema.TablaFilas(Tema.Tarjeta, 36, 39, 39, 39, 39, 39, 39, 39, 39, 116, 26, 0, 26, 0, 42);
 
             tabla2.Controls.Add(Tema.Etiqueta("Detalle de la sesión", 13, Tema.Texto, Tema.Tarjeta, FontStyle.Bold), 0, 0);
             tabla2.Controls.Add(Dato("Conductor", out dConductor), 0, 1);
@@ -291,8 +291,8 @@ namespace FatigueDetect.Presentacion
             tabla2.Controls.Add(lineaTemporal, 0, 14);
             var desplazamiento = new Panel { Dock = DockStyle.Fill, AutoScroll = true, BackColor = Tema.Tarjeta };
             tabla2.Dock = DockStyle.Top;
-            desplazamiento.SizeChanged += (_, _) => tabla2.Height = Math.Max(570, desplazamiento.ClientSize.Height);
-            tabla2.Height = 570;
+            desplazamiento.SizeChanged += (_, _) => tabla2.Height = Math.Max(630, desplazamiento.ClientSize.Height);
+            tabla2.Height = 630;
             desplazamiento.Controls.Add(tabla2);
             tarjeta.Controls.Add(desplazamiento);
             return tarjeta;
@@ -387,6 +387,10 @@ namespace FatigueDetect.Presentacion
                   $"Rostro válido: {calidad.TiempoRostroValido.TotalSeconds:0.0} s\n" +
                   $"Fallos de cámara: {calidad.FallosCamara}"
                 : "Calidad: sin medición";
+            dCalidad.Text += s?.MetricasFatiga is MetricasFatiga fatiga
+                ? $"\nParpadeos: {fatiga.Parpadeos} · Cierres: {fatiga.CierresProlongados} · Cabeceos: {fatiga.Cabeceos}" +
+                  $"\nPERCLOS: {fatiga.Perclos?.ToString("P1") ?? "—"} · Tiempo ocular válido: {fatiga.TiempoOcularValidoMs / 1000.0:0.0} s"
+                : "\nMétricas faciales: sin medición";
 
             if (s == null)
             {
@@ -451,6 +455,7 @@ namespace FatigueDetect.Presentacion
             TipoEventoSesion.CamaraTapada => "Cámara tapada",
             TipoEventoSesion.CamaraDesenfocada => "Cámara desenfocada",
             TipoEventoSesion.CamaraCongelada => "Cámara congelada",
+            TipoEventoSesion.Cabeceo => "Posible cabeceo",
             _ => tipo.ToString()
         };
 
