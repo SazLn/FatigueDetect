@@ -108,9 +108,9 @@ La validación en una cámara Windows real confirmó el funcionamiento básico. 
 pruebas con distintas cámaras, iluminación y personas. La procedencia y la conversión se detallan en
 [la ficha del modelo](FatigueDetect/Presentacion/Resources/modelos/ORIGEN.md).
 
-### Métricas oculares avanzadas de la propuesta
+### Métricas oculares avanzadas
 
-La rama `feature/metricas-oculares-avanzadas` amplía cada sesión con estas mediciones:
+La aplicación amplía cada sesión con estas mediciones:
 
 - Frecuencia de parpadeos por minuto de tiempo ocular válido.
 - Duración mínima, promedio y máxima de los parpadeos.
@@ -123,8 +123,9 @@ La rama `feature/metricas-oculares-avanzadas` amplía cada sesión con estas med
 
 Las métricas se muestran en vivo y en el resumen final, se guardan en SQLite y aparecen en el historial y Excel.
 La exportación añade las columnas avanzadas a **Sesiones** y una hoja **Evolución PERCLOS**. Las sesiones anteriores
-conservan las métricas disponibles y muestran el detalle nuevo como «sin medición». Esta propuesta requiere validar
-la clasificación y los umbrales con una cámara Windows antes de decidir su integración en `main`.
+conservan las métricas disponibles y muestran el detalle nuevo como «sin medición». La validación manual con cámara
+confirmó el funcionamiento de estas métricas. La clasificación y los umbrales aún deben calibrarse con distintas
+cámaras, condiciones de iluminación y personas.
 
 ## Calidad de sesión, estadísticas y Excel
 

@@ -26,12 +26,12 @@
 | Salida de audio para la alarma | Pendiente | Permitir seleccionar y probar parlantes, audífonos u otra salida de reproducción disponible en Windows, guardar la preferencia y usar la salida predeterminada como respaldo. |
 | Puntos faciales y apertura de ojos | Integrado en `main` | MediaPipe Face Mesh en ONNX y estimación por ojo con calibración inicial. |
 | Parpadeos, cierres prolongados y PERCLOS | Integrado en `main` | Conteos, PERCLOS de 60 s en vivo y acumulado por sesión. |
-| Métricas oculares avanzadas | Implementado en la propuesta | Parpadeos por minuto y por duración, cierres anómalos, microsueños, tiempos cerrados, diferencia entre ojos y evolución de PERCLOS. |
+| Métricas oculares avanzadas | Integrado en `main` | Parpadeos por minuto y por duración, cierres anómalos, microsueños, tiempos cerrados, diferencia entre ojos y evolución de PERCLOS. |
 | Ángulos de cabeza y posibles cabeceos | Integrado en `main` | Tres ángulos en vivo y registro de descenso con retorno a la postura neutra. |
 | Resto de propuestas | Pendiente | Incluye bostezos, mirada, distracción y análisis histórico avanzado. |
 
 La medición facial fue validada de forma inicial con una cámara Windows. La calibración de umbrales y las pruebas con más cámaras, iluminación y personas siguen pendientes.
-Las métricas oculares avanzadas están disponibles en la rama `feature/metricas-oculares-avanzadas` y requieren validación con cámara antes de decidir su integración en `main`.
+Las métricas oculares avanzadas también fueron validadas manualmente con cámara y están integradas en `main`. Su calibración con más cámaras, condiciones de iluminación y personas sigue pendiente.
 
 ## Propósito del documento
 
@@ -108,16 +108,16 @@ La dificultad de programar una función y la dificultad de hacerla confiable no 
 
 | Característica | Dificultad | Descripción sencilla |
 |---|---:|---|
-| Parpadeos por minuto | **Media** | Implementado en la propuesta sobre el tiempo ocular válido. |
-| Duración mínima, máxima y promedio de los parpadeos | **Media** | Implementado en la propuesta para parpadeos confirmados entre 60 y 400 ms. |
-| Distribución de parpadeos cortos y prolongados | **Media** | Implementado en la propuesta con separación a 200 ms y cierres anómalos por encima de 400 ms. |
-| Contar microsueños | **Media** | Implementado en la propuesta desde el umbral de somnolencia configurado. |
-| Microsueño más largo | **Media** | Implementado en la propuesta junto con el cierre ocular más largo. |
-| Tiempo total con los ojos cerrados | **Media** | Implementado en la propuesta con el criterio ocular usado por PERCLOS. |
-| Porcentaje de la sesión con ojos cerrados | **Media** | Implementado en la propuesta sobre el tiempo ocular válido. |
-| PERCLOS | **Media** | Calcular el porcentaje de tiempo que los ojos permanecen cerrados dentro de una ventana reciente, por ejemplo durante el último minuto. Es una de las métricas más útiles para estimar somnolencia. |
-| Evolución del PERCLOS | **Media** | Implementado en la propuesta con muestras cada 10 s y al interrumpir la observación. |
-| Diferencia entre ojo izquierdo y derecho | **Media** | Implementado en la propuesta como diferencia absoluta en vivo y promedio temporal por sesión. |
+| Parpadeos por minuto | **Media** | Integrado en `main` sobre el tiempo ocular válido. |
+| Duración mínima, máxima y promedio de los parpadeos | **Media** | Integrado en `main` para parpadeos confirmados entre 60 y 400 ms. |
+| Distribución de parpadeos cortos y prolongados | **Media** | Integrado en `main` con separación a 200 ms y cierres anómalos por encima de 400 ms. |
+| Contar microsueños | **Media** | Integrado en `main` desde el umbral de somnolencia configurado. |
+| Microsueño más largo | **Media** | Integrado en `main` junto con el cierre ocular más largo. |
+| Tiempo total con los ojos cerrados | **Media** | Integrado en `main` con el criterio ocular usado por PERCLOS. |
+| Porcentaje de la sesión con ojos cerrados | **Media** | Integrado en `main` sobre el tiempo ocular válido. |
+| PERCLOS | **Media** | Integrado en `main` con una ventana móvil de 60 segundos y acumulado para toda la sesión. |
+| Evolución del PERCLOS | **Media** | Integrado en `main` con muestras cada 10 s y al interrumpir la observación. |
+| Diferencia entre ojo izquierdo y derecho | **Media** | Integrado en `main` como diferencia absoluta en vivo y promedio temporal por sesión. |
 | Tiempo hasta el primer síntoma de fatiga | **Baja-media** | Medir cuánto tiempo pasó desde el inicio hasta el primer evento relevante. |
 
 ## Cabeza, postura, mirada y distracción
@@ -626,9 +626,9 @@ Prioridad alta porque desbloquea los dashboards y evita rehacer el almacenamient
 
 1. Integrar un modelo de 468 puntos faciales en ONNX. **Integrado en `main`.**
 2. Medir la apertura de cada ojo. **Integrado en `main`.**
-3. Contar parpadeos. **Integrado en `main`.** Frecuencia, clasificación y duraciones implementadas en la propuesta.
-4. Medir cierres prolongados. **Integrado en `main`.** Microsueños y cierres anómalos implementados en la propuesta.
-5. Calcular PERCLOS de 60 s y por sesión. **Integrado en `main`.** Evolución temporal implementada en la propuesta.
+3. Contar parpadeos. **Integrado en `main`.** Incluye frecuencia, clasificación y duraciones.
+4. Medir cierres prolongados. **Integrado en `main`.** Incluye microsueños y cierres anómalos.
+5. Calcular PERCLOS de 60 s y por sesión. **Integrado en `main`.** Incluye su evolución temporal.
 6. Estimar ángulos de cabeza. **Integrado en `main`.**
 7. Detectar posibles cabeceos. **Integrado en `main`.**
 8. Detectar bostezos.
