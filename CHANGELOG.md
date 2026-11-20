@@ -2,6 +2,9 @@
 
 ## Sin publicar
 
+- Se integró la medición de fatiga con 468 puntos faciales mediante ONNX, apertura ocular por ojo, conteo de parpadeos, cierres prolongados, PERCLOS de 60 segundos y acumulado por sesión.
+- El monitoreo muestra ángulos de cabeza y detecta posibles cabeceos. Los conteos, tiempos oculares y eventos se guardan en SQLite y aparecen en el historial y Excel.
+- La validación manual inicial con cámara Windows confirmó el funcionamiento básico. Siguen pendientes la calibración de umbrales y pruebas con más cámaras, iluminación y personas.
 - El plan incorpora como pendientes gráficos de Excel más explicativos y una salida de audio seleccionable y comprobable para la alarma.
 - El historial filtra por fecha, conductor y vehículo. El dashboard y Excel aplican los mismos filtros.
 - El dashboard y Excel muestran gráficos de sesiones, alarmas por hora y eventos por gravedad, con intervalos entre alarmas. El historial añade una línea temporal por sesión.

@@ -24,9 +24,12 @@
 | Formato y calidad de cámara | Integrado en `main` | Resolución y FPS solicitados, avisos de imagen tapada, desenfocada o congelada y episodios guardados durante el monitoreo. |
 | Gráficos de Excel explicativos | Pendiente | Mejorar diseño, títulos, unidades, leyendas y contexto para que cada gráfico permita interpretar los datos sin depender de las tablas. |
 | Salida de audio para la alarma | Pendiente | Permitir seleccionar y probar parlantes, audífonos u otra salida de reproducción disponible en Windows, guardar la preferencia y usar la salida predeterminada como respaldo. |
-| Resto de propuestas | Pendiente | Incluye puntos faciales, parpadeos, PERCLOS, cabeceos, distracción y análisis histórico avanzado. |
+| Puntos faciales y apertura de ojos | Integrado en `main` | MediaPipe Face Mesh en ONNX y estimación por ojo con calibración inicial. |
+| Parpadeos, cierres prolongados y PERCLOS | Integrado en `main` | Conteos, PERCLOS de 60 s en vivo y acumulado por sesión. |
+| Ángulos de cabeza y posibles cabeceos | Integrado en `main` | Tres ángulos en vivo y registro de descenso con retorno a la postura neutra. |
+| Resto de propuestas | Pendiente | Incluye duración detallada por parpadeo, microsueños, bostezos, mirada, distracción y análisis histórico avanzado. |
 
-Esta sección refleja el estado actual de `main`. El resto del documento conserva las propuestas pendientes y su alcance previsto.
+La medición facial fue validada de forma inicial con una cámara Windows. La calibración de umbrales y las pruebas con más cámaras, iluminación y personas siguen pendientes.
 
 ## Propósito del documento
 
@@ -214,7 +217,7 @@ Estas características crean la infraestructura necesaria para añadir después 
 
 # 4. Mejora técnica necesaria para ojos, cabeza y mirada
 
-El proyecto actual utiliza clasificadores Haar para localizar el rostro y los ojos. Son adecuados para una primera versión, pero entregan información muy limitada: básicamente indican si se encontró una región parecida a un rostro o a un ojo.
+El proyecto usa Haar para localizar candidatos de rostro y ejecuta MediaPipe Face Mesh en ONNX para medir los párpados y estimar la pose de la cabeza. El detector anterior localizaba los ojos mediante Haar.
 
 Para medir parpadeos, cabeceos, bostezos, postura y mirada conviene incorporar un modelo de **puntos faciales** o *facial landmarks*. Este modelo permite localizar de manera estable:
 
@@ -619,13 +622,13 @@ Prioridad alta porque desbloquea los dashboards y evita rehacer el almacenamient
 
 ## Etapa 3: Puntos faciales y métricas de fatiga
 
-1. Integrar un modelo de puntos faciales.
-2. Medir apertura de ojos.
-3. Contar parpadeos.
-4. Medir cierres prolongados y microsueños.
-5. Calcular PERCLOS.
-6. Medir ángulos de cabeza.
-7. Detectar cabeceos.
+1. Integrar un modelo de 468 puntos faciales en ONNX. **Integrado en `main`.**
+2. Medir la apertura de cada ojo. **Integrado en `main`.**
+3. Contar parpadeos. **Integrado en `main`.** Faltan estadísticas detalladas de su duración.
+4. Medir cierres prolongados. **Integrado en `main`.** La detección específica de microsueños queda pendiente.
+5. Calcular PERCLOS de 60 s y por sesión. **Integrado en `main`.**
+6. Estimar ángulos de cabeza. **Integrado en `main`.**
+7. Detectar posibles cabeceos. **Integrado en `main`.**
 8. Detectar bostezos.
 9. Estimar distracción y mirada.
 
