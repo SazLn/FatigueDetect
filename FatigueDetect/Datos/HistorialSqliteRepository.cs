@@ -44,7 +44,10 @@ namespace FatigueDetect.Datos
             using (SqliteCommand consulta = CrearComando(conexion, transaccion, """
                 SELECT Id, Cedula, Nombre, Apellidos, TipoCarro, Placa, InicioUtcMs, FinUtcMs, CantidadAlarmas,
                        Fotogramas, Analizables, TiempoActivoMs, TiempoRostroValidoMs, FallosCamara,
-                       Parpadeos, CierresProlongados, Cabeceos, TiempoOcularValidoMs, TiempoOcularCerradoMs
+                       Parpadeos, CierresProlongados, Cabeceos, TiempoOcularValidoMs, TiempoOcularCerradoMs,
+                       VersionOcular, ParpadeosCortos, ParpadeosProlongados, CierresAnomalos,
+                       DuracionParpadeosTotalMs, DuracionParpadeoMinMs, DuracionParpadeoMaxMs,
+                       CierreMasLargoMs, MicrosuenoMasLargoMs, DiferenciaAperturaPromedio
                 FROM Sesiones LEFT JOIN CalidadSesiones ON CalidadSesiones.SesionId = Sesiones.Id
                 LEFT JOIN MetricasFatigaSesiones ON MetricasFatigaSesiones.SesionId = Sesiones.Id
                 ORDER BY InicioUtcMs DESC, Id;
@@ -68,9 +71,39 @@ namespace FatigueDetect.Datos
                         Calidad = lector.IsDBNull(9) ? null : new CalidadSesion(lector.GetInt64(9),
                             lector.GetInt64(10), lector.GetInt64(11), lector.GetInt64(12), lector.GetInt64(13)),
                         MetricasFatiga = lector.IsDBNull(14) ? null : new MetricasFatiga(lector.GetInt32(14),
-                            lector.GetInt32(15), lector.GetInt32(16), lector.GetInt64(17), lector.GetInt64(18))
+                            lector.GetInt32(15), lector.GetInt32(16), lector.GetInt64(17), lector.GetInt64(18),
+                            lector.GetInt32(19), lector.GetInt32(20), lector.GetInt32(21), lector.GetInt32(22),
+                            lector.GetInt64(23), lector.IsDBNull(24) ? null : lector.GetInt64(24),
+                            lector.IsDBNull(25) ? null : lector.GetInt64(25), lector.GetInt64(26),
+                            lector.GetInt64(27), lector.IsDBNull(28) ? null : lector.GetDouble(28))
                     });
                 }
+            }
+
+            var evolucionPerclos = new Dictionary<string, List<MuestraPerclos>>();
+            using (SqliteCommand consulta = CrearComando(conexion, transaccion, """
+                SELECT SesionId, InstanteUtcMs, Valor
+                FROM EvolucionPerclosSesiones ORDER BY SesionId, InstanteUtcMs;
+                """))
+            using (SqliteDataReader lector = consulta.ExecuteReader())
+            {
+                while (lector.Read())
+                {
+                    string id = lector.GetString(0);
+                    if (!sesiones.ContainsKey(id))
+                        continue;
+                    if (!evolucionPerclos.TryGetValue(id, out List<MuestraPerclos>? muestras))
+                    {
+                        muestras = new List<MuestraPerclos>();
+                        evolucionPerclos.Add(id, muestras);
+                    }
+                    muestras.Add(new MuestraPerclos(LeerInstante(lector, 1), lector.GetDouble(2)));
+                }
+            }
+            foreach ((string id, List<MuestraPerclos> muestras) in evolucionPerclos)
+            {
+                if (sesiones[id].MetricasFatiga is MetricasFatiga fatiga)
+                    sesiones[id].MetricasFatiga = fatiga with { EvolucionPerclos = muestras };
             }
 
             using (SqliteCommand consulta = CrearComando(conexion, transaccion, """
@@ -156,13 +189,29 @@ namespace FatigueDetect.Datos
                 CREATE TABLE IF NOT EXISTS MetricasFatigaSesiones (
                     SesionId TEXT PRIMARY KEY NOT NULL REFERENCES Sesiones(Id) ON DELETE CASCADE,
                     Parpadeos INTEGER NOT NULL, CierresProlongados INTEGER NOT NULL, Cabeceos INTEGER NOT NULL,
-                    TiempoOcularValidoMs INTEGER NOT NULL, TiempoOcularCerradoMs INTEGER NOT NULL
+                    TiempoOcularValidoMs INTEGER NOT NULL, TiempoOcularCerradoMs INTEGER NOT NULL,
+                    VersionOcular INTEGER NOT NULL DEFAULT 0,
+                    ParpadeosCortos INTEGER NOT NULL DEFAULT 0,
+                    ParpadeosProlongados INTEGER NOT NULL DEFAULT 0,
+                    CierresAnomalos INTEGER NOT NULL DEFAULT 0,
+                    DuracionParpadeosTotalMs INTEGER NOT NULL DEFAULT 0,
+                    DuracionParpadeoMinMs INTEGER,
+                    DuracionParpadeoMaxMs INTEGER,
+                    CierreMasLargoMs INTEGER NOT NULL DEFAULT 0,
+                    MicrosuenoMasLargoMs INTEGER NOT NULL DEFAULT 0,
+                    DiferenciaAperturaPromedio REAL
+                );
+                CREATE TABLE IF NOT EXISTS EvolucionPerclosSesiones (
+                    SesionId TEXT NOT NULL REFERENCES Sesiones(Id) ON DELETE CASCADE,
+                    InstanteUtcMs INTEGER NOT NULL, Valor REAL NOT NULL,
+                    PRIMARY KEY (SesionId, InstanteUtcMs)
                 );
                 CREATE INDEX IF NOT EXISTS IX_Sesiones_Inicio ON Sesiones (InicioUtcMs);
                 CREATE INDEX IF NOT EXISTS IX_Eventos_Sesion_Inicio ON Eventos (SesionId, InicioUtcMs);
                 CREATE TABLE IF NOT EXISTS Migraciones (Nombre TEXT PRIMARY KEY NOT NULL);
                 """);
             esquema.ExecuteNonQuery();
+            AsegurarColumnasMetricasFatiga(conexion, transaccion);
 
             using SqliteCommand marca = CrearComando(conexion, transaccion,
                 "INSERT OR IGNORE INTO Migraciones (Nombre) VALUES ('historial_csv_v1');");
@@ -214,8 +263,14 @@ namespace FatigueDetect.Datos
             {
                 using SqliteCommand mediciones = CrearComando(conexion, transaccion, """
                     INSERT INTO MetricasFatigaSesiones
-                        (SesionId, Parpadeos, CierresProlongados, Cabeceos, TiempoOcularValidoMs, TiempoOcularCerradoMs)
-                    VALUES ($id, $parpadeos, $cierres, $cabeceos, $valido, $cerrado);
+                        (SesionId, Parpadeos, CierresProlongados, Cabeceos, TiempoOcularValidoMs,
+                         TiempoOcularCerradoMs, VersionOcular, ParpadeosCortos, ParpadeosProlongados,
+                         CierresAnomalos, DuracionParpadeosTotalMs, DuracionParpadeoMinMs,
+                         DuracionParpadeoMaxMs, CierreMasLargoMs, MicrosuenoMasLargoMs,
+                         DiferenciaAperturaPromedio)
+                    VALUES ($id, $parpadeos, $cierres, $cabeceos, $valido, $cerrado, $version,
+                            $cortos, $prolongados, $anomalos, $duracionTotal, $duracionMinima,
+                            $duracionMaxima, $cierreMaximo, $microsuenoMaximo, $diferencia);
                     """);
                 mediciones.Parameters.AddWithValue("$id", sesion.Id.ToString());
                 mediciones.Parameters.AddWithValue("$parpadeos", fatiga.Parpadeos);
@@ -223,7 +278,31 @@ namespace FatigueDetect.Datos
                 mediciones.Parameters.AddWithValue("$cabeceos", fatiga.Cabeceos);
                 mediciones.Parameters.AddWithValue("$valido", fatiga.TiempoOcularValidoMs);
                 mediciones.Parameters.AddWithValue("$cerrado", fatiga.TiempoOcularCerradoMs);
+                mediciones.Parameters.AddWithValue("$version", fatiga.VersionMetricasOculares);
+                mediciones.Parameters.AddWithValue("$cortos", fatiga.ParpadeosCortos);
+                mediciones.Parameters.AddWithValue("$prolongados", fatiga.ParpadeosProlongados);
+                mediciones.Parameters.AddWithValue("$anomalos", fatiga.CierresAnomalos);
+                mediciones.Parameters.AddWithValue("$duracionTotal", fatiga.DuracionParpadeosTotalMs);
+                mediciones.Parameters.AddWithValue("$duracionMinima", fatiga.DuracionParpadeoMinMs is long minima ? minima : DBNull.Value);
+                mediciones.Parameters.AddWithValue("$duracionMaxima", fatiga.DuracionParpadeoMaxMs is long maxima ? maxima : DBNull.Value);
+                mediciones.Parameters.AddWithValue("$cierreMaximo", fatiga.CierreMasLargoMs);
+                mediciones.Parameters.AddWithValue("$microsuenoMaximo", fatiga.MicrosuenoMasLargoMs);
+                mediciones.Parameters.AddWithValue("$diferencia", fatiga.DiferenciaAperturaPromedio is double diferencia ? diferencia : DBNull.Value);
                 mediciones.ExecuteNonQuery();
+
+                using SqliteCommand evolucion = CrearComando(conexion, transaccion, """
+                    INSERT INTO EvolucionPerclosSesiones (SesionId, InstanteUtcMs, Valor)
+                    VALUES ($id, $instante, $valor);
+                    """);
+                evolucion.Parameters.AddWithValue("$id", sesion.Id.ToString());
+                SqliteParameter instante = evolucion.Parameters.Add("$instante", SqliteType.Integer);
+                SqliteParameter valor = evolucion.Parameters.Add("$valor", SqliteType.Real);
+                foreach (MuestraPerclos muestra in fatiga.EvolucionPerclos)
+                {
+                    instante.Value = muestra.Instante.ToUnixTimeMilliseconds();
+                    valor.Value = muestra.Valor;
+                    evolucion.ExecuteNonQuery();
+                }
             }
 
             using SqliteCommand eventos = CrearComando(conexion, transaccion, """
@@ -251,6 +330,40 @@ namespace FatigueDetect.Datos
             comando.Transaction = transaccion;
             comando.CommandText = sql;
             return comando;
+        }
+
+        private static void AsegurarColumnasMetricasFatiga(SqliteConnection conexion, SqliteTransaction transaccion)
+        {
+            var existentes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            using (SqliteCommand consulta = CrearComando(conexion, transaccion,
+                "PRAGMA table_info(MetricasFatigaSesiones);"))
+            using (SqliteDataReader lector = consulta.ExecuteReader())
+            {
+                while (lector.Read())
+                    existentes.Add(lector.GetString(1));
+            }
+
+            (string Nombre, string Definicion)[] columnas =
+            [
+                ("VersionOcular", "INTEGER NOT NULL DEFAULT 0"),
+                ("ParpadeosCortos", "INTEGER NOT NULL DEFAULT 0"),
+                ("ParpadeosProlongados", "INTEGER NOT NULL DEFAULT 0"),
+                ("CierresAnomalos", "INTEGER NOT NULL DEFAULT 0"),
+                ("DuracionParpadeosTotalMs", "INTEGER NOT NULL DEFAULT 0"),
+                ("DuracionParpadeoMinMs", "INTEGER"),
+                ("DuracionParpadeoMaxMs", "INTEGER"),
+                ("CierreMasLargoMs", "INTEGER NOT NULL DEFAULT 0"),
+                ("MicrosuenoMasLargoMs", "INTEGER NOT NULL DEFAULT 0"),
+                ("DiferenciaAperturaPromedio", "REAL")
+            ];
+            foreach ((string nombre, string definicion) in columnas)
+            {
+                if (existentes.Contains(nombre))
+                    continue;
+                using SqliteCommand alteracion = CrearComando(conexion, transaccion,
+                    $"ALTER TABLE MetricasFatigaSesiones ADD COLUMN {nombre} {definicion};");
+                alteracion.ExecuteNonQuery();
+            }
         }
 
         private static DateTimeOffset LeerInstante(SqliteDataReader lector, int columna) =>

@@ -236,7 +236,7 @@ namespace FatigueDetect.Presentacion
         private Control ConstruirDetalle()
         {
             var tarjeta = new PanelRedondeado { Dock = DockStyle.Fill, Margin = new Padding(10, 0, 0, 0) };
-            var tabla2 = Tema.TablaFilas(Tema.Tarjeta, 36, 39, 39, 39, 39, 39, 39, 39, 39, 116, 26, 0, 26, 0, 42);
+            var tabla2 = Tema.TablaFilas(Tema.Tarjeta, 36, 39, 39, 39, 39, 39, 39, 39, 39, 196, 26, 0, 26, 0, 42);
 
             tabla2.Controls.Add(Tema.Etiqueta("Detalle de la sesión", 13, Tema.Texto, Tema.Tarjeta, FontStyle.Bold), 0, 0);
             tabla2.Controls.Add(Dato("Conductor", out dConductor), 0, 1);
@@ -291,8 +291,8 @@ namespace FatigueDetect.Presentacion
             tabla2.Controls.Add(lineaTemporal, 0, 14);
             var desplazamiento = new Panel { Dock = DockStyle.Fill, AutoScroll = true, BackColor = Tema.Tarjeta };
             tabla2.Dock = DockStyle.Top;
-            desplazamiento.SizeChanged += (_, _) => tabla2.Height = Math.Max(630, desplazamiento.ClientSize.Height);
-            tabla2.Height = 630;
+            desplazamiento.SizeChanged += (_, _) => tabla2.Height = Math.Max(710, desplazamiento.ClientSize.Height);
+            tabla2.Height = 710;
             desplazamiento.Controls.Add(tabla2);
             tarjeta.Controls.Add(desplazamiento);
             return tarjeta;
@@ -388,8 +388,7 @@ namespace FatigueDetect.Presentacion
                   $"Fallos de cámara: {calidad.FallosCamara}"
                 : "Calidad: sin medición";
             dCalidad.Text += s?.MetricasFatiga is MetricasFatiga fatiga
-                ? $"\nParpadeos: {fatiga.Parpadeos} · Cierres: {fatiga.CierresProlongados} · Cabeceos: {fatiga.Cabeceos}" +
-                  $"\nPERCLOS: {fatiga.Perclos?.ToString("P1") ?? "—"} · Tiempo ocular válido: {fatiga.TiempoOcularValidoMs / 1000.0:0.0} s"
+                ? FormatearMetricasOculares(fatiga)
                 : "\nMétricas faciales: sin medición";
 
             if (s == null)
@@ -444,9 +443,34 @@ namespace FatigueDetect.Presentacion
                 dEventos.Items.Add($"Alarmas sin hora registrada · {alarmasSinHora}");
         }
 
+        private static string FormatearMetricasOculares(MetricasFatiga fatiga)
+        {
+            string texto = $"\nParpadeos: {fatiga.Parpadeos} · Microsueños: {fatiga.Microsuenos} · Cabeceos: {fatiga.Cabeceos}" +
+                $"\nPERCLOS de sesión: {fatiga.Perclos?.ToString("P1") ?? "—"} · Tiempo cerrado: {fatiga.TiempoOcularCerradoMs / 1000.0:0.0} s" +
+                $" · Tiempo ocular válido: {fatiga.TiempoOcularValidoMs / 1000.0:0.0} s";
+            if (fatiga.VersionMetricasOculares < 1)
+                return texto + "\nDetalle ocular avanzado: sin medición";
+
+            texto += $"\nFrecuencia: {fatiga.ParpadeosPorMinuto?.ToString("0.0") ?? "—"}/min" +
+                $" · Cortos: {fatiga.ParpadeosCortos} · Prolongados: {fatiga.ParpadeosProlongados}" +
+                $" · Cierres anómalos: {fatiga.CierresAnomalos}" +
+                $"\nDuración parpadeo mín./prom./máx.: {FormatoMs(fatiga.DuracionParpadeoMinMs)} /" +
+                $" {FormatoMs(fatiga.DuracionParpadeoPromedioMs)} / {FormatoMs(fatiga.DuracionParpadeoMaxMs)}" +
+                $"\nCierre más largo: {fatiga.CierreMasLargoMs / 1000.0:0.000} s" +
+                $" · Microsueño más largo: {fatiga.MicrosuenoMasLargoMs / 1000.0:0.000} s" +
+                $"\nDiferencia ocular promedio: {fatiga.DiferenciaAperturaPromedio?.ToString("P1") ?? "—"}";
+            if (fatiga.EvolucionPerclos.Count >= 2 && fatiga.CambioPerclos is double cambio)
+                texto += $" · PERCLOS {fatiga.EvolucionPerclos[0].Valor:P1} → {fatiga.EvolucionPerclos[^1].Valor:P1}" +
+                    $" ({cambio * 100:+0.0;-0.0;0.0} pp)";
+            return texto;
+        }
+
+        private static string FormatoMs(double? milisegundos) =>
+            milisegundos is double valor ? $"{valor:0} ms" : "—";
+
         internal static string NombreEvento(TipoEventoSesion tipo) => tipo switch
         {
-            TipoEventoSesion.CierreOcularProlongado => "Posible cierre ocular prolongado",
+            TipoEventoSesion.CierreOcularProlongado => "Posible microsueño",
             TipoEventoSesion.Alarma => "Alarma",
             TipoEventoSesion.RostroNoDetectado => "Rostro no detectado",
             TipoEventoSesion.VariosRostros => "Varios rostros",
@@ -456,6 +480,7 @@ namespace FatigueDetect.Presentacion
             TipoEventoSesion.CamaraDesenfocada => "Cámara desenfocada",
             TipoEventoSesion.CamaraCongelada => "Cámara congelada",
             TipoEventoSesion.Cabeceo => "Posible cabeceo",
+            TipoEventoSesion.CierreOcularAnomalo => "Cierre ocular anómalo",
             _ => tipo.ToString()
         };
 
