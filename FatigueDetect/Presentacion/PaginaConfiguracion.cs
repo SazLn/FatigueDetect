@@ -17,6 +17,10 @@ namespace FatigueDetect.Presentacion
         private readonly NumericUpDown alarmaNum = new NumericUpDown();
         private readonly CheckBox sonidoCheck = new CheckBox();
 
+        private readonly ComboBox salidaAudio = new() { DropDownStyle = ComboBoxStyle.DropDownList, Dock = DockStyle.Fill };
+        private readonly Button probarAudio = Tema.Boton("Probar", Tema.TarjetaClara, Tema.Texto);
+        private readonly Label estadoAudio = Tema.Etiqueta("", 9, Tema.TextoSuave, Tema.Tarjeta);
+
         public PaginaConfiguracion(Configuracion config, PreferenciaCamara preferenciaCamara,
             ConfiguracionDeteccionRepository repositorioAjustes)
         {
@@ -47,7 +51,7 @@ namespace FatigueDetect.Presentacion
             raiz.Controls.Add(encabezado, 0, 0);
 
             var tarjeta = new PanelRedondeado { Dock = DockStyle.Fill, Margin = new Padding(0, 0, 8, 0) };
-            var tabla = Tema.TablaFilas(Tema.Tarjeta, 36, 24, 44, 24, 44, 14, 44, 18, 44, 50);
+            var tabla = Tema.TablaFilas(Tema.Tarjeta, 32, 22, 34, 22, 34, 8, 30, 22, 35, 32, 42);
 
             tabla.Controls.Add(Tema.Etiqueta("Sensibilidad de la detección", 12, Tema.Texto, Tema.Tarjeta, FontStyle.Bold), 0, 0);
 
@@ -59,9 +63,22 @@ namespace FatigueDetect.Presentacion
 
             tabla.Controls.Add(sonidoCheck, 0, 6);
 
-            tabla.Controls.Add(Tema.Etiqueta(
-                "Al guardar o restablecer, los ajustes se aplican durante el monitoreo y se conservan al cerrar el programa.",
-                9, Tema.TextoSuave, Tema.Tarjeta), 0, 8);
+            tabla.Controls.Add(Tema.Etiqueta("Salida de audio de la alarma", 9.5f, Tema.TextoSuave, Tema.Tarjeta), 0, 7);
+            var audio = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 3, Margin = new Padding(0) };
+            audio.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+            audio.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 74));
+            audio.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 92));
+            probarAudio.Dock = DockStyle.Fill;
+            var recargar = Tema.Boton("Actualizar", Tema.TarjetaClara, Tema.Texto);
+            recargar.Dock = DockStyle.Fill;
+            probarAudio.Margin = recargar.Margin = new Padding(3, 0, 0, 0);
+            recargar.Click += (_, _) => CargarSalidas((salidaAudio.SelectedItem as SalidaAudio)?.Id);
+            probarAudio.Click += async (_, _) => await ProbarSalidaAsync();
+            audio.Controls.Add(salidaAudio, 0, 0);
+            audio.Controls.Add(probarAudio, 1, 0);
+            audio.Controls.Add(recargar, 2, 0);
+            tabla.Controls.Add(audio, 0, 8);
+            tabla.Controls.Add(estadoAudio, 0, 9);
 
             var botones = new FlowLayoutPanel
             {
@@ -81,7 +98,7 @@ namespace FatigueDetect.Presentacion
 
             botones.Controls.Add(guardar);
             botones.Controls.Add(restablecer);
-            tabla.Controls.Add(botones, 0, 9);
+            tabla.Controls.Add(botones, 0, 10);
 
             tarjeta.Controls.Add(tabla);
             panelCamara = new PanelCamaraConfiguracion(config, preferenciaCamara);
@@ -130,6 +147,55 @@ namespace FatigueDetect.Presentacion
             somnolientoNum.Value = (decimal)ajustes.SegundosSomnoliento;
             alarmaNum.Value = (decimal)ajustes.SegundosAlarma;
             sonidoCheck.Checked = ajustes.SonidoActivado;
+            CargarSalidas(ajustes.SalidaAudioId);
+        }
+
+        private void CargarSalidas(string? id)
+        {
+            salidaAudio.Items.Clear();
+            estadoAudio.Text = "";
+            try
+            {
+                foreach (SalidaAudio salida in AlarmService.ListarSalidas())
+                    salidaAudio.Items.Add(salida);
+            }
+            catch (Exception ex) when (AlarmService.EsErrorDeAudio(ex))
+            {
+                salidaAudio.Items.Add(new SalidaAudio(null, "Predeterminada de Windows"));
+                estadoAudio.Text = "No se pudieron consultar las salidas de Windows.";
+            }
+
+            SalidaAudio? elegida = salidaAudio.Items.Cast<SalidaAudio>().FirstOrDefault(s => s.Id == id);
+            if (elegida is null)
+            {
+                elegida = new SalidaAudio(id, "Salida guardada (desconectada)");
+                salidaAudio.Items.Add(elegida);
+                estadoAudio.Text = "Si la salida guardada falla, se usa la predeterminada.";
+            }
+            salidaAudio.SelectedItem = elegida;
+        }
+
+        private async Task ProbarSalidaAsync()
+        {
+            probarAudio.Enabled = false;
+            var salida = (SalidaAudio)salidaAudio.SelectedItem!;
+            estadoAudio.Text = "Reproduciendo alarma…";
+            try
+            {
+                await AlarmService.ProbarAsync(salida.Id);
+                if (!IsDisposed)
+                    estadoAudio.Text = "Prueba finalizada. Comprueba si oíste la alarma.";
+            }
+            catch (Exception ex) when (AlarmService.EsErrorDeAudio(ex))
+            {
+                if (!IsDisposed)
+                    estadoAudio.Text = "No se pudo reproducir en esa salida. Revisa la conexión.";
+            }
+            finally
+            {
+                if (!IsDisposed)
+                    probarAudio.Enabled = true;
+            }
         }
 
         private void Guardar_Click(object? remitente, EventArgs evento)
@@ -142,7 +208,8 @@ namespace FatigueDetect.Presentacion
                 return;
             }
 
-            var ajustes = new AjustesDeteccion((double)somnolientoNum.Value, (double)alarmaNum.Value, sonidoCheck.Checked);
+            var ajustes = new AjustesDeteccion((double)somnolientoNum.Value, (double)alarmaNum.Value, sonidoCheck.Checked,
+                (salidaAudio.SelectedItem as SalidaAudio)?.Id);
             AplicarYGuardar(ajustes, "Configuración guardada.");
         }
 

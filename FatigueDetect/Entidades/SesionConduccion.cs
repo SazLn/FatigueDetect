@@ -21,6 +21,12 @@ namespace FatigueDetect.Entidades
         public CalidadSesion? Calidad { get; set; }
         public MetricasFatiga? MetricasFatiga { get; set; }
 
+        public double? OjosAbiertosObservados => MetricasFatiga?.Perclos is double perclos
+            ? Math.Clamp(1 - perclos, 0, 1) : null;
+
+        public double? CoberturaOcular => Calidad is { TiempoActivoMs: > 0 } calidad && MetricasFatiga is { } fatiga
+            ? Math.Clamp((double)fatiga.TiempoOcularValidoMs / calidad.TiempoActivoMs, 0, 1) : null;
+
         // Las alarmas se registran desde el hilo de detección, por eso se protegen con lock.
         public int CantidadAlarmas
         {

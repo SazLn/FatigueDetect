@@ -5,7 +5,8 @@ namespace FatigueDetect.Entidades
     public sealed record AjustesDeteccion(
         [property: JsonRequired] double SegundosSomnoliento,
         [property: JsonRequired] double SegundosAlarma,
-        [property: JsonRequired] bool SonidoActivado)
+        [property: JsonRequired] bool SonidoActivado,
+        string? SalidaAudioId = null)
     {
         public const int MaximoSomnolencia = 5;
         public const double MinimoSomnolencia = 0.5;

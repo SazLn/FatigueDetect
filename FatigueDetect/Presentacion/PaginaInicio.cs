@@ -31,6 +31,7 @@ namespace FatigueDetect.Presentacion
         private Label sinSenal = null!;
         private Label avisoCamara = null!;
         private Label metricasFaciales = null!;
+        private Label estadoCaptura = null!;
         private Label lblDuracion = null!;
         private Button pausarBtn = null!;
         private Button detenerBtn = null!;
@@ -74,8 +75,8 @@ namespace FatigueDetect.Presentacion
             raiz.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 44));
             raiz.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 22));
             raiz.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 34));
-            raiz.RowStyles.Add(new RowStyle(SizeType.Percent, 62));
-            raiz.RowStyles.Add(new RowStyle(SizeType.Percent, 38));
+            raiz.RowStyles.Add(new RowStyle(SizeType.Percent, 67));
+            raiz.RowStyles.Add(new RowStyle(SizeType.Percent, 33));
 
             Control camara = ConstruirCamara();
             raiz.Controls.Add(camara, 0, 0);
@@ -84,7 +85,10 @@ namespace FatigueDetect.Presentacion
             raiz.Controls.Add(ConstruirGrafica(), 0, 1);
             raiz.Controls.Add(ConstruirMedidor(), 1, 1);
             raiz.Controls.Add(ConstruirListaAlertas(), 2, 1);
-            Controls.Add(raiz);
+            var pagina = Tema.TablaFilas(Tema.Fondo, 44, 0);
+            pagina.Controls.Add(Tema.Etiqueta("Monitoreo en vivo", 19, Tema.Texto, Tema.Fondo, FontStyle.Bold), 0, 0);
+            pagina.Controls.Add(raiz, 0, 1);
+            Controls.Add(pagina);
 
             reloj.Interval = 1000;
             reloj.Tick += (remitente, evento) =>
@@ -117,7 +121,8 @@ namespace FatigueDetect.Presentacion
             };
             cabecera.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
             cabecera.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
-            cabecera.Controls.Add(Tema.Etiqueta("●  EN VIVO", 10, Tema.Rojo, Tema.Tarjeta, FontStyle.Bold), 0, 0);
+            estadoCaptura = Tema.Etiqueta("Cámara en espera", 10, Tema.TextoSuave, Tema.Tarjeta, FontStyle.Bold);
+            cabecera.Controls.Add(estadoCaptura, 0, 0);
             lblDuracion = Tema.Etiqueta("Duración: 00:00:00", 10, Tema.TextoSuave, Tema.Tarjeta,
                 FontStyle.Regular, ContentAlignment.MiddleRight);
             cabecera.Controls.Add(lblDuracion, 1, 0);
@@ -158,6 +163,8 @@ namespace FatigueDetect.Presentacion
                 pausarBtn.Text = pausado ? "Reanudar" : "Pausar";
                 avisoCamara.Text = "";
                 metricasFaciales.Text = pausado ? "Medición facial en pausa" : "";
+                estadoCaptura.Text = pausado ? "Cámara en pausa" : "Midiendo FPS…";
+                estadoCaptura.ForeColor = Tema.TextoSuave;
                 PausaSolicitada?.Invoke(pausado);
             };
 
@@ -172,7 +179,7 @@ namespace FatigueDetect.Presentacion
         private Control ConstruirAlerta()
         {
             tarjetaAlerta = new PanelRedondeado { Dock = DockStyle.Fill, Margin = new Padding(6) };
-            tablaAlerta = Tema.TablaFilas(Tema.Tarjeta, 44, 66, 22, 54, 18, 24, 14, 24, 24, 24, 24, 0);
+            tablaAlerta = Tema.TablaFilas(Tema.Tarjeta, 36, 55, 20, 42, 15, 22, 8, 22, 22, 22, 22, 0);
 
             alertaTitulo = Tema.Etiqueta("SIN SESIÓN", 13, Tema.TextoSuave, Tema.Tarjeta, FontStyle.Bold);
             alertaMensaje = Tema.Etiqueta("", 10, Tema.Texto, Tema.Tarjeta);
@@ -265,6 +272,8 @@ namespace FatigueDetect.Presentacion
         {
             sesion = nueva;
             pausado = false;
+            estadoCaptura.Text = "Cámara en espera";
+            estadoCaptura.ForeColor = Tema.TextoSuave;
             pausarBtn.Text = "Pausar";
             pausarBtn.Enabled = true;
             detenerBtn.Enabled = true;
@@ -298,6 +307,8 @@ namespace FatigueDetect.Presentacion
             reloj.Stop();
             sesion = null;
             pausado = false;
+            estadoCaptura.Text = "Cámara en espera";
+            estadoCaptura.ForeColor = Tema.TextoSuave;
 
             pausarBtn.Text = "Pausar";
             pausarBtn.Enabled = false;
@@ -333,7 +344,7 @@ namespace FatigueDetect.Presentacion
 
         public void UpdateImage(Bitmap? image, EyeState estado, long tiempoMs,
             EstadoIluminacion? avisoIluminacion, TipoEventoSesion? avisoRostro,
-            TipoEventoSesion? avisoCalidad = null, FatigaEnVivo? fatiga = null)
+            TipoEventoSesion? avisoCalidad = null, FatigaEnVivo? fatiga = null, double? fpsRecientes = null)
         {
             // Si la pantalla sigue ocupada con el cuadro anterior, se descarta este.
             if (IsDisposed || !IsHandleCreated || Interlocked.CompareExchange(ref actualizando, 1, 0) != 0)
@@ -344,7 +355,7 @@ namespace FatigueDetect.Presentacion
 
             try
             {
-                BeginInvoke(new Action(() => Actualizar(image, estado, tiempoMs, avisoIluminacion, avisoRostro, avisoCalidad, fatiga)));
+                BeginInvoke(new Action(() => Actualizar(image, estado, tiempoMs, avisoIluminacion, avisoRostro, avisoCalidad, fatiga, fpsRecientes)));
             }
             catch (Exception)
             {
@@ -365,7 +376,7 @@ namespace FatigueDetect.Presentacion
 
         private void Actualizar(Bitmap? imagen, EyeState estado, long tiempoMs,
             EstadoIluminacion? avisoIluminacion, TipoEventoSesion? avisoRostro,
-            TipoEventoSesion? avisoCalidad, FatigaEnVivo? fatiga)
+            TipoEventoSesion? avisoCalidad, FatigaEnVivo? fatiga, double? fpsRecientes)
         {
             try
             {
@@ -402,6 +413,15 @@ namespace FatigueDetect.Presentacion
                 if (avisoCamara.Text != avisos)
                     avisoCamara.Text = avisos;
                 MostrarMetricasFaciales(fatiga);
+                bool fpsBajos = fpsRecientes < CalidadSesion.UmbralFps;
+                string estadoVideo = imagen is null ? "Cámara sin señal"
+                    : fpsRecientes is double fps ? $"{fps:0.0} FPS {(fpsBajos ? "· Fluidez baja" : "· Cámara activa")}"
+                    : "Cámara activa · Midiendo FPS…";
+                if (estadoCaptura.Text != estadoVideo)
+                {
+                    estadoCaptura.Text = estadoVideo;
+                    estadoCaptura.ForeColor = imagen is null || fpsBajos ? Tema.Ambar : Tema.Verde;
+                }
 
                 if (imagen == null)
                 {

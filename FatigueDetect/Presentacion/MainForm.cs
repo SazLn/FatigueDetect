@@ -275,6 +275,16 @@ namespace FatigueDetect.Presentacion
             string mensaje = $"Duración: {Tema.FormatoDuracion(sesion.Duracion)}\n" +
                 $"Alarmas: {sesion.CantidadAlarmas}\n" +
                 $"Episodios sin rostro detectado: {ausencias}\n" +
+                (sesion.Calidad is CalidadSesion calidad
+                    ? $"\nCalidad de detección {calidad.Puntaje?.ToString("0.0") ?? "—"}/100\n" +
+                      $"Vídeo: {calidad.Fps?.ToString("0.0") ?? "—"} FPS · Caídas: {calidad.CaidasFps?.ToString() ?? "—"}" +
+                      $" · FPS bajos: {(calidad.TiempoFpsBajoMs / 1000.0)?.ToString("0.0") ?? "—"} s\n" +
+                      $"Fotogramas analizables: {calidad.ProporcionAnalizable?.ToString("P0") ?? "—"}" +
+                      $" · Cobertura facial: {calidad.CoberturaRostro?.ToString("P0") ?? "—"}" +
+                      $" · Fallos de cámara: {calidad.FallosCamara}\n"
+                    : "\nCalidad sin medición\n") +
+                $"\nAtención (indicador ocular)\nOjos abiertos durante el tiempo observado: {sesion.OjosAbiertosObservados?.ToString("P1") ?? "—"}" +
+                $" · Cobertura ocular: {sesion.CoberturaOcular?.ToString("P0") ?? "—"}\n" +
                 (sesion.MetricasFatiga is MetricasFatiga fatiga
                     ? $"Parpadeos: {fatiga.Parpadeos} ({fatiga.ParpadeosPorMinuto?.ToString("0.0") ?? "—"}/min)" +
                       $" · Microsueños: {fatiga.Microsuenos}\n" +

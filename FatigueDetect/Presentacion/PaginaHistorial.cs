@@ -16,6 +16,8 @@ namespace FatigueDetect.Presentacion
 
         private DataGridView tabla = null!;
         private List<SesionConduccion> sesiones = new();
+        private readonly ComboBox filtroAlarmas = new() { DropDownStyle = ComboBoxStyle.DropDownList };
+        private readonly ComboBox filtroCalidad = new() { DropDownStyle = ComboBoxStyle.DropDownList };
         private List<SesionConduccion> visibles = new();
         private readonly DateTimePicker desde = new() { Format = DateTimePickerFormat.Short, ShowCheckBox = true, Checked = false };
         private readonly DateTimePicker hasta = new() { Format = DateTimePickerFormat.Short, ShowCheckBox = true, Checked = false };
@@ -95,17 +97,23 @@ namespace FatigueDetect.Presentacion
 
         private Control ConstruirFiltros()
         {
-            var filtros = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 5, RowCount = 2 };
+            var filtros = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 7, RowCount = 2 };
             filtros.RowStyles.Add(new RowStyle(SizeType.Absolute, 45));
             filtros.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-            for (int i = 0; i < 4; i++)
-                filtros.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25));
+            for (int i = 0; i < 6; i++)
+                filtros.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f / 6));
             filtros.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 126));
 
             AgregarFiltro(filtros, 0, "Desde", desde);
             AgregarFiltro(filtros, 1, "Hasta", hasta);
             AgregarFiltro(filtros, 2, "Conductor", conductor);
             AgregarFiltro(filtros, 3, "Vehículo", vehiculo);
+
+            filtroAlarmas.Items.AddRange(["Todas", "Con alarmas", "Sin alarmas"]);
+            filtroCalidad.Items.AddRange(["Todas", $"Baja (<{CalidadSesion.UmbralCalidadBaja})", "Con puntaje", "Sin puntaje", "Con caídas FPS"]);
+            filtroAlarmas.SelectedIndex = filtroCalidad.SelectedIndex = 0;
+            AgregarFiltro(filtros, 4, "Alarmas", filtroAlarmas);
+            AgregarFiltro(filtros, 5, "Calidad de detección", filtroCalidad);
 
             Button limpiar = Tema.Boton("Limpiar filtros", Tema.TarjetaClara, Tema.Texto);
             limpiar.Dock = DockStyle.Fill;
@@ -114,17 +122,20 @@ namespace FatigueDetect.Presentacion
                 desde.Checked = hasta.Checked = false;
                 conductor.Clear();
                 vehiculo.Clear();
+                filtroAlarmas.SelectedIndex = filtroCalidad.SelectedIndex = 0;
                 AplicarFiltros();
             };
-            filtros.Controls.Add(limpiar, 4, 0);
+            filtros.Controls.Add(limpiar, 6, 0);
             estadoFiltros = Tema.Etiqueta("", 9, Tema.TextoSuave, Tema.Fondo);
             filtros.Controls.Add(estadoFiltros, 0, 1);
-            filtros.SetColumnSpan(estadoFiltros, 5);
+            filtros.SetColumnSpan(estadoFiltros, 7);
 
             desde.ValueChanged += (_, _) => AplicarFiltros();
             hasta.ValueChanged += (_, _) => AplicarFiltros();
             conductor.TextChanged += (_, _) => AplicarFiltros();
             vehiculo.TextChanged += (_, _) => AplicarFiltros();
+            filtroAlarmas.SelectedIndexChanged += (_, _) => AplicarFiltros();
+            filtroCalidad.SelectedIndexChanged += (_, _) => AplicarFiltros();
             return filtros;
         }
 
@@ -236,7 +247,7 @@ namespace FatigueDetect.Presentacion
         private Control ConstruirDetalle()
         {
             var tarjeta = new PanelRedondeado { Dock = DockStyle.Fill, Margin = new Padding(10, 0, 0, 0) };
-            var tabla2 = Tema.TablaFilas(Tema.Tarjeta, 36, 39, 39, 39, 39, 39, 39, 39, 39, 196, 26, 0, 26, 0, 42);
+            var tabla2 = Tema.TablaFilas(Tema.Tarjeta, 36, 39, 39, 39, 39, 39, 39, 39, 39, 250, 26, 0, 26, 0, 42);
 
             tabla2.Controls.Add(Tema.Etiqueta("Detalle de la sesión", 13, Tema.Texto, Tema.Tarjeta, FontStyle.Bold), 0, 0);
             tabla2.Controls.Add(Dato("Conductor", out dConductor), 0, 1);
@@ -329,10 +340,9 @@ namespace FatigueDetect.Presentacion
         private void AplicarFiltros(Guid? resaltar = null)
         {
             resaltar ??= (tabla.CurrentRow?.Tag as SesionConduccion)?.Id;
-            var filtro = new FiltroHistorial(desde.Checked ? desde.Value.Date : null,
-                hasta.Checked ? hasta.Value.Date : null, conductor.Text, vehiculo.Text);
+            FiltroHistorial filtro = FiltroActual();
             bool rangoValido = filtro.Desde <= filtro.Hasta || !filtro.Desde.HasValue || !filtro.Hasta.HasValue;
-            visibles = rangoValido ? sesiones.Where(filtro.Coincide).ToList() : new();
+            visibles = rangoValido ? filtro.Aplicar(sesiones) : new();
             estadoFiltros.Text = rangoValido
                 ? $"{visibles.Count} de {sesiones.Count} sesiones"
                 : "La fecha inicial debe ser anterior o igual a la final.";
@@ -383,9 +393,11 @@ namespace FatigueDetect.Presentacion
             dResumen.Items.Clear();
             dEventos.Items.Clear();
             dCalidad.Text = s?.Calidad is CalidadSesion calidad
-                ? $"FPS: {calidad.Fps?.ToString("0.0") ?? "—"}   ·   Analizables: {calidad.ProporcionAnalizable?.ToString("P1") ?? "—"}\n" +
-                  $"Rostro válido: {calidad.TiempoRostroValido.TotalSeconds:0.0} s\n" +
-                  $"Fallos de cámara: {calidad.FallosCamara}"
+                ? $"Calidad: {calidad.Puntaje?.ToString("0.0") ?? "—"}/100 · FPS medios: {calidad.Fps?.ToString("0.0") ?? "—"}\n" +
+                  $"Analizables: {calidad.ProporcionAnalizable?.ToString("P1") ?? "—"} · Cobertura facial: {calidad.CoberturaRostro?.ToString("P0") ?? "—"}\n" +
+                  $"Caídas de FPS: {calidad.CaidasFps?.ToString() ?? "—"} · Fallos de cámara: {calidad.FallosCamara}\n" +
+                  $"Ojos abiertos observados: {s.OjosAbiertosObservados?.ToString("P1") ?? "—"}" +
+                  $" · Cobertura ocular: {s.CoberturaOcular?.ToString("P0") ?? "—"}"
                 : "Calidad: sin medición";
             dCalidad.Text += s?.MetricasFatiga is MetricasFatiga fatiga
                 ? FormatearMetricasOculares(fatiga)
@@ -484,11 +496,18 @@ namespace FatigueDetect.Presentacion
             _ => tipo.ToString()
         };
 
+        private FiltroHistorial FiltroActual() => new(desde.Checked ? desde.Value.Date : null,
+            hasta.Checked ? hasta.Value.Date : null, conductor.Text, vehiculo.Text,
+            (FiltroAlarmas)filtroAlarmas.SelectedIndex, (FiltroCalidad)filtroCalidad.SelectedIndex);
+
         private void MostrarEstadisticas()
         {
+            if (FiltroActual() is { Desde: DateTime inicio, Hasta: DateTime fin } && inicio > fin)
+                return;
+
             try
             {
-                using var dashboard = new DashboardHistorial(new ResumenHistorial(visibles));
+                using var dashboard = new DashboardHistorial(new ResumenHistorial(visibles), sesiones, FiltroActual());
                 dashboard.ShowDialog(this);
             }
             catch (Exception ex)
@@ -514,8 +533,13 @@ namespace FatigueDetect.Presentacion
             {
                 string ruta = dialogo.FileName;
                 var seleccion = visibles.ToArray();
+                FiltroHistorial filtro = FiltroActual();
+                string alcance = $"{seleccion.Length} sesiones exportadas. Fechas desde {filtro.Desde?.ToString("dd/MM/yyyy") ?? "el primer registro"} " +
+                    $"hasta {filtro.Hasta?.ToString("dd/MM/yyyy") ?? "el último registro"}. " +
+                    $"Conductor: {ValorFiltro(filtro.Conductor)}. Vehículo: {ValorFiltro(filtro.Vehiculo)}. " +
+                    $"Alarmas: {filtroAlarmas.Text}. Calidad: {filtroCalidad.Text}.";
                 await System.Threading.Tasks.Task.Run(() =>
-                    ExportadorHistorialExcel.Guardar(ruta, seleccion));
+                    ExportadorHistorialExcel.Guardar(ruta, seleccion, alcance));
                 MessageBox.Show(this, "El historial se exportó correctamente.",
                     "Exportar Excel", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
@@ -529,6 +553,9 @@ namespace FatigueDetect.Presentacion
                 Enabled = true;
             }
         }
+
+        private static string ValorFiltro(string valor) =>
+            string.IsNullOrWhiteSpace(valor) ? "Todos" : valor.Trim();
 
         private void Eliminar_Click(object? remitente, EventArgs evento)
         {

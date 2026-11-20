@@ -1,10 +1,11 @@
+using FatigueDetect.Entidades;
 using FatigueDetect.Logica;
 
 namespace FatigueDetect.Presentacion
 {
     internal sealed class DashboardHistorial : Form
     {
-        public DashboardHistorial(ResumenHistorial resumen)
+        public DashboardHistorial(ResumenHistorial resumen, IReadOnlyList<SesionConduccion> sesiones, FiltroHistorial filtro)
         {
             Text = "Estadísticas del historial";
             StartPosition = FormStartPosition.CenterParent;
@@ -43,8 +44,53 @@ namespace FatigueDetect.Presentacion
             AgregarPeriodos(pestañas, "Horas de uso", "Hora de inicio", resumen.PorHora(), false);
             AgregarCategorias(pestañas, "Alarmas por hora", "Hora local", "Alarmas", resumen.AlertasPorHora(), Tema.Ambar);
             AgregarCategorias(pestañas, "Gravedad", "Gravedad", "Eventos", resumen.PorGravedad(), Tema.Rojo);
+            AgregarComparacion(pestañas, sesiones, filtro);
             contenido.Controls.Add(pestañas, 0, 3);
             Controls.Add(contenido);
+        }
+
+        private static void AgregarComparacion(TabControl pestañas, IReadOnlyList<SesionConduccion> sesiones,
+            FiltroHistorial filtro)
+        {
+            var pagina = new TabPage("Comparar períodos") { BackColor = Tema.Tarjeta, Padding = new Padding(12) };
+            var panel = Tema.TablaFilas(Tema.Tarjeta, 36, 44, 0);
+            var selector = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 250,
+                AccessibleName = "Ventana de comparación" };
+            bool tieneRango = filtro.Desde.HasValue && (!filtro.Hasta.HasValue || filtro.Desde <= filtro.Hasta);
+            if (tieneRango)
+                selector.Items.Add("Rango de fechas seleccionado");
+            selector.Items.AddRange(["Últimos 7 días", "Últimos 30 días", "Últimos 90 días"]);
+            panel.Controls.Add(selector, 0, 0);
+            var contexto = Tema.Etiqueta("", 9.5f, Tema.TextoSuave, Tema.Tarjeta);
+            panel.Controls.Add(contexto, 0, 1);
+            var tabla = CrearTabla("Indicador", "Período actual", "Período anterior", "Diferencia");
+            tabla.Columns[0].FillWeight = 160;
+            panel.Controls.Add(tabla, 0, 2);
+
+            selector.SelectedIndexChanged += (_, _) =>
+            {
+                int opcion = selector.SelectedIndex - (tieneRango ? 1 : 0);
+                int dias = opcion switch { 0 => 7, 2 => 90, _ => 30 };
+                var comparacion = new ComparacionHistorial(sesiones, filtro, DateTime.Today, dias, opcion < 0);
+                string actual = ComparacionHistorial.Rango(comparacion.Desde, comparacion.Hasta);
+                string anterior = ComparacionHistorial.Rango(comparacion.AnteriorDesde, comparacion.AnteriorHasta);
+                contexto.Text = $"{actual} frente a {anterior}\n" +
+                    "Se aplican los filtros de conductor, vehículo, alarmas y calidad a ambos períodos.";
+                tabla.Rows.Clear();
+                foreach (FilaComparacion fila in comparacion.Filas)
+                {
+                    string diferencia = fila.Diferencia is double valor
+                        ? valor.ToString(fila.Formato == "0" ? "+0;-0;0" : "+0.0;-0.0;0.0") : "—";
+                    if (fila.Diferencia.HasValue && fila.Indicador.EndsWith("(%)", StringComparison.Ordinal))
+                        diferencia += " pp";
+                    tabla.Rows.Add(fila.Indicador, fila.Actual?.ToString(fila.Formato) ?? "—",
+                        fila.Anterior?.ToString(fila.Formato) ?? "—", diferencia);
+                }
+            };
+
+            selector.SelectedIndex = tieneRango ? 0 : 1;
+            pagina.Controls.Add(panel);
+            pestañas.TabPages.Add(pagina);
         }
 
         private static string FormatoTiempo(double? segundos) => segundos.HasValue
