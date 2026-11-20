@@ -6,7 +6,7 @@ Proyecto de inicio: `Presentacion`.
 | Proyecto     | Tipo                     | Referencias              | Paquetes NuGet                        |
 |--------------|--------------------------|--------------------------|---------------------------------------|
 | Entidades    | Biblioteca de clases     | -                        | -                                     |
-| Datos        | Biblioteca de clases     | Entidades                | OpenCvSharp4, OpenCvSharp4.Extensions, Microsoft.Data.Sqlite |
+| Datos        | Biblioteca de clases     | Entidades                | OpenCvSharp4, OpenCvSharp4.Extensions, Microsoft.Data.Sqlite, Microsoft.ML.OnnxRuntime |
 | Logica       | Biblioteca de clases     | Entidades, Datos         | OpenCvSharp4                          |
 | Presentacion | Aplicacion Windows Forms | Logica, Datos, Entidades | OpenCvSharp4.runtime.win, ClosedXML   |
 
@@ -61,9 +61,10 @@ y el fin en UTC con precisión de milisegundos y la interfaz muestra la hora loc
 El detalle incluye un resumen por tipo con la cantidad de eventos, su duración total
 y la duración máxima disponible. Los eventos importados sin duración se indican por separado.
 
-- **Posible cierre ocular prolongado.** Se registra desde que el detector deja de encontrar ambos
-  ojos hasta que los vuelve a detectar o se interrumpe el seguimiento, siempre que llegue al
-  umbral de somnolencia o alarma. La medición depende del detector de ojos actual.
+- **Posible cierre ocular prolongado.** Se registra cuando la apertura estimada de ambos ojos permanece
+  bajo el umbral durante el tiempo de somnolencia configurado. El evento termina al reabrir los ojos
+  o al interrumpirse la observación.
+- **Posible cabeceo.** Se registra al completar un descenso de la cabeza y volver cerca de la postura calibrada.
 - **Alarma.** Se registra una vez por activación, aunque el sonido esté desactivado.
 - **Rostro no detectado, varios rostros, luz insuficiente o luz excesiva.** Se registran cuando
   la condición dura al menos dos segundos. La iluminación se estima con el brillo promedio de la imagen.
@@ -80,6 +81,32 @@ se conserva y la importación no vuelve a ejecutarse.
 El selector de cámara y los avisos de iluminación forman parte de `main` desde la integración del PR #3.
 Consulta el [plan de características](docs/plan_caracteristicas_fatiguedetect.md)
 y el [registro de cambios](CHANGELOG.md) para ver el estado actual y las funciones pendientes.
+
+## Medición facial de fatiga
+
+El monitoreo ejecuta localmente el modelo MediaPipe Face Mesh de 468 puntos convertido a ONNX. El modelo
+se incluye en `FatigueDetect/Presentacion/Resources/modelos/` y Visual Studio lo copia al compilar.
+La app conserva en SQLite los conteos y tiempos acumulados de la sesión y los eventos confirmados de cierre
+prolongado y cabeceo. Las coordenadas faciales y los ángulos por fotograma se usan en memoria.
+
+1. En **Inicio**, mira al frente con luz adecuada, la cabeza estable y ambos ojos abiertos hasta que aparezca
+   la apertura de cada ojo. La calibración inicial requiere unos 1,5 s de observación continua.
+2. Verifica la apertura en vivo y parpadea con naturalidad. Se cuenta un parpadeo si ambos ojos pasan de
+   abiertos a cerrados y vuelven a abrirse entre 60 y 400 ms. Los cierres prolongados usan el tiempo de somnolencia configurado.
+3. Inclina la cabeza hacia abajo y vuelve al frente. Un descenso de al menos 15° que retorna a 6° de la referencia
+   entre 150 ms y 1,5 s cuenta como un posible cabeceo. En vivo aparecen los ángulos vertical, horizontal y lateral en grados
+   respecto a la postura frontal de la calibración.
+4. Detén el monitoreo y revisa el resumen, la línea temporal y la hoja **Sesiones** del Excel. Las sesiones anteriores
+   conservan sus eventos y muestran las nuevas métricas faciales como «sin medición».
+
+PERCLOS se estima como el porcentaje de tiempo ocular válido con ambos ojos al 20 % o menos de apertura estimada.
+La apertura se calcula a partir de la distancia entre párpados respecto al ancho de cada ojo, con una referencia
+abierta calibrada y una cerrada aproximada. En vivo se usa una ventana móvil de 60 s y en el historial toda la sesión.
+Se incluyen los intervalos válidos de parpadeo que cumplen el umbral. El cálculo requiere 2 s válidos y excluye
+pausas, mediciones inválidas y separaciones mayores a 250 ms entre fotogramas. La pose usa una focal aproximada.
+La validación en una cámara Windows real confirmó el funcionamiento básico. La calibración de umbrales requiere más
+pruebas con distintas cámaras, iluminación y personas. La procedencia y la conversión se detallan en
+[la ficha del modelo](FatigueDetect/Presentacion/Resources/modelos/ORIGEN.md).
 
 ## Calidad de sesión, estadísticas y Excel
 
