@@ -144,6 +144,21 @@ La validación manual confirmó el funcionamiento básico con cámara e interfaz
 y sus umbrales aún requieren calibración con más personas y condiciones. Los límites, la integración y las pruebas se explican en
 [Atención y resúmenes](docs/atencion_y_resumenes.md).
 
+## Personalización por conductor (rama de descarga)
+
+La rama `descarga/personalizacion-conductor` añade una línea base local e independiente por cédula.
+Después de tres sesiones válidas de al menos 60 segundos de medición ocular, compara los parpadeos
+por minuto, PERCLOS y atención de cada sesión con el comportamiento personal. El resumen final,
+el historial y la hoja **Comparación personal** del Excel explican las diferencias y señalan cambios
+anormales. El perfil sobrevive al reinicio de la aplicación y se elimina al borrar el historial.
+
+Para evitar aprender de datos poco confiables, solo actualiza la línea base con calidad mínima 70/100,
+cobertura ocular mínima del 60 % y sin alarmas, microsueños ni cierres anómalos. Una vez calibrado,
+un cambio anormal se muestra pero no modifica el perfil. Esta comparación no cambia los umbrales físicos
+de cierre ocular ni la alarma y no es un diagnóstico médico. Todavía requiere validación manual con varias
+personas, cámaras e iluminación. Consulta [Personalización por conductor](docs/personalizacion_conductor.md)
+para conocer las reglas y las pruebas recomendadas. Esta propuesta aún no está integrada en `main`.
+
 ## Salida de audio de la alarma
 
 En **Configuración → Salida de audio de la alarma**, elige una salida de Windows, como parlantes, audífonos o Bluetooth. **Probar** reproduce la alarma durante dos segundos en la salida elegida. **Actualizar** vuelve a consultar los dispositivos y **Guardar cambios** conserva la selección. Si la salida guardada falla durante el monitoreo, el programa intenta reproducir el sonido en la salida predeterminada de Windows.

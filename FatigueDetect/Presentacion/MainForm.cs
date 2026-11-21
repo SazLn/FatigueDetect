@@ -298,6 +298,7 @@ namespace FatigueDetect.Presentacion
                     : "Otros eventos destacados\n" + string.Join("\n", destacados));
 
             mensaje += "\n\n" + AnalisisAtencion.Resumir(sesion.Atencion);
+            mensaje += "\n\n" + PersonalizacionConductor.Resumir(sesion.ComparacionPersonal);
             if (errorGuardado is not null)
                 mensaje += "\n\n" + errorGuardado;
 

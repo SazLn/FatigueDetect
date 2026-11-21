@@ -16,7 +16,8 @@ namespace FatigueDetect.Presentacion
             var resumen = new TabPage("Resumen");
             resumen.Controls.Add(new TextBox { Multiline = true, ReadOnly = true, Dock = DockStyle.Fill,
                 ScrollBars = ScrollBars.Vertical, Font = Tema.Fuente(11),
-                Text = (detalle ?? AnalisisAtencion.Resumir(sesion.Atencion)).Replace("\n", Environment.NewLine) });
+                Text = (detalle ?? (AnalisisAtencion.Resumir(sesion.Atencion) + "\n\n" +
+                    PersonalizacionConductor.Resumir(sesion.ComparacionPersonal))).Replace("\n", Environment.NewLine) });
             pestanas.TabPages.Add(resumen);
             var evolucion = new TabPage("Evolución y factores");
             var panel = Tema.TablaFilas(Tema.Fondo, 180, 0);

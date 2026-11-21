@@ -39,7 +39,10 @@ namespace FatigueDetect.Logica
         public void Finalizar(SesionConduccion sesion)
         {
             sesion.Fin = DateTime.Now;
-            repositorio.Guardar(sesion);
+            PerfilPersonalConductor? perfil = repositorio.LeerPerfilPersonal(sesion.Conductor.Cedula);
+            var resultado = PersonalizacionConductor.Procesar(perfil, sesion, DateTimeOffset.Now);
+            sesion.ComparacionPersonal = resultado.Comparacion;
+            repositorio.Guardar(sesion, resultado.PerfilActualizado);
         }
 
         public List<SesionConduccion> ObtenerHistorial()
