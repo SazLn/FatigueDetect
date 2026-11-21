@@ -12,6 +12,7 @@ namespace FatigueDetect.Datos
         private static readonly long[] Dimension = [1, Tamano, Tamano, 3];
         private static readonly int[] OjoIzquierdo = [362, 385, 387, 263, 373, 380];
         private static readonly int[] OjoDerecho = [33, 160, 158, 133, 153, 144];
+        private static readonly int[] PuntosBoca = [13, 14, 61, 291];
         private static readonly int[] PuntosPose = [1, 152, 33, 263, 61, 291];
         // Vértices del rostro canónico de MediaPipe en ejes de OpenCV: +X derecha, +Y abajo, +Z fondo.
         private static readonly Point3f[] RostroCanonico =
@@ -76,8 +77,11 @@ namespace FatigueDetect.Datos
             if (izquierdo is not double earIzquierdo || derecho is not double earDerecho)
                 return null;
 
-            return new MedicionFacial(earIzquierdo, earDerecho,
-                EstimarPose(puntos, imagen.Width, imagen.Height, rostro.Width));
+            AngulosCabeza? pose = EstimarPose(puntos, imagen.Width, imagen.Height, rostro.Width,
+                out double? distanciaCm);
+            double? boca = CalcularAperturaBoca(puntos, imagen.Width, imagen.Height);
+            return new MedicionFacial(earIzquierdo, earDerecho, pose, boca, distanciaCm,
+                (puntos[1].Y - imagen.Height / 2.0) / Math.Max(rostro.Height, 1));
         }
 
         private static double? CalcularEar(ReadOnlySpan<Point2f> puntos, int[] indices, int ancho, int alto)
@@ -97,8 +101,10 @@ namespace FatigueDetect.Datos
             return ear <= 0.65 ? ear : null;
         }
 
-        private static AngulosCabeza? EstimarPose(ReadOnlySpan<Point2f> puntos, int ancho, int alto, int anchoRostro)
+        private static AngulosCabeza? EstimarPose(ReadOnlySpan<Point2f> puntos, int ancho, int alto, int anchoRostro,
+            out double? distanciaCm)
         {
+            distanciaCm = null;
             var observados = new Point2f[PuntosPose.Length];
             for (int i = 0; i < observados.Length; i++)
             {
@@ -136,8 +142,23 @@ namespace FatigueDetect.Datos
                 grados * Math.Atan2(r[2, 1], r[2, 2]),
                 grados * Math.Asin(Math.Clamp(-r[2, 0], -1, 1)),
                 grados * Math.Atan2(r[1, 0], r[0, 0]));
-            return Math.Abs(angulos.Vertical) <= 65 && Math.Abs(angulos.Horizontal) <= 65 &&
-                Math.Abs(angulos.Lateral) <= 65 ? angulos : null;
+            if (Math.Abs(angulos.Vertical) > 65 || Math.Abs(angulos.Horizontal) > 65 ||
+                Math.Abs(angulos.Lateral) > 65)
+                return null;
+
+            // La escala del rostro canónico está en centímetros. La focal es una aproximación.
+            distanciaCm = traslacion[2];
+            return angulos;
+        }
+
+        private static double? CalcularAperturaBoca(ReadOnlySpan<Point2f> puntos, int ancho, int alto)
+        {
+            foreach (int indice in PuntosBoca)
+                if (!DentroDeImagen(puntos[indice], ancho, alto))
+                    return null;
+
+            double anchoBoca = Distancia(puntos[61], puntos[291]);
+            return anchoBoca >= 8 ? Distancia(puntos[13], puntos[14]) / anchoBoca : null;
         }
 
         private static bool DentroDeImagen(Point2f p, int ancho, int alto) =>

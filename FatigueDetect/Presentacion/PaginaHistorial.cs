@@ -449,6 +449,10 @@ namespace FatigueDetect.Presentacion
                 string desconocidas = resumen.SinDuracion > 0 ? $" · {resumen.SinDuracion} sin duración" : "";
                 dResumen.Items.Add($"{NombreEvento(resumen.Tipo)} · {resumen.Cantidad}{tiempo}{desconocidas}");
             }
+            if (s.Postura is { } postura)
+                foreach (string linea in MainForm.FormatearPostura(s, postura).Split('\n'))
+                    dResumen.Items.Add(linea);
+
             if (dResumen.Items.Count == 0)
                 dResumen.Items.Add("Sin eventos registrados");
 
@@ -510,6 +514,14 @@ namespace FatigueDetect.Presentacion
             TipoEventoSesion.CamaraDesenfocada => "Cámara desenfocada",
             TipoEventoSesion.CamaraCongelada => "Cámara congelada",
             TipoEventoSesion.Cabeceo => "Posible cabeceo",
+            TipoEventoSesion.GiroIzquierda => "Giro hacia la izquierda",
+            TipoEventoSesion.GiroDerecha => "Giro hacia la derecha",
+            TipoEventoSesion.CabezaArriba => "Cabeza hacia arriba",
+            TipoEventoSesion.CabezaAbajo => "Cabeza hacia abajo",
+            TipoEventoSesion.FueraZonaFrontal => "Fuera de la zona frontal",
+            TipoEventoSesion.PosiblePosturaEncorvada => "Posible postura encorvada",
+            TipoEventoSesion.RostroParcial => "Rostro parcialmente fuera del encuadre",
+            TipoEventoSesion.PosibleBostezo => "Posible bostezo",
             TipoEventoSesion.CierreOcularAnomalo => "Cierre ocular anómalo",
             _ => tipo.ToString()
         };

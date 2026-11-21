@@ -109,7 +109,7 @@ namespace FatigueDetect.Presentacion
         private Control ConstruirCamara()
         {
             var tarjeta = new PanelRedondeado { Dock = DockStyle.Fill, Margin = new Padding(6) };
-            var tabla = Tema.TablaFilas(Tema.Tarjeta, 30, 0, 48, 76, 52);
+            var tabla = Tema.TablaFilas(Tema.Tarjeta, 30, 0, 40, 92, 52);
 
             var cabecera = new TableLayoutPanel
             {
@@ -488,6 +488,18 @@ namespace FatigueDetect.Presentacion
             string pose = fatiga.Angulos is { } angulos
                 ? $"Cabeza desde el frente: vertical {angulos.Vertical:0}° · horizontal {angulos.Horizontal:0}° · lateral {angulos.Lateral:0}°"
                 : "Cabeza: —";
+            PosturaEnVivo postura = fatiga.Postura;
+            string orientacion = postura.Orientacion switch
+            {
+                DireccionCabeza.Frente => "frente",
+                DireccionCabeza.Izquierda => "izquierda",
+                DireccionCabeza.Derecha => "derecha",
+                DireccionCabeza.Arriba => "arriba",
+                DireccionCabeza.Abajo => "abajo",
+                _ => "—"
+            };
+            string avisoPostura = postura.FueraEncuadre ? " · Rostro al borde"
+                : postura.Encorvada ? " · Posible postura encorvada" : "";
             MetricasFatiga acumulado = fatiga.Acumulado;
             metricasFaciales.Text =
                 $"Apertura izq./der.: {fatiga.AperturaIzquierda?.ToString("P0") ?? "—"} / {fatiga.AperturaDerecha?.ToString("P0") ?? "—"}" +
@@ -495,7 +507,9 @@ namespace FatigueDetect.Presentacion
                 $"Parpadeos {acumulado.Parpadeos} ({acumulado.ParpadeosPorMinuto?.ToString("0.0") ?? "—"}/min)" +
                 $" · cortos {acumulado.ParpadeosCortos} · prolongados {acumulado.ParpadeosProlongados}\n" +
                 $"Microsueños {acumulado.Microsuenos} · cierres anómalos {acumulado.CierresAnomalos}" +
-                $" · cierre máx. {acumulado.CierreMasLargoMs / 1000.0:0.0} s\n{pose}";
+                $" · cierre máx. {acumulado.CierreMasLargoMs / 1000.0:0.0} s\n{pose}\n" +
+                $"Mirada estimada: {orientacion} · Distancia aprox.: {postura.DistanciaCm?.ToString("0") ?? "—"} cm" +
+                $" · Bostezos: {postura.Bostezos}{avisoPostura}";
         }
 
         private void ActualizarMedidor(MuestraAtencion? atencion)

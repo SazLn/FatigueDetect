@@ -2,6 +2,7 @@
 
 ## Sin publicar
 
+- Añade orientación de cabeza, episodios con duración, tiempo fuera del frente, indicios de postura encorvada y rostro al borde, distancia aproximada y posibles bostezos.
 ### Confiabilidad explicable por evento integrada en `main` mediante el PR #18
 
 - Añade una evaluación explicable de 0 a 100 para cada evento nuevo, con niveles alto, medio y bajo.

@@ -214,3 +214,11 @@ sola cara. La cámara se libera al terminar para que el monitor de fatiga pueda 
 > Esta implementación LBPH local es un prototipo para pruebas, no un mecanismo de autenticación
 > certificado. No incluye todavía una prueba de vida robusta y puede ser vulnerable a una fotografía.
 > Siempre se ofrece confirmación manual cuando la identificación no se ha completado.
+
+## Cabeza, encuadre y boca
+
+Al calibrar, mira al frente con la cabeza erguida. El historial y Excel registran inicio, fin y duración de cada cabeceo y de los giros a izquierda, derecha, arriba o abajo. El resumen recoge el tiempo fuera de la zona frontal, el episodio más largo y la proporción respecto al tiempo activo. También indica cuánto tiempo tuvo una pose medible.
+
+La dirección estimada de mirada se basa en la orientación de la cabeza. El modelo actual no mide pupilas. La postura encorvada se estima con el descenso del rostro y la inclinación de la cabeza respecto a la posición frontal inicial. La distancia es una aproximación en centímetros con una focal y escala facial supuestas. El aviso de encuadre se activa al detectar un rostro cerca del borde.
+
+Un posible bostezo es una apertura pronunciada de la boca que dura entre 0,8 y 8 segundos y termina con el cierre. La tasa por hora usa el tiempo observado de la boca. Hablar u otros movimientos también pueden producir episodios. Las pausas y pérdidas de señal no se cuentan como tiempo observado.

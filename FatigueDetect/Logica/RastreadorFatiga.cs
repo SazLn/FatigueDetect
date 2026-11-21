@@ -10,6 +10,9 @@ namespace FatigueDetect.Logica
         private const long ParpadeoCortoMaximoMs = 200;
         private const long ParpadeoMaximoMs = 400;
         private const long IntervaloMuestraPerclosMs = 10_000;
+        private readonly RastreadorPostura postura = new(sesion);
+        public MetricasPostura ResumenPostura => postura.Resumen;
+
         private readonly Queue<IntervaloOcular> ventana = new();
         private readonly List<(double Izquierda, double Derecha)> muestras = new();
         private readonly List<AngulosCabeza> muestrasCabeza = new();
@@ -26,7 +29,8 @@ namespace FatigueDetect.Logica
 
         public MetricasFatiga Resumen => CrearResumen(incluirEvolucion: true);
 
-        public FatigaEnVivo Observar(DateTimeOffset instante, MedicionFacial? medicion, double umbralProlongado)
+        public FatigaEnVivo Observar(DateTimeOffset instante, MedicionFacial? medicion, double umbralProlongado,
+            bool rostroParcial = false)
         {
             double? izquierda = null, derecha = null, diferencia = null;
             long cierreMs = 0;
@@ -51,14 +55,19 @@ namespace FatigueDetect.Logica
             }
 
             AngulosCabeza? angulos = ObservarCabeza(instante, medicion?.Angulos);
+            PosturaEnVivo lecturaPostura = postura.Observar(instante, medicion, angulos, rostroParcial);
             double? perclos = PerclosReciente(instante.ToUnixTimeMilliseconds());
             RegistrarMuestraPerclos(instante, perclos, forzar: false);
             return new FatigaEnVivo(izquierda, derecha, diferencia, perclos, cierreMs,
-                angulos, CrearResumen(incluirEvolucion: false));
+                angulos, CrearResumen(incluirEvolucion: false), lecturaPostura)
+            {
+                ProporcionDistraccion = postura.DistraccionReciente
+            };
         }
 
         public void Interrumpir(DateTimeOffset instante, double umbralProlongado)
         {
+            postura.Interrumpir();
             RegistrarMuestraPerclos(instante, PerclosReciente(instante.ToUnixTimeMilliseconds()), forzar: true);
             InterrumpirOjos(umbralProlongado);
             InterrumpirCabeza();

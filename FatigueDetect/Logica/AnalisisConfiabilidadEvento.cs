@@ -4,6 +4,11 @@ namespace FatigueDetect.Logica
 {
     public static class AnalisisConfiabilidadEvento
     {
+        private static bool EsPose(TipoEventoSesion tipo) => tipo is
+            TipoEventoSesion.Cabeceo or TipoEventoSesion.GiroIzquierda or TipoEventoSesion.GiroDerecha
+            or TipoEventoSesion.CabezaArriba or TipoEventoSesion.CabezaAbajo or TipoEventoSesion.FueraZonaFrontal
+            or TipoEventoSesion.PosiblePosturaEncorvada or TipoEventoSesion.RostroParcial or TipoEventoSesion.PosibleBostezo;
+
         public const int VersionActual = 1;
 
         public static void Completar(SesionConduccion sesion)
@@ -29,7 +34,7 @@ namespace FatigueDetect.Logica
                 Agregar(factores, "Cobertura ocular", sesion.CoberturaOcular, 0.40);
                 Agregar(factores, "Persistencia temporal", persistencia, 0.25);
             }
-            else if (evento.Tipo == TipoEventoSesion.Cabeceo)
+            else if (EsPose(evento.Tipo))
             {
                 Agregar(factores, "Calidad de sesión", Normalizar(calidad.Puntaje), 0.40);
                 Agregar(factores, "Cobertura facial", calidad.CoberturaRostro, 0.35);
@@ -53,11 +58,11 @@ namespace FatigueDetect.Logica
 
             double peso = factores.Sum(f => f.Peso);
             double puntaje = 100 * factores.Sum(f => f.Valor * f.Peso) / peso;
-            bool faltaCalidad = (EsOcular(evento.Tipo) || evento.Tipo == TipoEventoSesion.Cabeceo)
+            bool faltaCalidad = (EsOcular(evento.Tipo) || EsPose(evento.Tipo))
                 && calidad.Puntaje is null;
             bool faltaCobertura = (EsOcular(evento.Tipo) && sesion.CoberturaOcular is null)
-                || (evento.Tipo == TipoEventoSesion.Cabeceo && calidad.CoberturaRostro is null);
-            bool faltaFps = !EsOcular(evento.Tipo) && evento.Tipo != TipoEventoSesion.Cabeceo
+                || (EsPose(evento.Tipo) && calidad.CoberturaRostro is null);
+            bool faltaFps = !EsOcular(evento.Tipo) && !EsPose(evento.Tipo)
                 && EstabilidadFps(calidad) is null;
             if (factores.Any(f => f.Valor < 0.40))
                 puntaje = Math.Min(puntaje, 59);
@@ -69,7 +74,7 @@ namespace FatigueDetect.Logica
                 advertencias.Add("No se pudo calcular la calidad global de la sesión.");
             if (EsOcular(evento.Tipo) && sesion.CoberturaOcular is null)
                 advertencias.Add("No se pudo calcular la cobertura ocular de la sesión.");
-            if (evento.Tipo == TipoEventoSesion.Cabeceo && calidad.CoberturaRostro is null)
+            if (EsPose(evento.Tipo) && calidad.CoberturaRostro is null)
                 advertencias.Add("No se pudo calcular la cobertura facial de la sesión.");
             if (faltaFps)
                 advertencias.Add("La sesión fue demasiado corta para evaluar la estabilidad de FPS.");
