@@ -127,6 +127,23 @@ conservan las métricas disponibles y muestran el detalle nuevo como «sin medic
 confirmó el funcionamiento de estas métricas. La clasificación y los umbrales aún deben calibrarse con distintas
 cámaras, condiciones de iluminación y personas.
 
+## Propuesta de atención y resúmenes (rama de descarga)
+
+La rama `descarga/atencion-y-resumenes` incorpora un puntaje experimental de atención de 0 a 100,
+sus factores de descuento, el tiempo activo hasta el primer cierre prolongado o cabeceo, el minuto
+con menor puntaje y la tendencia durante la sesión. Al detener el monitoreo se abre un informe con
+resumen automático, evolución, factores, respuesta a alarmas y acceso a todos los eventos.
+El informe también se consulta desde **Historial → Atención y resumen** y añade tres hojas al Excel.
+
+La calidad de detección condiciona la disponibilidad del puntaje; se exige al menos 50/100 de calidad
+y 50 % de cobertura ocular. Una pausa o pérdida de medición interrumpe la recuperación y deja huecos
+en la evolución. Los registros antiguos indican «sin medición». La distracción tiene un contrato de
+entrada opcional y seguirá sin medirse hasta integrar el detector del colaborador.
+
+Esta propuesta aún no forma parte de `main` y requiere validación de cámara e interfaz en Windows.
+La fórmula, los límites, la integración y las pruebas se explican en
+[Atención y resúmenes](docs/atencion_y_resumenes.md).
+
 ## Salida de audio de la alarma
 
 En **Configuración → Salida de audio de la alarma**, elige una salida de Windows, como parlantes, audífonos o Bluetooth. **Probar** reproduce la alarma durante dos segundos en la salida elegida. **Actualizar** vuelve a consultar los dispositivos y **Guardar cambios** conserva la selección. Si la salida guardada falla durante el monitoreo, el programa intenta reproducir el sonido en la salida predeterminada de Windows.

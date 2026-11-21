@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../FatigueDetect/Entidades/Entidades.csproj" />
+    <Compile Include="../../FatigueDetect/Logica/AnalisisAtencion.cs" Link="AnalisisAtencion.cs" />
+    <Compile Include="../../FatigueDetect/Logica/RastreadorAtencion.cs" Link="RastreadorAtencion.cs" />
+    <Compile Include="../../FatigueDetect/Logica/ResumenHistorial.cs" Link="ResumenHistorial.cs" />
+    <Compile Include="../../FatigueDetect/Presentacion/ExportadorHistorialExcel.cs" Link="ExportadorHistorialExcel.cs" />
+    <Compile Include="../../FatigueDetect/Presentacion/GraficoExcel.cs" Link="GraficoExcel.cs" />
+    <Compile Include="../../FatigueDetect/Datos/HistorialSqliteRepository.cs" Link="HistorialSqliteRepository.cs" />
+    <Compile Include="../../FatigueDetect/Datos/ImportadorHistorialCsv.cs" Link="ImportadorHistorialCsv.cs" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.28" />
+    <PackageReference Include="ClosedXML" Version="0.105.0" />
+  </ItemGroup>
+</Project>

@@ -33,5 +33,9 @@ namespace FatigueDetect.Entidades
 
     public sealed record FatigaEnVivo(double? AperturaIzquierda, double? AperturaDerecha,
         double? DiferenciaApertura, double? Perclos, long CierreMs,
-        AngulosCabeza? Angulos, MetricasFatiga Acumulado);
+        AngulosCabeza? Angulos, MetricasFatiga Acumulado)
+    {
+        // Contrato para el detector de distracción: null = no medido, 0..1 = proporción reciente.
+        public double? ProporcionDistraccion { get; init; }
+    }
 }

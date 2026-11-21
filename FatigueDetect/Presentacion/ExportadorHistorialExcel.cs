@@ -90,7 +90,7 @@ namespace FatigueDetect.Presentacion
                 var intervalos = ResumenHistorial.IntervalosEntreAlertas(sesion, registrados)
                     .ToDictionary<IntervaloAlerta, EventoSesion, double>(i => i.Alarma, i => i.Segundos, ReferenceEqualityComparer.Instance);
                 foreach (EventoSesion evento in registrados)
-                    Escribir(eventos, filaEvento++, id, PaginaHistorial.NombreEvento(evento.Tipo),
+                    Escribir(eventos, filaEvento++, id, PaginaHistorial.NombreEvento(evento),
                         evento.Inicio.LocalDateTime, evento.Fin?.LocalDateTime, evento.DuracionMilisegundos / 1000.0,
                         ResumenHistorial.Gravedad(evento.Tipo).ToString(),
                         intervalos.TryGetValue(evento, out double intervalo) ? intervalo : null);
@@ -112,6 +112,34 @@ namespace FatigueDetect.Presentacion
                 AgregarCategorias(libro, "Eventos por gravedad", "Gravedad", "Eventos", "Eventos registrados por gravedad", resumen.PorGravedad(),
                     "Gravedad definida por el tipo de evento. El recuento incluye alarmas sin hora.")
             };
+
+            var atencion = CrearHoja(libro, "Atención", "ID de sesión", "Puntaje medio /100",
+                "Primer síntoma activo (s)", "Minuto activo de mayor fatiga", "Tendencia", "Resumen automático");
+            var evolucionAtencion = CrearHoja(libro, "Evolución atención", "ID de sesión", "Instante local",
+                "Tiempo activo (s)", "Tiempo representado (s)", "Puntaje /100", "Calidad /100", "Distracción medida", "Descuentos (puntos)");
+            evolucionAtencion.Column(2).Style.DateFormat.Format = "yyyy-mm-dd hh:mm:ss.000";
+            var respuestas = CrearHoja(libro, "Respuesta a alarmas", "ID de sesión", "Alarma local",
+                "Respuesta ocular (s)", "Recuperación confirmada (s)", "Resultado");
+            respuestas.Column(2).Style.DateFormat.Format = "yyyy-mm-dd hh:mm:ss.000";
+            int filaAtencion = 2, filaMuestra = 2, filaRespuesta = 2;
+            foreach (var s in sesiones)
+            {
+                var informe = s.Atencion;
+                Escribir(atencion, filaAtencion++, s.Id.ToString(), informe is null ? null : AnalisisAtencion.Promedio(informe.Muestras),
+                    informe?.PrimerSintomaActivoMs / 1000.0, informe is null ? null : AnalisisAtencion.PeorMinuto(informe)?.Minuto,
+                    informe is null ? "Sin medición" : AnalisisAtencion.Tendencia(informe), AnalisisAtencion.Resumir(informe));
+                if (informe is null) continue;
+                foreach (var m in informe.Muestras)
+                    Escribir(evolucionAtencion, filaMuestra++, s.Id.ToString(), m.Instante.LocalDateTime,
+                        m.ActivoMs / 1000.0, m.PesoMs / 1000.0, m.Puntaje, m.Calidad,
+                        m.DistraccionDisponible ? "Sí" : "No", string.Join("; ", m.Factores.Select(f => $"{f.Nombre}: −{f.Descuento:0.0}")));
+                foreach (var r in informe.Respuestas)
+                    Escribir(respuestas, filaRespuesta++, s.Id.ToString(), r.Inicio.LocalDateTime,
+                        r.RespuestaMs / 1000.0, r.RecuperacionMs / 1000.0, r.Estado);
+            }
+            FormatoDecimal(atencion, 2, 3);
+            FormatoDecimal(evolucionAtencion, 3, 4, 5, 6);
+            FormatoDecimal(respuestas, 3, 4);
 
             foreach (IXLWorksheet hoja in libro.Worksheets)
             {
