@@ -2,13 +2,13 @@
 
 ## Sin publicar
 
-### Propuesta en `descarga/confianza-eventos-calidad`
+### Confiabilidad explicable por evento integrada en `main` mediante el PR #18
 
 - Añade una evaluación explicable de 0 a 100 para cada evento nuevo, con niveles alto, medio y bajo.
 - Combina persistencia temporal, calidad y cobertura ocular o facial, estabilidad de FPS y continuidad de captura según el tipo de evento.
 - Muestra advertencias concretas en el resumen final, historial, línea temporal y Excel. Las sesiones anteriores quedan como «sin medición».
 - Persiste la evaluación versionada en SQLite y conserva evaluaciones proporcionadas por detectores futuros.
-- Incluye migración compatible, compilación Release y 49 comprobaciones automáticas. Falta validación manual con cámara Windows; la propuesta no está integrada en `main`.
+- Incluye migración compatible, compilación Release y 49 comprobaciones automáticas. La validación manual con cámara fue aprobada antes de integrar el PR #18; aún conviene ampliar las pruebas a más equipos y condiciones.
 
 ### Personalización por conductor integrada en `main` mediante el PR #17
 

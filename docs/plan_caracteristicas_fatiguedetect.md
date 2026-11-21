@@ -33,7 +33,7 @@
 | Atención y resúmenes avanzados | Integrado en `main` | Puntaje experimental, descuentos, primer síntoma, minuto de menor puntaje, tendencia, respuesta y recuperación tras alarmas, informe y evolución. Pendiente calibración e integración del detector de distracción. |
 | Línea temporal extensible | Integrado en `main` | Pistas desplazables para todos los tipos registrados y conservación de códigos de eventos futuros. |
 | Personalización por conductor | Integrado en `main` | Calibra una línea base tras tres sesiones válidas, compara PERCLOS, parpadeos y atención, persiste el perfil y evita aprender de cambios anormales. Integrado mediante el PR #17. |
-| Confiabilidad explicable por evento | Implementado en rama de descarga | `descarga/confianza-eventos-calidad` puntúa la evidencia de cada evento y explica las limitaciones de persistencia, cobertura, FPS o captura. Pendiente validar con cámara y decidir su integración. |
+| Confiabilidad explicable por evento | Integrado en `main` | Puntúa la evidencia de cada evento y explica las limitaciones de persistencia, cobertura, FPS o captura. Integrado mediante el PR #18 después de la validación manual inicial. |
 
 La medición facial fue validada de forma inicial con una cámara Windows. La calibración de umbrales y las pruebas con más cámaras, iluminación y personas siguen pendientes.
 Las métricas oculares avanzadas también fueron validadas manualmente con cámara y están integradas en `main`. Su calibración con más cámaras, condiciones de iluminación y personas sigue pendiente.
@@ -157,7 +157,7 @@ La dificultad de programar una función y la dificultad de hacerla confiable no 
 |---|---:|---|
 | Puntaje de calidad de la imagen | **Baja-media** | Integrado parcialmente en `main` como puntaje de calidad de detección basado en fotogramas analizables, cobertura facial y estabilidad de FPS. Queda pendiente incorporar brillo, contraste, nitidez y posición. |
 | Porcentaje de fotogramas analizables | **Baja** | Medir en qué proporción de la sesión el rostro y los ojos estuvieron disponibles para el análisis. |
-| Confianza de cada evento | **Media** | Implementada en `descarga/confianza-eventos-calidad` como confiabilidad de los datos, con puntaje, factores y advertencias. No se presenta como probabilidad médica. |
+| Confianza de cada evento | **Media** | Integrada en `main` como confiabilidad de los datos, con puntaje, factores y advertencias. No se presenta como probabilidad médica. |
 | Separar “atención” de “calidad de datos” | **Baja-media** | Evitar castigar al usuario por una cámara oscura o mal colocada. Un puntaje mide la atención y otro la confiabilidad de la medición. |
 | Detectar cámara tapada o desenfocada | **Baja** | Avisar si la imagen es casi uniforme, está completamente oscura o perdió demasiada nitidez. |
 | Detectar congelamiento de imagen | **Baja-media** | Comparar fotogramas consecutivos para identificar si la cámara dejó de actualizarse. |
@@ -654,7 +654,7 @@ Prioridad alta porque desbloquea los dashboards y evita rehacer el almacenamient
 4. Crear promedios personales. **Integrado en `main`** para parpadeos, PERCLOS y atención mediante el PR #17.
 5. Permitir calibración por conductor. **Integrado en `main`** como línea base automática después de tres sesiones válidas; no modifica los umbrales físicos de alarma.
 6. Comparar sesiones y detectar tendencias. **Integrado parcialmente en `main`** mediante períodos equivalentes y comparación contra el promedio personal; queda pendiente detectar tendencias de atención a más largo plazo.
-7. Explicar la confiabilidad de cada evento. **Implementado en `descarga/confianza-eventos-calidad`**, pendiente de prueba manual y decisión de integración.
+7. Explicar la confiabilidad de cada evento. **Integrado en `main`** mediante el PR #18 después de la validación manual inicial.
 
 ## Etapa 5: Seguridad y funciones avanzadas
 

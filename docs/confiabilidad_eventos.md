@@ -1,6 +1,6 @@
 # Confiabilidad explicable de los eventos
 
-Estado: implementada únicamente en `descarga/confianza-eventos-calidad`. No está integrada en `main`.
+Estado: integrada en `main` mediante el PR #18 después de la validación manual inicial.
 
 ## Qué representa
 
