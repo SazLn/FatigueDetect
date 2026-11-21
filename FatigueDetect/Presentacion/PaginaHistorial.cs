@@ -24,6 +24,7 @@ namespace FatigueDetect.Presentacion
         private readonly TextBox conductor = new() { PlaceholderText = "Nombre o cédula" };
         private readonly TextBox vehiculo = new() { PlaceholderText = "Placa o tipo" };
         private Button lineaTemporal = null!;
+        private Button informeAtencion = null!;
         private Label estadoFiltros = null!;
         private Label dConductor = null!;
         private Label dCedula = null!;
@@ -247,7 +248,7 @@ namespace FatigueDetect.Presentacion
         private Control ConstruirDetalle()
         {
             var tarjeta = new PanelRedondeado { Dock = DockStyle.Fill, Margin = new Padding(10, 0, 0, 0) };
-            var tabla2 = Tema.TablaFilas(Tema.Tarjeta, 36, 39, 39, 39, 39, 39, 39, 39, 39, 250, 26, 0, 26, 0, 42);
+            var tabla2 = Tema.TablaFilas(Tema.Tarjeta, 36, 39, 39, 39, 39, 39, 39, 39, 39, 250, 26, 0, 26, 0, 88);
 
             tabla2.Controls.Add(Tema.Etiqueta("Detalle de la sesión", 13, Tema.Texto, Tema.Tarjeta, FontStyle.Bold), 0, 0);
             tabla2.Controls.Add(Dato("Conductor", out dConductor), 0, 1);
@@ -299,10 +300,20 @@ namespace FatigueDetect.Presentacion
                     vista.ShowDialog(this);
                 }
             };
-            tabla2.Controls.Add(lineaTemporal, 0, 14);
+            var acciones = Tema.TablaFilas(Tema.Tarjeta, 42, 42);
+            informeAtencion = Tema.Boton("Atención y resumen", Tema.TarjetaClara, Tema.Texto);
+            informeAtencion.Dock = DockStyle.Fill;
+            informeAtencion.Click += (_, _) =>
+            {
+                if (tabla.CurrentRow?.Tag is SesionConduccion s)
+                { using var ventana = new VentanaInformeAtencion(s); ventana.ShowDialog(this); }
+            };
+            acciones.Controls.Add(lineaTemporal, 0, 0);
+            acciones.Controls.Add(informeAtencion, 0, 1);
+            tabla2.Controls.Add(acciones, 0, 14);
             var desplazamiento = new Panel { Dock = DockStyle.Fill, AutoScroll = true, BackColor = Tema.Tarjeta };
             tabla2.Dock = DockStyle.Top;
-            desplazamiento.SizeChanged += (_, _) => tabla2.Height = Math.Max(710, desplazamiento.ClientSize.Height);
+            desplazamiento.SizeChanged += (_, _) => tabla2.Height = Math.Max(760, desplazamiento.ClientSize.Height);
             tabla2.Height = 710;
             desplazamiento.Controls.Add(tabla2);
             tarjeta.Controls.Add(desplazamiento);
@@ -390,6 +401,7 @@ namespace FatigueDetect.Presentacion
         private void MostrarDetalle(SesionConduccion? s)
         {
             lineaTemporal.Enabled = s != null;
+            informeAtencion.Enabled = s != null;
             dResumen.Items.Clear();
             dEventos.Items.Clear();
             dCalidad.Text = s?.Calidad is CalidadSesion calidad
@@ -448,7 +460,7 @@ namespace FatigueDetect.Presentacion
                 string inicio = evento.Inicio.LocalDateTime.ToString("dd/MM HH:mm:ss.fff");
                 string duracion = evento.DuracionMilisegundos is long ms
                     ? $" · {ms / 1000.0:0.000} s" : "";
-                dEventos.Items.Add($"{inicio} · {NombreEvento(evento.Tipo)}{duracion}");
+                dEventos.Items.Add($"{inicio} · {NombreEvento(evento)}{duracion}");
             }
 
             if (alarmasSinHora > 0)
@@ -479,6 +491,9 @@ namespace FatigueDetect.Presentacion
 
         private static string FormatoMs(double? milisegundos) =>
             milisegundos is double valor ? $"{valor:0} ms" : "—";
+
+        internal static string NombreEvento(EventoSesion evento) => evento.Tipo == TipoEventoSesion.EventoExterno
+            ? evento.CodigoTipo ?? "Evento externo" : NombreEvento(evento.Tipo);
 
         internal static string NombreEvento(TipoEventoSesion tipo) => tipo switch
         {

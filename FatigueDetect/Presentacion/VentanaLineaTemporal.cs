@@ -27,13 +27,19 @@ namespace FatigueDetect.Presentacion
             if (eventos.Length == 0)
                 contenido.Controls.Add(Tema.Etiqueta("Sin eventos con hora para graficar", 12, Tema.TextoSuave, Tema.Tarjeta), 0, 2);
             else
-                contenido.Controls.Add(new LineaTemporal(sesion, eventos), 0, 2);
+            {
+                var scroll = new Panel { Dock = DockStyle.Fill, AutoScroll = true };
+                var linea = new LineaTemporal(sesion, eventos) { Dock = DockStyle.Top,
+                    Height = Math.Max(180, eventos.Select(PaginaHistorial.NombreEvento).Distinct().Count() * 32 + 40) };
+                scroll.Controls.Add(linea);
+                contenido.Controls.Add(scroll, 0, 2);
+            }
 
             var tabla = DashboardHistorial.CrearTabla("Evento", "Gravedad", "Inicio", "Fin", "Duración (s)", "Desde alarma anterior (s)");
             var intervalos = ResumenHistorial.IntervalosEntreAlertas(sesion, eventos)
                 .ToDictionary<IntervaloAlerta, EventoSesion, double>(i => i.Alarma, i => i.Segundos, ReferenceEqualityComparer.Instance);
             foreach (EventoSesion evento in eventos)
-                tabla.Rows.Add(PaginaHistorial.NombreEvento(evento.Tipo), ResumenHistorial.Gravedad(evento.Tipo),
+                tabla.Rows.Add(PaginaHistorial.NombreEvento(evento), ResumenHistorial.Gravedad(evento.Tipo),
                     evento.Inicio.LocalDateTime.ToString("HH:mm:ss.fff"), evento.Fin?.LocalDateTime.ToString("HH:mm:ss.fff"),
                     evento.DuracionMilisegundos / 1000.0,
                     intervalos.TryGetValue(evento, out double intervalo) ? intervalo : null);
@@ -43,13 +49,13 @@ namespace FatigueDetect.Presentacion
 
         private sealed class LineaTemporal : Control
         {
-            private readonly IGrouping<TipoEventoSesion, EventoSesion>[] pistas;
+            private readonly IGrouping<string, EventoSesion>[] pistas;
             private readonly DateTimeOffset inicio;
             private readonly double segundos;
 
             public LineaTemporal(SesionConduccion sesion, EventoSesion[] eventos)
             {
-                pistas = eventos.GroupBy(e => e.Tipo).OrderBy(g => g.Key).ToArray();
+                pistas = eventos.GroupBy(PaginaHistorial.NombreEvento).OrderBy(g => g.Key).ToArray();
                 var inicioSesion = new DateTimeOffset(sesion.Inicio);
                 inicio = eventos[0].Inicio < inicioSesion ? eventos[0].Inicio : inicioSesion;
                 DateTimeOffset fin = eventos.Max(e => e.Fin ?? e.Inicio);
@@ -89,8 +95,8 @@ namespace FatigueDetect.Presentacion
                 {
                     var pista = pistas[i];
                     float y = (i + 0.5f) * altura;
-                    g.DrawString(PaginaHistorial.NombreEvento(pista.Key), fuente, tinta, 9, y - 6);
-                    using var color = new SolidBrush(ResumenHistorial.Gravedad(pista.Key) switch
+                    g.DrawString(pista.Key, fuente, tinta, 9, y - 6);
+                    using var color = new SolidBrush(ResumenHistorial.Gravedad(pista.First().Tipo) switch
                     {
                         GravedadEvento.Alta => Tema.Rojo,
                         GravedadEvento.Media => Tema.Ambar,

@@ -297,11 +297,12 @@ namespace FatigueDetect.Presentacion
                 (destacados.Length == 0 ? "Sin otros eventos destacados."
                     : "Otros eventos destacados\n" + string.Join("\n", destacados));
 
+            mensaje += "\n\n" + AnalisisAtencion.Resumir(sesion.Atencion);
             if (errorGuardado is not null)
                 mensaje += "\n\n" + errorGuardado;
 
-            MessageBox.Show(this, mensaje, "Resumen de la sesión", MessageBoxButtons.OK,
-                errorGuardado is null ? MessageBoxIcon.Information : MessageBoxIcon.Warning);
+            using var resumenAtencion = new VentanaInformeAtencion(sesion, mensaje);
+            resumenAtencion.ShowDialog(this);
         }
     }
 }

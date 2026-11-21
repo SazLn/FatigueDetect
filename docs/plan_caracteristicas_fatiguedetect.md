@@ -30,12 +30,20 @@
 | Métricas oculares avanzadas | Integrado en `main` | Parpadeos por minuto y por duración, cierres anómalos, microsueños, tiempos cerrados, diferencia entre ojos y evolución de PERCLOS. |
 | Ángulos de cabeza y posibles cabeceos | Integrado en `main` | Tres ángulos en vivo y registro de descenso con retorno a la postura neutra. |
 | Resto de propuestas | Pendiente | Incluye bostezos, mirada, distracción y análisis histórico avanzado. |
+| Atención y resúmenes avanzados | Implementado en rama de descarga | Puntaje experimental, descuentos, primer síntoma, minuto de menor puntaje, tendencia, respuesta y recuperación tras alarmas, informe y evolución. Pendiente validación Windows e integración del detector de distracción. |
+| Línea temporal extensible | Implementado en rama de descarga | Pistas desplazables para todos los tipos registrados y conservación de códigos de eventos futuros. |
 
 La medición facial fue validada de forma inicial con una cámara Windows. La calibración de umbrales y las pruebas con más cámaras, iluminación y personas siguen pendientes.
 Las métricas oculares avanzadas también fueron validadas manualmente con cámara y están integradas en `main`. Su calibración con más cámaras, condiciones de iluminación y personas sigue pendiente.
 Las mejoras de monitoreo, audio, calidad, historial y exportación del PR #13 fueron validadas manualmente antes de integrarse.
 
 ## Propósito del documento
+
+La propuesta de atención y resúmenes está en `descarga/atencion-y-resumenes`, sin integrar en `main`.
+El bloque de cabeza, postura, mirada, bostezos y distracción corresponde al colaborador.
+La fórmula actual combina PERCLOS, cierres prolongados y cabeceos disponibles, condicionada por calidad y cobertura.
+La distracción se incorpora solo cuando el detector proporcione una medición. Véanse
+[el contrato y las pruebas](atencion_y_resumenes.md).
 
 Este documento reúne las características propuestas para evolucionar FatigueDetect, tanto las planteadas originalmente como otras que pueden aportar más datos útiles sobre la atención, la fatiga y el uso del sistema.
 
@@ -120,7 +128,7 @@ La dificultad de programar una función y la dificultad de hacerla confiable no 
 | PERCLOS | **Media** | Integrado en `main` con una ventana móvil de 60 segundos y acumulado para toda la sesión. |
 | Evolución del PERCLOS | **Media** | Integrado en `main` con muestras cada 10 s y al interrumpir la observación. |
 | Diferencia entre ojo izquierdo y derecho | **Media** | Integrado en `main` como diferencia absoluta en vivo y promedio temporal por sesión. |
-| Tiempo hasta el primer síntoma de fatiga | **Baja-media** | Medir cuánto tiempo pasó desde el inicio hasta el primer evento relevante. |
+| Tiempo hasta el primer síntoma de fatiga | **Baja-media** | Implementado en rama de descarga desde el inicio activo hasta el comienzo del primer cierre prolongado o cabeceo confirmado. |
 
 ## Cabeza, postura, mirada y distracción
 
@@ -159,14 +167,14 @@ La dificultad de programar una función y la dificultad de hacerla confiable no 
 | Característica | Dificultad | Descripción sencilla |
 |---|---:|---|
 | Alertas por hora | **Baja** | Normalizar el número de alertas según la duración de la sesión. |
-| Minuto de mayor fatiga | **Baja-media** | Encontrar el periodo con más cierres, cabeceos o distracciones. |
-| Tendencia de la atención | **Media** | Indicar si la atención se mantuvo estable, mejoró o empeoró. |
+| Minuto de mayor fatiga | **Baja-media** | Implementado en rama de descarga como minuto activo con menor puntaje medio y al menos 2 s de muestras válidas. |
+| Tendencia de la atención | **Media** | Implementado en rama de descarga comparando los tercios inicial y final de las muestras válidas; exige al menos 30 s válidos. |
 | Tiempo entre alertas | **Baja** | Mostrar la frecuencia con la que se repiten los episodios. |
-| Tiempo de recuperación después de una alarma | **Media** | Medir cuánto tarda el usuario en volver a un estado normal después del aviso. |
-| Respuesta a las alertas | **Media** | Determinar si después de una alarma el usuario abre los ojos, corrige la postura o vuelve al encuadre. |
-| Resumen automático de la sesión | **Baja-media** | Generar frases como “La fatiga aumentó en los últimos 18 minutos” usando reglas basadas en los datos. |
+| Tiempo de recuperación después de una alarma | **Media** | Implementado en rama de descarga: 2 s continuos de ojos abiertos y cabeza frontal, con calidad suficiente. No confirma recuperación clínica. |
+| Respuesta a las alertas | **Media** | Implementado en rama de descarga: tiempo desde inicio de alarma hasta reapertura ocular observada; no implica causalidad. |
+| Resumen automático de la sesión | **Baja-media** | Implementado en rama de descarga con puntaje, factores, primer síntoma, minuto de menor puntaje, tendencia y respuesta a alarmas. |
 | Eventos por gravedad | **Baja** | Clasificar eventos como informativos, leves, moderados o graves. |
-| Línea temporal completa | **Baja-media** | Mostrar en un mismo gráfico cuándo ocurrieron cierres de ojos, cabeceos, ausencias, distracciones y alarmas. |
+| Línea temporal completa | **Baja-media** | Implementada en rama de descarga con pistas desplazables y nombres de eventos nuevos preservados. Los futuros detectores deberán registrar sus eventos. |
 
 ## Análisis histórico y personalización
 
@@ -639,8 +647,8 @@ Prioridad alta porque desbloquea los dashboards y evita rehacer el almacenamient
 ## Etapa 4: Puntajes y personalización
 
 1. Crear el puntaje de calidad de detección. **Integrado en `main`** con fotogramas analizables, cobertura facial y estabilidad de FPS.
-2. Crear una primera fórmula de atención.
-3. Mostrar las razones del puntaje.
+2. Crear una primera fórmula de atención. **Implementado en rama de descarga**, pendiente validación y datos de distracción del colaborador.
+3. Mostrar las razones del puntaje. **Implementado en rama de descarga** en informe y Excel.
 4. Crear promedios personales.
 5. Permitir calibración por conductor.
 6. Comparar sesiones y detectar tendencias. **Integrado parcialmente en `main`** mediante comparaciones entre períodos de igual duración; queda pendiente detectar tendencias de atención a más largo plazo.

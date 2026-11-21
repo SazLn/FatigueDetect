@@ -233,7 +233,7 @@ namespace FatigueDetect.Presentacion
         {
             var tarjeta = new PanelRedondeado { Dock = DockStyle.Fill, Margin = new Padding(6) };
             var tabla = Tema.TablaFilas(Tema.Tarjeta, 28, 0);
-            tabla.Controls.Add(Tema.Etiqueta("Atención", 10.5f, Tema.Texto, Tema.Tarjeta, FontStyle.Bold), 0, 0);
+            tabla.Controls.Add(Tema.Etiqueta("Atención (0–100)", 10.5f, Tema.Texto, Tema.Tarjeta, FontStyle.Bold), 0, 0);
 
             medidor = new Medidor { Dock = DockStyle.Fill, Margin = new Padding(0) };
             tabla.Controls.Add(medidor, 0, 1);
@@ -344,7 +344,8 @@ namespace FatigueDetect.Presentacion
 
         public void UpdateImage(Bitmap? image, EyeState estado, long tiempoMs,
             EstadoIluminacion? avisoIluminacion, TipoEventoSesion? avisoRostro,
-            TipoEventoSesion? avisoCalidad = null, FatigaEnVivo? fatiga = null, double? fpsRecientes = null)
+            TipoEventoSesion? avisoCalidad = null, FatigaEnVivo? fatiga = null, double? fpsRecientes = null,
+            MuestraAtencion? atencion = null)
         {
             // Si la pantalla sigue ocupada con el cuadro anterior, se descarta este.
             if (IsDisposed || !IsHandleCreated || Interlocked.CompareExchange(ref actualizando, 1, 0) != 0)
@@ -355,7 +356,7 @@ namespace FatigueDetect.Presentacion
 
             try
             {
-                BeginInvoke(new Action(() => Actualizar(image, estado, tiempoMs, avisoIluminacion, avisoRostro, avisoCalidad, fatiga, fpsRecientes)));
+                BeginInvoke(new Action(() => Actualizar(image, estado, tiempoMs, avisoIluminacion, avisoRostro, avisoCalidad, fatiga, fpsRecientes, atencion)));
             }
             catch (Exception)
             {
@@ -376,7 +377,7 @@ namespace FatigueDetect.Presentacion
 
         private void Actualizar(Bitmap? imagen, EyeState estado, long tiempoMs,
             EstadoIluminacion? avisoIluminacion, TipoEventoSesion? avisoRostro,
-            TipoEventoSesion? avisoCalidad, FatigaEnVivo? fatiga, double? fpsRecientes)
+            TipoEventoSesion? avisoCalidad, FatigaEnVivo? fatiga, double? fpsRecientes, MuestraAtencion? atencion)
         {
             try
             {
@@ -460,7 +461,7 @@ namespace FatigueDetect.Presentacion
                 if (fatiga?.AperturaIzquierda is null)
                     medidor.Actualizar(0, Tema.TextoSuave, "—");
                 else
-                    ActualizarMedidor(estado, actual);
+                    ActualizarMedidor(atencion);
 
                 int alarmas = actual.CantidadAlarmas;
                 if (alarmas != alarmasMostradas)
@@ -497,22 +498,15 @@ namespace FatigueDetect.Presentacion
                 $" · cierre máx. {acumulado.CierreMasLargoMs / 1000.0:0.0} s\n{pose}";
         }
 
-        private void ActualizarMedidor(EyeState estado, SesionConduccion actual)
+        private void ActualizarMedidor(MuestraAtencion? atencion)
         {
-            NivelAtencion nivel = CalculadorAtencion.Calcular(estado, actual);
-
-            switch (nivel)
-            {
-                case NivelAtencion.BAJO:
-                    medidor.Actualizar(0.25, Tema.Rojo, "BAJO");
-                    break;
-                case NivelAtencion.MEDIO:
-                    medidor.Actualizar(0.6, Tema.Ambar, "MEDIO");
-                    break;
-                default:
-                    medidor.Actualizar(1.0, Tema.Verde, "ALTO");
-                    break;
-            }
+            double? valor = atencion?.Puntaje;
+            medidor.Actualizar((valor ?? 0) / 100, valor is null ? Tema.TextoSuave
+                : valor < 50 ? Tema.Rojo : valor < 75 ? Tema.Ambar : Tema.Verde,
+                valor?.ToString("0") ?? "—");
+            medidor.AccessibleDescription = valor.HasValue
+                ? string.Join("; ", atencion!.Factores.Select(f => $"{f.Nombre}: menos {f.Descuento:0.0} puntos"))
+                : "Sin medición suficiente de atención";
         }
 
         private void AplicarEstado(EyeState estado, TipoEventoSesion? avisoRostro = null)

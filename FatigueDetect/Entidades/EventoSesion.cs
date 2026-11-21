@@ -14,11 +14,14 @@ namespace FatigueDetect.Entidades
         CamaraDesenfocada,
         CamaraCongelada,
         Cabeceo,
-        CierreOcularAnomalo
+        CierreOcularAnomalo,
+        EventoExterno
     }
 
     public sealed record EventoSesion(TipoEventoSesion Tipo, DateTimeOffset Inicio, DateTimeOffset? Fin)
     {
+        // Conserva códigos nuevos de otros detectores aunque esta versión aún no los conozca.
+        public string? CodigoTipo { get; init; }
         public long? DuracionMilisegundos => Fin.HasValue
             ? Math.Max(0, Fin.Value.ToUnixTimeMilliseconds() - Inicio.ToUnixTimeMilliseconds())
             : null;

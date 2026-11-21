@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
 using FatigueDetect.Entidades;
 using Microsoft.Data.Sqlite;
 
@@ -82,6 +83,17 @@ namespace FatigueDetect.Datos
                 }
             }
 
+            using (SqliteCommand consulta = CrearComando(conexion, transaccion,
+                "SELECT SesionId, Contenido FROM AtencionSesiones;"))
+            using (SqliteDataReader lector = consulta.ExecuteReader())
+            {
+                while (lector.Read())
+                {
+                    if (sesiones.TryGetValue(lector.GetString(0), out SesionConduccion? sesion))
+                        sesion.Atencion = JsonSerializer.Deserialize<InformeAtencion>(lector.GetString(1));
+                }
+            }
+
             var evolucionPerclos = new Dictionary<string, List<MuestraPerclos>>();
             using (SqliteCommand consulta = CrearComando(conexion, transaccion, """
                 SELECT SesionId, InstanteUtcMs, Valor
@@ -116,11 +128,12 @@ namespace FatigueDetect.Datos
             {
                 while (lector.Read())
                 {
-                    if (!Enum.TryParse(lector.GetString(1), out TipoEventoSesion tipo) || !Enum.IsDefined(tipo))
-                        continue;
+                    string codigo = lector.GetString(1);
+                    if (!Enum.TryParse(codigo, out TipoEventoSesion tipo) || !Enum.IsDefined(tipo))
+                        tipo = TipoEventoSesion.EventoExterno;
 
                     sesiones[lector.GetString(0)].RegistrarEvento(new EventoSesion(tipo, LeerInstante(lector, 2),
-                        lector.IsDBNull(3) ? null : LeerInstante(lector, 3)));
+                        lector.IsDBNull(3) ? null : LeerInstante(lector, 3)) { CodigoTipo = codigo });
                 }
             }
 
@@ -211,6 +224,10 @@ namespace FatigueDetect.Datos
                 CREATE INDEX IF NOT EXISTS IX_Sesiones_Inicio ON Sesiones (InicioUtcMs);
                 CREATE INDEX IF NOT EXISTS IX_Eventos_Sesion_Inicio ON Eventos (SesionId, InicioUtcMs);
                 CREATE TABLE IF NOT EXISTS Migraciones (Nombre TEXT PRIMARY KEY NOT NULL);
+                CREATE TABLE IF NOT EXISTS AtencionSesiones (
+                    SesionId TEXT PRIMARY KEY NOT NULL REFERENCES Sesiones(Id) ON DELETE CASCADE,
+                    Contenido TEXT NOT NULL
+                );
                 """);
             esquema.ExecuteNonQuery();
             AsegurarColumnasMetricasFatiga(conexion, transaccion);
@@ -313,6 +330,15 @@ namespace FatigueDetect.Datos
                 }
             }
 
+            if (sesion.Atencion is InformeAtencion atencion)
+            {
+                using SqliteCommand informe = CrearComando(conexion, transaccion,
+                    "INSERT INTO AtencionSesiones (SesionId, Contenido) VALUES ($id, $contenido);");
+                informe.Parameters.AddWithValue("$id", sesion.Id.ToString());
+                informe.Parameters.AddWithValue("$contenido", JsonSerializer.Serialize(atencion));
+                informe.ExecuteNonQuery();
+            }
+
             using SqliteCommand eventos = CrearComando(conexion, transaccion, """
                 INSERT INTO Eventos (SesionId, Tipo, InicioUtcMs, FinUtcMs, DuracionMs)
                 VALUES ($sesion, $tipo, $inicio, $fin, $duracion);
@@ -324,7 +350,7 @@ namespace FatigueDetect.Datos
             SqliteParameter duracion = eventos.Parameters.Add("$duracion", SqliteType.Integer);
             foreach (EventoSesion evento in sesion.Eventos)
             {
-                tipo.Value = evento.Tipo.ToString();
+                tipo.Value = evento.CodigoTipo ?? evento.Tipo.ToString();
                 inicio.Value = evento.Inicio.ToUnixTimeMilliseconds();
                 termino.Value = evento.Fin?.ToUnixTimeMilliseconds() is long fecha ? fecha : DBNull.Value;
                 duracion.Value = evento.DuracionMilisegundos is long ms ? ms : DBNull.Value;

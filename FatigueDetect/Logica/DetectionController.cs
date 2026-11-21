@@ -21,6 +21,7 @@ namespace FatigueDetect.Logica
         private readonly RegistroEventosSesion registro;
         private readonly MedicionCalidadSesion calidad = new();
         private readonly RastreadorFatiga fatiga;
+        private readonly RastreadorAtencion atencion = new();
         private readonly SesionConduccion sesion;
         private readonly object candadoEstado = new object();
         private readonly DateTimeOffset origenUtc = DateTimeOffset.UtcNow;
@@ -155,6 +156,7 @@ namespace FatigueDetect.Logica
                 EyeState estado;
                 FatigaEnVivo lectura;
                 double? fpsRecientes;
+                MuestraAtencion? muestraAtencion;
                 EstadoIluminacion? avisoIluminacion;
                 TipoEventoSesion? avisoRostro;
                 lock (candadoEstado)
@@ -170,6 +172,9 @@ namespace FatigueDetect.Logica
 
                     lectura = fatiga.Observar(instante, medicion, drowsinessLogic.UmbralCierreProlongado);
                     estado = drowsinessLogic.Evaluar(lectura.CierreMs);
+                    atencion.Observar(instante, lectura, estado, calidad.Resumen(), sesion,
+                        drowsinessLogic.UmbralCierreProlongado);
+                    muestraAtencion = atencion.Actual;
                     (avisoIluminacion, avisoRostro) = registro.Observar(
                         instante, rostros.Length, estado, iluminacion, analisisDisponible);
 
@@ -182,7 +187,7 @@ namespace FatigueDetect.Logica
                 var image = ImageUtils.MatToBitmap(frame);
                 try
                 {
-                    view.UpdateImage(image, estado, lectura.CierreMs, avisoIluminacion, avisoRostro, avisoCalidad, lectura, fpsRecientes);
+                    view.UpdateImage(image, estado, lectura.CierreMs, avisoIluminacion, avisoRostro, avisoCalidad, lectura, fpsRecientes, muestraAtencion);
                 }
                 catch (Exception) when (!running)
                 {
@@ -218,6 +223,7 @@ namespace FatigueDetect.Logica
                 sesion.Calidad = calidad.Resumen();
                 InterrumpirObservacion(Ahora);
                 sesion.MetricasFatiga = fatiga.Resumen;
+                sesion.Atencion = atencion.Resumen();
             }
 
             if (hilo != null && hilo.IsAlive)
@@ -248,6 +254,7 @@ namespace FatigueDetect.Logica
             ultimaInterrupcion = instante;
             registro.Interrumpir(instante);
             fatiga.Interrumpir(instante, drowsinessLogic.UmbralCierreProlongado);
+            atencion.Interrumpir(instante);
             alarmService.Detener();
         }
     }
