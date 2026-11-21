@@ -73,6 +73,15 @@ namespace FatigueDetect.Entidades
             }
         }
 
+        public void EstablecerEventos(IEnumerable<EventoSesion> nuevosEventos)
+        {
+            lock (candado)
+            {
+                eventos.Clear();
+                eventos.AddRange(nuevosEventos);
+            }
+        }
+
         /// <summary>Cuántas alarmas sonaron desde la hora indicada.</summary>
         public int AlarmasDesde(DateTime desde)
         {

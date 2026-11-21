@@ -1,6 +1,6 @@
 # Personalización por conductor
 
-Estado: implementada únicamente en `descarga/personalizacion-conductor`. No está integrada en `main`.
+Estado: integrada en `main` mediante el PR #17 después de la validación manual inicial.
 
 ## Alcance
 

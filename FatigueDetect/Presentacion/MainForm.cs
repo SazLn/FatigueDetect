@@ -299,6 +299,7 @@ namespace FatigueDetect.Presentacion
 
             mensaje += "\n\n" + AnalisisAtencion.Resumir(sesion.Atencion);
             mensaje += "\n\n" + PersonalizacionConductor.Resumir(sesion.ComparacionPersonal);
+            mensaje += "\n\n" + AnalisisConfiabilidadEvento.Resumir(sesion);
             if (errorGuardado is not null)
                 mensaje += "\n\n" + errorGuardado;
 

@@ -152,7 +152,7 @@ namespace FatigueDetect.Datos
             }
 
             using (SqliteCommand consulta = CrearComando(conexion, transaccion, """
-                SELECT SesionId, Tipo, InicioUtcMs, FinUtcMs
+                SELECT SesionId, Tipo, InicioUtcMs, FinUtcMs, Confiabilidad
                 FROM Eventos ORDER BY SesionId, InicioUtcMs, Id;
                 """))
             using (SqliteDataReader lector = consulta.ExecuteReader())
@@ -164,7 +164,12 @@ namespace FatigueDetect.Datos
                         tipo = TipoEventoSesion.EventoExterno;
 
                     sesiones[lector.GetString(0)].RegistrarEvento(new EventoSesion(tipo, LeerInstante(lector, 2),
-                        lector.IsDBNull(3) ? null : LeerInstante(lector, 3)) { CodigoTipo = codigo });
+                        lector.IsDBNull(3) ? null : LeerInstante(lector, 3))
+                    {
+                        CodigoTipo = codigo,
+                        Confiabilidad = lector.IsDBNull(4) ? null
+                            : JsonSerializer.Deserialize<EvaluacionConfiabilidadEvento>(lector.GetString(4))
+                    });
                 }
             }
 
@@ -272,6 +277,7 @@ namespace FatigueDetect.Datos
             AsegurarColumnasMetricasFatiga(conexion, transaccion);
             AsegurarColumnas(conexion, transaccion, "CalidadSesiones",
                 [("CaidasFps", "INTEGER"), ("TiempoFpsBajoMs", "INTEGER"), ("TiempoEvaluadoFpsMs", "INTEGER")]);
+            AsegurarColumnas(conexion, transaccion, "Eventos", [("Confiabilidad", "TEXT")]);
 
             using SqliteCommand marca = CrearComando(conexion, transaccion,
                 "INSERT OR IGNORE INTO Migraciones (Nombre) VALUES ('historial_csv_v1');");
@@ -388,20 +394,23 @@ namespace FatigueDetect.Datos
             }
 
             using SqliteCommand eventos = CrearComando(conexion, transaccion, """
-                INSERT INTO Eventos (SesionId, Tipo, InicioUtcMs, FinUtcMs, DuracionMs)
-                VALUES ($sesion, $tipo, $inicio, $fin, $duracion);
+                INSERT INTO Eventos (SesionId, Tipo, InicioUtcMs, FinUtcMs, DuracionMs, Confiabilidad)
+                VALUES ($sesion, $tipo, $inicio, $fin, $duracion, $confiabilidad);
                 """);
             eventos.Parameters.AddWithValue("$sesion", sesion.Id.ToString());
             SqliteParameter tipo = eventos.Parameters.Add("$tipo", SqliteType.Text);
             SqliteParameter inicio = eventos.Parameters.Add("$inicio", SqliteType.Integer);
             SqliteParameter termino = eventos.Parameters.Add("$fin", SqliteType.Integer);
             SqliteParameter duracion = eventos.Parameters.Add("$duracion", SqliteType.Integer);
+            SqliteParameter confiabilidad = eventos.Parameters.Add("$confiabilidad", SqliteType.Text);
             foreach (EventoSesion evento in sesion.Eventos)
             {
                 tipo.Value = evento.CodigoTipo ?? evento.Tipo.ToString();
                 inicio.Value = evento.Inicio.ToUnixTimeMilliseconds();
                 termino.Value = evento.Fin?.ToUnixTimeMilliseconds() is long fecha ? fecha : DBNull.Value;
                 duracion.Value = evento.DuracionMilisegundos is long ms ? ms : DBNull.Value;
+                confiabilidad.Value = evento.Confiabilidad is { } evaluacion
+                    ? JsonSerializer.Serialize(evaluacion) : DBNull.Value;
                 eventos.ExecuteNonQuery();
             }
             return true;

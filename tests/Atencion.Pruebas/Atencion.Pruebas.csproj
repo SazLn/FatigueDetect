@@ -8,6 +8,7 @@
   <ItemGroup>
     <ProjectReference Include="../../FatigueDetect/Entidades/Entidades.csproj" />
     <Compile Include="../../FatigueDetect/Logica/AnalisisAtencion.cs" Link="AnalisisAtencion.cs" />
+    <Compile Include="../../FatigueDetect/Logica/AnalisisConfiabilidadEvento.cs" Link="AnalisisConfiabilidadEvento.cs" />
     <Compile Include="../../FatigueDetect/Logica/PersonalizacionConductor.cs" Link="PersonalizacionConductor.cs" />
     <Compile Include="../../FatigueDetect/Logica/RastreadorAtencion.cs" Link="RastreadorAtencion.cs" />
     <Compile Include="../../FatigueDetect/Logica/ResumenHistorial.cs" Link="ResumenHistorial.cs" />

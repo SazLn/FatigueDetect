@@ -76,32 +76,71 @@ Verificar(AnalisisAtencion.Tendencia(informe).StartsWith("Sin datos"), "Sesión 
 Verificar(AnalisisAtencion.Promedio(muestras) == 60, "Promedio ponderado");
 Verificar(AnalisisAtencion.Resumir(null).Contains("sin medición"), "Historial antiguo");
 
+var sesionConfiable = new SesionConduccion
+{
+    Calidad = new CalidadSesion(1200, 1200, 60_000, 60_000, 0, 0, 0, 60_000),
+    MetricasFatiga = new MetricasFatiga(12, 1, 0, 60_000, 6_000, VersionMetricasOculares: 1)
+};
+sesionConfiable.RegistrarEvento(new EventoSesion(TipoEventoSesion.CierreOcularProlongado,
+    instante, instante.AddSeconds(3)));
+AnalisisConfiabilidadEvento.Completar(sesionConfiable);
+var confianzaAlta = sesionConfiable.Eventos.Single().Confiabilidad!;
+Verificar(confianzaAlta is { Nivel: "Alta", Puntaje: >= 80 }, "Evento con datos consistentes obtiene confianza alta");
+Verificar(confianzaAlta.Factores.Count == 3 && confianzaAlta.Advertencias.Single().StartsWith("Los datos"),
+    "Confianza conserva factores y explicación favorable");
+
+var sesionDebil = new SesionConduccion
+{
+    Calidad = new CalidadSesion(100, 20, 60_000, 12_000, 2, 1, 48_000, 60_000),
+    MetricasFatiga = new MetricasFatiga(2, 0, 0, 12_000, 2_000, VersionMetricasOculares: 1)
+};
+sesionDebil.RegistrarEvento(new EventoSesion(TipoEventoSesion.CierreOcularAnomalo,
+    instante, instante.AddMilliseconds(500)));
+AnalisisConfiabilidadEvento.Completar(sesionDebil);
+var confianzaBaja = sesionDebil.Eventos.Single().Confiabilidad!;
+Verificar(confianzaBaja is { Nivel: "Baja", Puntaje: < 60 }, "Evento con poca cobertura obtiene confianza baja");
+Verificar(confianzaBaja.Advertencias.Any(a => a.Contains("ojos")) &&
+    AnalisisConfiabilidadEvento.ExplicarMedicion(sesionDebil).Contains("Factores que reducen"),
+    "Se explican cobertura y limitaciones generales");
+var confianzaPropia = new EvaluacionConfiabilidadEvento(9, 99,
+    Array.Empty<FactorConfiabilidadEvento>(), ["Detector futuro"]);
+var externo = new SesionConduccion();
+externo.RegistrarEvento(new EventoSesion(TipoEventoSesion.EventoExterno, instante, instante.AddSeconds(1))
+    { CodigoTipo = "EventoFuturo", Confiabilidad = confianzaPropia });
+AnalisisConfiabilidadEvento.Completar(externo);
+Verificar(externo.Eventos.Single().Confiabilidad == confianzaPropia,
+    "No se reemplaza la confianza aportada por otro detector");
+
 string carpeta = Path.Combine(Path.GetTempPath(), "fatiguedetect-atencion-" + Guid.NewGuid().ToString("N"));
 Directory.CreateDirectory(carpeta);
 try
 {
     string ruta = Path.Combine(carpeta, "historial.sqlite");
     var repo = new HistorialSqliteRepository(ruta, Path.Combine(carpeta, "ausente.csv"));
-    // Simula una base previa a esta entrega: sin tabla AtencionSesiones.
+    // Simula una base previa a estas entregas: sin atención ni confianza por evento.
     repo.LeerTodas();
     using (var conexion = new SqliteConnection($"Data Source={ruta}"))
     {
         conexion.Open();
         using var comando = conexion.CreateCommand();
-        comando.CommandText = "DROP TABLE AtencionSesiones;";
+        comando.CommandText = "DROP TABLE AtencionSesiones; ALTER TABLE Eventos DROP COLUMN Confiabilidad;";
         comando.ExecuteNonQuery();
     }
     repo = new HistorialSqliteRepository(ruta, Path.Combine(carpeta, "ausente.csv"));
     var antigua = new SesionConduccion { Inicio = instante.LocalDateTime, Fin = instante.AddMinutes(1).LocalDateTime };
     repo.Guardar(antigua);
     sesion.Atencion = informe;
-    sesion.RegistrarEvento(new EventoSesion(TipoEventoSesion.EventoExterno, instante, instante.AddSeconds(2)) { CodigoTipo = "DistraccionFutura" });
+    sesion.RegistrarEvento(new EventoSesion(TipoEventoSesion.EventoExterno, instante, instante.AddSeconds(2))
+        { CodigoTipo = "DistraccionFutura", Confiabilidad = confianzaPropia });
     repo.Guardar(sesion);
     var leidas = repo.LeerTodas();
     Verificar(leidas.Single(s => s.Id == antigua.Id).Atencion is null, "Sesión antigua conserva ausencia de medición");
     var leida = leidas.Single(s => s.Id == sesion.Id);
     Verificar(leida.Atencion?.Muestras.Count == informe.Muestras.Count && leida.Atencion.Respuestas[0] == informe.Respuestas[0], "Persistencia de muestras y respuestas");
     Verificar(leida.Eventos[0].CodigoTipo == "DistraccionFutura", "Eventos futuros preservados");
+    Verificar(leida.Eventos[0].Confiabilidad is { Version: 9, Puntaje: 99 } confianzaLeida &&
+        confianzaLeida.Advertencias.Single() == "Detector futuro",
+        "Persistencia de confianza y explicación del evento");
     string excel = Path.Combine(carpeta, "informe.xlsx");
     ExportadorHistorialExcel.Guardar(excel, leidas);
     using (var libro = new XLWorkbook(excel))
@@ -110,6 +149,9 @@ try
         Verificar(libro.Worksheet("Evolución atención").LastRowUsed()!.RowNumber() == informe.Muestras.Count + 1, "Excel incluye muestras");
         Verificar(libro.Worksheet("Respuesta a alarmas").Cell(2, 3).GetDouble() == 1.1, "Excel conserva tiempos de respuesta");
         Verificar(libro.Worksheet("Eventos").Cell(2, 2).GetString() == "DistraccionFutura", "Excel conserva nombres futuros");
+        Verificar(libro.Worksheet("Eventos").Cell(2, 8).GetDouble() == 99 &&
+            libro.Worksheet("Eventos").Cell(2, 10).GetString() == "Detector futuro",
+            "Excel exporta confianza y explicación");
         Verificar(libro.Worksheet("Comparación personal").LastRowUsed()!.RowNumber() == 3,
             "Excel representa sesiones anteriores sin inventar comparación personal");
     }

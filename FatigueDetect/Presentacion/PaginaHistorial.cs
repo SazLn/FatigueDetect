@@ -460,7 +460,10 @@ namespace FatigueDetect.Presentacion
                 string inicio = evento.Inicio.LocalDateTime.ToString("dd/MM HH:mm:ss.fff");
                 string duracion = evento.DuracionMilisegundos is long ms
                     ? $" · {ms / 1000.0:0.000} s" : "";
-                dEventos.Items.Add($"{inicio} · {NombreEvento(evento)}{duracion}");
+                string confianza = evento.Confiabilidad?.Puntaje is double puntaje
+                    ? $" · confianza {puntaje:0}/100 ({evento.Confiabilidad.Nivel.ToLowerInvariant()})"
+                    : " · confianza sin medición";
+                dEventos.Items.Add($"{inicio} · {NombreEvento(evento)}{duracion}{confianza}");
             }
 
             if (alarmasSinHora > 0)
