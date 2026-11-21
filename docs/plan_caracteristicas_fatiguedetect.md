@@ -14,16 +14,17 @@
 | Avisos de iluminación | Integrado en `main` | La vista previa indica el estado en directo. El monitoreo avisa ante oscuridad o sobreexposición persistente. |
 | Avisos en vivo de ausencia o varios rostros | Integrado en `main` | Aparecen después de dos segundos y se retiran al recuperar una detección válida. |
 | Resumen de eventos en el historial | Integrado en `main` | Agrupa por tipo y muestra cantidad, duración total, máxima y eventos sin duración. |
-| Resumen al finalizar el monitoreo | Integrado en `main` | Muestra duración, alarmas, ausencias de rostro y conteos de los demás eventos destacados. |
+| Resumen al finalizar el monitoreo | Integrado en `main` | Muestra duración, alarmas, eventos, calidad de detección, cobertura facial, estabilidad de FPS e indicadores oculares. |
 | Configuración persistente de detección y sonido | Integrado en `main` | Guarda y restablece los umbrales de somnolencia y alarma y el estado del sonido. |
-| Métricas de calidad de sesión | Integrado en `main` | FPS medios, porcentaje de fotogramas analizables, tiempo con un rostro válido y episodios de fallo de cámara. Las sesiones previas conservan la calidad sin medición. |
+| Métricas de calidad de sesión | Integrado en `main` | FPS medios y recientes, fotogramas analizables, cobertura facial, caídas de FPS, fallos de cámara y puntaje de calidad de 0 a 100. |
 | Dashboard histórico básico | Integrado en `main` | Sesiones por día, semana y mes, duración promedio y franjas de mayor uso. |
 | Exportación a Excel | Integrado en `main` | Sesiones, eventos y resúmenes. |
-| Filtros y análisis histórico | Integrado en `main` | Fecha, conductor y vehículo. Dashboard con gráficos, alarmas por hora, intervalos y gravedad. |
+| Filtros y análisis histórico | Integrado en `main` | Fecha, conductor, vehículo, alarmas y calidad. Incluye comparaciones entre períodos de igual duración. |
 | Gráficos en Excel y línea temporal | Integrado en `main` | Gráficos editables vinculados a celdas y vista gráfica de episodios en cada sesión. |
 | Formato y calidad de cámara | Integrado en `main` | Resolución y FPS solicitados, avisos de imagen tapada, desenfocada o congelada y episodios guardados durante el monitoreo. |
-| Gráficos de Excel explicativos | Pendiente | Mejorar diseño, títulos, unidades, leyendas y contexto para que cada gráfico permita interpretar los datos sin depender de las tablas. |
-| Salida de audio para la alarma | Pendiente | Permitir seleccionar y probar parlantes, audífonos u otra salida de reproducción disponible en Windows, guardar la preferencia y usar la salida predeterminada como respaldo. |
+| Gráficos de Excel explicativos | Integrado en `main` | Los gráficos incluyen títulos, unidades, leyendas, contexto y conclusiones calculadas a partir de los datos. |
+| Salida de audio para la alarma | Integrado en `main` | Permite seleccionar, probar y guardar una salida de Windows y usa la salida predeterminada como respaldo. |
+| Monitoreo en vivo rediseñado | Integrado en `main` | Reorganiza la pantalla y muestra el estado de la cámara, los FPS recientes y los avisos de fluidez baja. |
 | Puntos faciales y apertura de ojos | Integrado en `main` | MediaPipe Face Mesh en ONNX y estimación por ojo con calibración inicial. |
 | Parpadeos, cierres prolongados y PERCLOS | Integrado en `main` | Conteos, PERCLOS de 60 s en vivo y acumulado por sesión. |
 | Métricas oculares avanzadas | Integrado en `main` | Parpadeos por minuto y por duración, cierres anómalos, microsueños, tiempos cerrados, diferencia entre ojos y evolución de PERCLOS. |
@@ -32,6 +33,7 @@
 
 La medición facial fue validada de forma inicial con una cámara Windows. La calibración de umbrales y las pruebas con más cámaras, iluminación y personas siguen pendientes.
 Las métricas oculares avanzadas también fueron validadas manualmente con cámara y están integradas en `main`. Su calibración con más cámaras, condiciones de iluminación y personas sigue pendiente.
+Las mejoras de monitoreo, audio, calidad, historial y exportación del PR #13 fueron validadas manualmente antes de integrarse.
 
 ## Propósito del documento
 
@@ -87,7 +89,7 @@ La dificultad de programar una función y la dificultad de hacerla confiable no 
 | Guardar un historial completo | **Baja-media** | Pasar del CSV a una base de datos SQLite que almacene sesiones, eventos y métricas sin depender de archivos abiertos en Excel. |
 | Exportar los datos a Excel | **Baja-media** | Crear un archivo `.xlsx` con sesiones, eventos y resúmenes. Exportar las tablas es sencillo; incluir gráficos editables dentro de Excel requiere más trabajo. |
 | Incluir gráficos en el archivo de Excel | **Media** | Agregar tendencias, distribución de eventos y comparaciones. Hay que elegir una librería compatible y revisar sus condiciones de licencia. |
-| Hacer los gráficos de Excel autoexplicativos | **Baja-media** | Mejorar títulos, etiquetas, unidades, leyendas, colores y textos de interpretación. Cada gráfico debe indicar qué representa, el periodo analizado y la conclusión principal, sin obligar a consultar otra hoja. |
+| Hacer los gráficos de Excel autoexplicativos | **Baja-media** | Integrado en `main` con títulos, unidades, leyendas, contexto y conclusiones calculadas. |
 | Mejorar la estética del dashboard | **Media** | Rediseñar jerarquías, colores, tarjetas, gráficos, estados vacíos y navegación. Es conveniente hacerlo después de definir qué datos se mostrarán. |
 | Crear más paneles para separar la información | **Baja-media** | Dividir el monitoreo en vivo, el resumen de sesión, el análisis histórico y la configuración para evitar una pantalla sobrecargada. |
 
@@ -98,7 +100,7 @@ La dificultad de programar una función y la dificultad de hacerla confiable no 
 | Elegir entre cámara integrada y cámara externa | **Baja** | Enumerar las cámaras disponibles, mostrar una vista previa y recordar la cámara preferida. |
 | Cambiar resolución y fotogramas por segundo | **Baja-media** | Permitir elegir calidad y rendimiento según la cámara y el equipo. |
 | Probar la cámara desde Configuración | **Baja** | Abrir una vista previa antes de iniciar la sesión y mostrar si el rostro, la iluminación y la posición son adecuados. |
-| Seleccionar y probar la salida de audio | **Baja-media** | Enumerar las salidas de reproducción disponibles en Windows, permitir elegir parlantes o audífonos, reproducir una alarma de prueba y recordar la selección. Si el dispositivo deja de estar disponible, usar la salida predeterminada y mostrar un aviso. |
+| Seleccionar y probar la salida de audio | **Baja-media** | Integrado en `main`: enumera las salidas de Windows, reproduce una prueba, guarda la selección y usa la salida predeterminada como respaldo. |
 
 ---
 
@@ -143,13 +145,13 @@ La dificultad de programar una función y la dificultad de hacerla confiable no 
 
 | Característica | Dificultad | Descripción sencilla |
 |---|---:|---|
-| Puntaje de calidad de la imagen | **Baja-media** | Combinar brillo, contraste, nitidez, tamaño del rostro y posición en un indicador fácil de entender. |
+| Puntaje de calidad de la imagen | **Baja-media** | Integrado parcialmente en `main` como puntaje de calidad de detección basado en fotogramas analizables, cobertura facial y estabilidad de FPS. Queda pendiente incorporar brillo, contraste, nitidez y posición. |
 | Porcentaje de fotogramas analizables | **Baja** | Medir en qué proporción de la sesión el rostro y los ojos estuvieron disponibles para el análisis. |
 | Confianza de cada evento | **Media** | Guardar qué tan seguro está el sistema de que ocurrió un cabeceo, parpadeo o distracción. |
 | Separar “atención” de “calidad de datos” | **Baja-media** | Evitar castigar al usuario por una cámara oscura o mal colocada. Un puntaje mide la atención y otro la confiabilidad de la medición. |
 | Detectar cámara tapada o desenfocada | **Baja** | Avisar si la imagen es casi uniforme, está completamente oscura o perdió demasiada nitidez. |
 | Detectar congelamiento de imagen | **Baja-media** | Comparar fotogramas consecutivos para identificar si la cámara dejó de actualizarse. |
-| Registrar caídas de FPS | **Baja** | Medir si el equipo procesa menos fotogramas de los esperados. |
+| Registrar caídas de FPS | **Baja** | Integrado en `main` con ventanas de al menos dos segundos, umbral de 12 FPS, duración y conteo de episodios. |
 | Registrar errores de cámara | **Baja** | Guardar desconexiones, cambios de dispositivo y fallos de captura. |
 
 ## Métricas y resúmenes de sesión
@@ -210,8 +212,8 @@ Las siguientes funciones ofrecen mucho valor y no dependen todavía de un modelo
 10. Crear un dashboard histórico inicial.
 11. Exportar tablas y resúmenes básicos a Excel.
 12. Mostrar una línea temporal de alarmas, ausencias y problemas de cámara.
-13. Mejorar los gráficos de Excel con títulos, etiquetas, unidades y explicaciones que permitan entenderlos por sí solos.
-14. Permitir seleccionar parlantes u otra salida de audio y reproducir una alarma de prueba desde Configuración.
+13. Mejorar los gráficos de Excel con títulos, etiquetas, unidades y explicaciones que permitan entenderlos por sí solos. **Integrado en `main`.**
+14. Permitir seleccionar parlantes u otra salida de audio y reproducir una alarma de prueba desde Configuración. **Integrado en `main`.**
 
 Estas características crean la infraestructura necesaria para añadir después métricas más avanzadas sin tener que rehacer el almacenamiento y los dashboards.
 
@@ -611,16 +613,16 @@ Prioridad alta porque desbloquea los dashboards y evita rehacer el almacenamient
 
 ## Etapa 2: Dashboard inicial
 
-1. Rediseñar el monitoreo en vivo.
-2. Ampliar el resumen de sesión con las futuras métricas de calidad, fatiga y atención. El resumen básico al detener el monitoreo está integrado en `main`.
+1. Rediseñar el monitoreo en vivo. **Integrado en `main`.**
+2. Ampliar el resumen de sesión con métricas de calidad, cobertura, estabilidad de FPS e indicadores oculares. **Integrado en `main`.**
 3. Crear el análisis histórico básico con duración promedio. **Integrado en `main`.**
 4. Añadir filtros por fecha, conductor y vehículo. **Integrado en `main`.**
 5. Mostrar sesiones por día, semana y mes. **Integrado en `main`.**
 6. Mostrar horas de mayor uso. **Integrado en `main`.**
 7. Exportar sesiones, eventos y resúmenes a Excel. **Integrado en `main`.** Los gráficos editables de sesiones, alarmas y gravedad están implementados.
 8. Mostrar alarmas por hora, tiempo entre alarmas, gravedad y línea temporal de la sesión. **Integrado en `main`.**
-9. Mejorar los gráficos de Excel para que incluyan contexto, unidades, leyendas y conclusiones comprensibles sin consultar las tablas. **Pendiente.**
-10. Seleccionar y probar la salida de audio para la alarma, conservar la preferencia y usar la salida predeterminada como respaldo. **Pendiente.**
+9. Mejorar los gráficos de Excel para que incluyan contexto, unidades, leyendas y conclusiones comprensibles sin consultar las tablas. **Integrado en `main`.**
+10. Seleccionar y probar la salida de audio para la alarma, conservar la preferencia y usar la salida predeterminada como respaldo. **Integrado en `main`.**
 
 ## Etapa 3: Puntos faciales y métricas de fatiga
 
@@ -636,12 +638,12 @@ Prioridad alta porque desbloquea los dashboards y evita rehacer el almacenamient
 
 ## Etapa 4: Puntajes y personalización
 
-1. Crear el puntaje de calidad de detección.
+1. Crear el puntaje de calidad de detección. **Integrado en `main`** con fotogramas analizables, cobertura facial y estabilidad de FPS.
 2. Crear una primera fórmula de atención.
 3. Mostrar las razones del puntaje.
 4. Crear promedios personales.
 5. Permitir calibración por conductor.
-6. Comparar sesiones y detectar tendencias.
+6. Comparar sesiones y detectar tendencias. **Integrado parcialmente en `main`** mediante comparaciones entre períodos de igual duración; queda pendiente detectar tendencias de atención a más largo plazo.
 
 ## Etapa 5: Seguridad y funciones avanzadas
 
