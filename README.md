@@ -159,9 +159,9 @@ de cierre ocular ni la alarma y no es un diagnóstico médico. Todavía requiere
 personas, cámaras e iluminación. Consulta [Personalización por conductor](docs/personalizacion_conductor.md)
 para conocer las reglas y las pruebas recomendadas. La función está integrada en `main` mediante el PR #17.
 
-## Confiabilidad explicable de los eventos (rama de descarga)
+## Confiabilidad explicable de los eventos
 
-La rama `descarga/confianza-eventos-calidad` asigna a cada evento nuevo una confiabilidad de 0 a 100
+La aplicación asigna a cada evento nuevo una confiabilidad de 0 a 100
 y la clasifica como alta, media o baja. La estimación combina la persistencia temporal con las métricas
 que corresponden al detector: calidad y cobertura ocular para cierres y alarmas, cobertura facial para
 cabeceos, y continuidad de captura y estabilidad de FPS para problemas de entorno o cámara.
@@ -170,7 +170,7 @@ El resumen final explica qué redujo la confiabilidad general. El historial, la 
 muestran el puntaje y las advertencias de cada evento. Las sesiones anteriores permanecen como
 «sin medición» y los detectores futuros pueden conservar una evaluación propia. El puntaje describe la
 calidad de los datos disponibles; no es la probabilidad médica de que exista fatiga. Consulta
-[Confiabilidad de eventos](docs/confiabilidad_eventos.md). Esta propuesta todavía no está integrada en `main`.
+[Confiabilidad de eventos](docs/confiabilidad_eventos.md). La función está integrada en `main` mediante el PR #18.
 
 ## Salida de audio de la alarma
 
