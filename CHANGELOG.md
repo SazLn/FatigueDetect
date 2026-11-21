@@ -2,13 +2,21 @@
 
 ## Sin publicar
 
-### Propuesta en `descarga/personalizacion-conductor`
+### Propuesta en `descarga/confianza-eventos-calidad`
+
+- Añade una evaluación explicable de 0 a 100 para cada evento nuevo, con niveles alto, medio y bajo.
+- Combina persistencia temporal, calidad y cobertura ocular o facial, estabilidad de FPS y continuidad de captura según el tipo de evento.
+- Muestra advertencias concretas en el resumen final, historial, línea temporal y Excel. Las sesiones anteriores quedan como «sin medición».
+- Persiste la evaluación versionada en SQLite y conserva evaluaciones proporcionadas por detectores futuros.
+- Incluye migración compatible, compilación Release y 49 comprobaciones automáticas. Falta validación manual con cámara Windows; la propuesta no está integrada en `main`.
+
+### Personalización por conductor integrada en `main` mediante el PR #17
 
 - Añade una línea base local por cédula para parpadeos por minuto, PERCLOS y atención; queda calibrada tras tres sesiones de referencia y 180 segundos o más de observación ocular acumulada.
 - Exige sesiones de al menos 60 segundos, calidad 70/100, cobertura ocular del 60 % y ausencia de alarmas, microsueños y cierres anómalos para aprender del conductor.
 - Compara sesiones nuevas contra el promedio personal y usa la variación observada para detectar cambios anormales. Las sesiones anómalas no desplazan la línea base.
 - Guarda perfiles y comparaciones en SQLite, los muestra en los resúmenes y exporta la hoja **Comparación personal**. Al borrar el historial también se eliminan los perfiles derivados.
-- Incluye 42 comprobaciones automáticas y compilación Release sin advertencias. Falta validación manual con cámara Windows y distintos conductores; la propuesta no está integrada en `main`.
+- Incluye 42 comprobaciones automáticas y compilación Release sin advertencias. La validación manual inicial con cámara fue confirmada antes de integrar el PR #17; aún conviene ampliar las pruebas a más conductores y condiciones.
 
 - Se integraron en `main` el puntaje experimental de atención, los descuentos por factor, el primer síntoma, el minuto de menor puntaje y la tendencia. La calidad y la cobertura condicionan la disponibilidad; distracción sigue pendiente del detector del colaborador.
 - El informe final y la consulta histórica incluyen evolución, respuesta ocular y recuperación frontal tras alarmas. Las interrupciones dejan la recuperación sin confirmar.

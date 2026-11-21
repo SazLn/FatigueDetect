@@ -35,14 +35,17 @@ namespace FatigueDetect.Presentacion
                 contenido.Controls.Add(scroll, 0, 2);
             }
 
-            var tabla = DashboardHistorial.CrearTabla("Evento", "Gravedad", "Inicio", "Fin", "Duración (s)", "Desde alarma anterior (s)");
+            var tabla = DashboardHistorial.CrearTabla("Evento", "Gravedad", "Inicio", "Fin", "Duración (s)",
+                "Desde alarma anterior (s)", "Confiabilidad", "Explicación");
             var intervalos = ResumenHistorial.IntervalosEntreAlertas(sesion, eventos)
                 .ToDictionary<IntervaloAlerta, EventoSesion, double>(i => i.Alarma, i => i.Segundos, ReferenceEqualityComparer.Instance);
             foreach (EventoSesion evento in eventos)
                 tabla.Rows.Add(PaginaHistorial.NombreEvento(evento), ResumenHistorial.Gravedad(evento.Tipo),
                     evento.Inicio.LocalDateTime.ToString("HH:mm:ss.fff"), evento.Fin?.LocalDateTime.ToString("HH:mm:ss.fff"),
                     evento.DuracionMilisegundos / 1000.0,
-                    intervalos.TryGetValue(evento, out double intervalo) ? intervalo : null);
+                    intervalos.TryGetValue(evento, out double intervalo) ? intervalo : null,
+                    evento.Confiabilidad?.Puntaje is double puntaje ? $"{puntaje:0}/100 · {evento.Confiabilidad.Nivel}" : "Sin medición",
+                    evento.Confiabilidad is { } confianza ? string.Join(" ", confianza.Advertencias) : "Sesión anterior");
             contenido.Controls.Add(tabla, 0, 3);
             Controls.Add(contenido);
         }

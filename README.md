@@ -144,9 +144,9 @@ La validación manual confirmó el funcionamiento básico con cámara e interfaz
 y sus umbrales aún requieren calibración con más personas y condiciones. Los límites, la integración y las pruebas se explican en
 [Atención y resúmenes](docs/atencion_y_resumenes.md).
 
-## Personalización por conductor (rama de descarga)
+## Personalización por conductor
 
-La rama `descarga/personalizacion-conductor` añade una línea base local e independiente por cédula.
+La aplicación mantiene una línea base local e independiente por cédula.
 Después de tres sesiones válidas de al menos 60 segundos de medición ocular, compara los parpadeos
 por minuto, PERCLOS y atención de cada sesión con el comportamiento personal. El resumen final,
 el historial y la hoja **Comparación personal** del Excel explican las diferencias y señalan cambios
@@ -157,7 +157,20 @@ cobertura ocular mínima del 60 % y sin alarmas, microsueños ni cierres anómal
 un cambio anormal se muestra pero no modifica el perfil. Esta comparación no cambia los umbrales físicos
 de cierre ocular ni la alarma y no es un diagnóstico médico. Todavía requiere validación manual con varias
 personas, cámaras e iluminación. Consulta [Personalización por conductor](docs/personalizacion_conductor.md)
-para conocer las reglas y las pruebas recomendadas. Esta propuesta aún no está integrada en `main`.
+para conocer las reglas y las pruebas recomendadas. La función está integrada en `main` mediante el PR #17.
+
+## Confiabilidad explicable de los eventos (rama de descarga)
+
+La rama `descarga/confianza-eventos-calidad` asigna a cada evento nuevo una confiabilidad de 0 a 100
+y la clasifica como alta, media o baja. La estimación combina la persistencia temporal con las métricas
+que corresponden al detector: calidad y cobertura ocular para cierres y alarmas, cobertura facial para
+cabeceos, y continuidad de captura y estabilidad de FPS para problemas de entorno o cámara.
+
+El resumen final explica qué redujo la confiabilidad general. El historial, la línea temporal y Excel
+muestran el puntaje y las advertencias de cada evento. Las sesiones anteriores permanecen como
+«sin medición» y los detectores futuros pueden conservar una evaluación propia. El puntaje describe la
+calidad de los datos disponibles; no es la probabilidad médica de que exista fatiga. Consulta
+[Confiabilidad de eventos](docs/confiabilidad_eventos.md). Esta propuesta todavía no está integrada en `main`.
 
 ## Salida de audio de la alarma
 

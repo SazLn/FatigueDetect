@@ -39,6 +39,7 @@ namespace FatigueDetect.Logica
         public void Finalizar(SesionConduccion sesion)
         {
             sesion.Fin = DateTime.Now;
+            AnalisisConfiabilidadEvento.Completar(sesion);
             PerfilPersonalConductor? perfil = repositorio.LeerPerfilPersonal(sesion.Conductor.Cedula);
             var resultado = PersonalizacionConductor.Procesar(perfil, sesion, DateTimeOffset.Now);
             sesion.ComparacionPersonal = resultado.Comparacion;

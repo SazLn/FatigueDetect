@@ -45,9 +45,10 @@ namespace FatigueDetect.Presentacion
                 detalle.Column(columna).Style.NumberFormat.Format = "0.00%";
 
             var eventos = CrearHoja(libro, "Eventos", "ID de sesión", "Tipo", "Inicio local",
-                "Fin local", "Duración (s)", "Gravedad", "Desde alarma anterior (s)");
+                "Fin local", "Duración (s)", "Gravedad", "Desde alarma anterior (s)",
+                "Confiabilidad (0–100)", "Nivel de confiabilidad", "Explicación de confiabilidad");
             eventos.Columns(3, 4).Style.DateFormat.Format = "yyyy-mm-dd hh:mm:ss.000";
-            FormatoDecimal(eventos, 5, 7);
+            FormatoDecimal(eventos, 5, 7, 8);
 
             var tipos = CrearHoja(libro, "Resumen de eventos", "ID de sesión", "Tipo", "Cantidad",
                 "Duración total (s)", "Duración máxima (s)", "Sin duración", "Gravedad");
@@ -93,7 +94,9 @@ namespace FatigueDetect.Presentacion
                     Escribir(eventos, filaEvento++, id, PaginaHistorial.NombreEvento(evento),
                         evento.Inicio.LocalDateTime, evento.Fin?.LocalDateTime, evento.DuracionMilisegundos / 1000.0,
                         ResumenHistorial.Gravedad(evento.Tipo).ToString(),
-                        intervalos.TryGetValue(evento, out double intervalo) ? intervalo : null);
+                        intervalos.TryGetValue(evento, out double intervalo) ? intervalo : null,
+                        evento.Confiabilidad?.Puntaje, evento.Confiabilidad?.Nivel ?? "Sin medición",
+                        evento.Confiabilidad is { } confianza ? string.Join(" ", confianza.Advertencias) : "Sesión anterior");
 
                 foreach (ResumenEvento tipo in ResumenHistorial.PorTipo(sesion, registrados))
                     Escribir(tipos, filaTipo++, id, PaginaHistorial.NombreEvento(tipo.Tipo), tipo.Cantidad,

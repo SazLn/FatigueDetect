@@ -29,10 +29,11 @@
 | Parpadeos, cierres prolongados y PERCLOS | Integrado en `main` | Conteos, PERCLOS de 60 s en vivo y acumulado por sesión. |
 | Métricas oculares avanzadas | Integrado en `main` | Parpadeos por minuto y por duración, cierres anómalos, microsueños, tiempos cerrados, diferencia entre ojos y evolución de PERCLOS. |
 | Ángulos de cabeza y posibles cabeceos | Integrado en `main` | Tres ángulos en vivo y registro de descenso con retorno a la postura neutra. |
-| Resto de propuestas | Pendiente | Incluye bostezos, mirada, distracción y análisis histórico avanzado más allá de la comparación personal propuesta en la rama de descarga. |
+| Resto de propuestas | Pendiente | Incluye bostezos, mirada, distracción y análisis histórico avanzado más allá de la comparación personal. |
 | Atención y resúmenes avanzados | Integrado en `main` | Puntaje experimental, descuentos, primer síntoma, minuto de menor puntaje, tendencia, respuesta y recuperación tras alarmas, informe y evolución. Pendiente calibración e integración del detector de distracción. |
 | Línea temporal extensible | Integrado en `main` | Pistas desplazables para todos los tipos registrados y conservación de códigos de eventos futuros. |
-| Personalización por conductor | Implementado en rama de descarga | `descarga/personalizacion-conductor` calibra una línea base tras tres sesiones válidas, compara PERCLOS, parpadeos y atención, persiste el perfil y evita aprender de cambios anormales. Pendiente validar con cámara y decidir su integración. |
+| Personalización por conductor | Integrado en `main` | Calibra una línea base tras tres sesiones válidas, compara PERCLOS, parpadeos y atención, persiste el perfil y evita aprender de cambios anormales. Integrado mediante el PR #17. |
+| Confiabilidad explicable por evento | Implementado en rama de descarga | `descarga/confianza-eventos-calidad` puntúa la evidencia de cada evento y explica las limitaciones de persistencia, cobertura, FPS o captura. Pendiente validar con cámara y decidir su integración. |
 
 La medición facial fue validada de forma inicial con una cámara Windows. La calibración de umbrales y las pruebas con más cámaras, iluminación y personas siguen pendientes.
 Las métricas oculares avanzadas también fueron validadas manualmente con cámara y están integradas en `main`. Su calibración con más cámaras, condiciones de iluminación y personas sigue pendiente.
@@ -156,7 +157,7 @@ La dificultad de programar una función y la dificultad de hacerla confiable no 
 |---|---:|---|
 | Puntaje de calidad de la imagen | **Baja-media** | Integrado parcialmente en `main` como puntaje de calidad de detección basado en fotogramas analizables, cobertura facial y estabilidad de FPS. Queda pendiente incorporar brillo, contraste, nitidez y posición. |
 | Porcentaje de fotogramas analizables | **Baja** | Medir en qué proporción de la sesión el rostro y los ojos estuvieron disponibles para el análisis. |
-| Confianza de cada evento | **Media** | Guardar qué tan seguro está el sistema de que ocurrió un cabeceo, parpadeo o distracción. |
+| Confianza de cada evento | **Media** | Implementada en `descarga/confianza-eventos-calidad` como confiabilidad de los datos, con puntaje, factores y advertencias. No se presenta como probabilidad médica. |
 | Separar “atención” de “calidad de datos” | **Baja-media** | Evitar castigar al usuario por una cámara oscura o mal colocada. Un puntaje mide la atención y otro la confiabilidad de la medición. |
 | Detectar cámara tapada o desenfocada | **Baja** | Avisar si la imagen es casi uniforme, está completamente oscura o perdió demasiada nitidez. |
 | Detectar congelamiento de imagen | **Baja-media** | Comparar fotogramas consecutivos para identificar si la cámara dejó de actualizarse. |
@@ -181,11 +182,11 @@ La dificultad de programar una función y la dificultad de hacerla confiable no 
 
 | Característica | Dificultad | Descripción sencilla |
 |---|---:|---|
-| Comparar sesiones del mismo conductor | **Baja-media** | Implementado en la rama de descarga para PERCLOS, parpadeos por minuto y atención, con perfil separado por cédula. |
-| Promedio personal de parpadeos | **Media** | Implementado en la rama de descarga como promedio ponderado por tiempo ocular válido. |
-| Umbrales personalizados | **Media** | Implementado parcialmente en la rama de descarga para detectar desviaciones respecto al perfil; no cambia los umbrales físicos de cierre ni alarma. |
-| Comparar sesión actual con el promedio personal | **Media** | Implementado en la rama de descarga para PERCLOS, parpadeos y atención. Cabeza y distracción se incorporarán cuando sus detectores aporten métricas. |
-| Detectar cambios anormales | **Media-alta** | Implementado de forma experimental en la rama de descarga con mínimos absolutos y variación personal. Pendiente calibración con usuarios reales. |
+| Comparar sesiones del mismo conductor | **Baja-media** | Integrado en `main` para PERCLOS, parpadeos por minuto y atención, con perfil separado por cédula. |
+| Promedio personal de parpadeos | **Media** | Integrado en `main` como promedio ponderado por tiempo ocular válido. |
+| Umbrales personalizados | **Media** | Integrado parcialmente en `main` para detectar desviaciones respecto al perfil; no cambia los umbrales físicos de cierre ni alarma. |
+| Comparar sesión actual con el promedio personal | **Media** | Integrado en `main` para PERCLOS, parpadeos y atención. Cabeza y distracción se incorporarán cuando sus detectores aporten métricas. |
+| Detectar cambios anormales | **Media-alta** | Integrado de forma experimental en `main` con mínimos absolutos y variación personal. Pendiente calibración con usuarios reales. |
 | Sesiones más seguras y más riesgosas | **Baja** | Ordenar sesiones por puntaje, alertas o gravedad. |
 | Comparar por vehículo | **Baja-media** | Analizar si la fatiga o las distracciones cambian según el vehículo registrado. |
 | Comparar por hora o franja del día | **Baja** | Identificar si hay más riesgo en la mañana, tarde, noche o madrugada. |
@@ -650,9 +651,10 @@ Prioridad alta porque desbloquea los dashboards y evita rehacer el almacenamient
 1. Crear el puntaje de calidad de detección. **Integrado en `main`** con fotogramas analizables, cobertura facial y estabilidad de FPS.
 2. Crear una primera fórmula de atención. **Integrado en `main`**, pendiente calibración y datos de distracción del colaborador.
 3. Mostrar las razones del puntaje. **Integrado en `main`** en informe y Excel.
-4. Crear promedios personales.
-5. Permitir calibración por conductor.
-6. Comparar sesiones y detectar tendencias. **Integrado parcialmente en `main`** mediante comparaciones entre períodos de igual duración; queda pendiente detectar tendencias de atención a más largo plazo.
+4. Crear promedios personales. **Integrado en `main`** para parpadeos, PERCLOS y atención mediante el PR #17.
+5. Permitir calibración por conductor. **Integrado en `main`** como línea base automática después de tres sesiones válidas; no modifica los umbrales físicos de alarma.
+6. Comparar sesiones y detectar tendencias. **Integrado parcialmente en `main`** mediante períodos equivalentes y comparación contra el promedio personal; queda pendiente detectar tendencias de atención a más largo plazo.
+7. Explicar la confiabilidad de cada evento. **Implementado en `descarga/confianza-eventos-calidad`**, pendiente de prueba manual y decisión de integración.
 
 ## Etapa 5: Seguridad y funciones avanzadas
 
