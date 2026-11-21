@@ -1,7 +1,7 @@
-# Atención y resúmenes: propuesta para descarga
+# Atención y resúmenes
 
-Rama: `descarga/atencion-y-resumenes`, basada en `main` después del PR #14.
-No está integrada en `main`. El bloque de cabeza, postura y distracción pertenece al colaborador.
+Integrado en `main` mediante el PR #15 después de la validación manual.
+El bloque de cabeza, postura y distracción pertenece al colaborador.
 
 ## Comportamiento disponible
 
@@ -87,8 +87,8 @@ compatibilidad con una base sin AtencionSesiones, persistencia, códigos futuros
 y exportación con sesiones nuevas, antiguas y selección vacía. El exportador se ejecuta sin interfaz
 mediante un adaptador de nombres de eventos; la app completa se compila para Windows.
 
-Pendiente antes de integrar: cámara y presentación Windows, calibración de fórmula y umbrales,
-integración real de distracción y validación con distintas personas, gafas, cámaras e iluminación.
+Pendiente después de integrar: calibración de fórmula y umbrales, integración real de distracción
+y validación ampliada con distintas personas, gafas, cámaras e iluminación.
 
 ## Prueba manual con cámara Windows
 
