@@ -2,6 +2,11 @@
 
 ## Sin publicar
 
+- Añade selección persistente y prueba de salidas de audio de Windows para la alarma.
+- Rediseña el monitoreo, muestra FPS recientes y registra caídas, cobertura y un puntaje de calidad.
+- Amplía el resumen con indicadores oculares y métricas de calidad. El historial incorpora filtros por alarmas y calidad y una comparación entre períodos equivalentes.
+- Añade títulos, ejes con unidades, leyendas, contexto y conclusiones a los gráficos editables de Excel.
+
 - Se integraron en `main` las métricas oculares avanzadas: parpadeos por minuto y sus duraciones mínima, promedio y máxima, además de la separación entre parpadeos cortos, prolongados, cierres anómalos y posibles microsueños.
 - Guarda el cierre y el microsueño más largos, el tiempo total con ojos cerrados, la diferencia promedio entre ojos y la evolución de PERCLOS cada 10 segundos.
 - Las nuevas métricas aparecen en vivo, en el resumen final, el historial y Excel. SQLite migra las sesiones existentes y conserva como desconocido el detalle que no se midió anteriormente.

@@ -127,6 +127,10 @@ conservan las métricas disponibles y muestran el detalle nuevo como «sin medic
 confirmó el funcionamiento de estas métricas. La clasificación y los umbrales aún deben calibrarse con distintas
 cámaras, condiciones de iluminación y personas.
 
+## Salida de audio de la alarma
+
+En **Configuración → Salida de audio de la alarma**, elige una salida de Windows, como parlantes, audífonos o Bluetooth. **Probar** reproduce la alarma durante dos segundos en la salida elegida. **Actualizar** vuelve a consultar los dispositivos y **Guardar cambios** conserva la selección. Si la salida guardada falla durante el monitoreo, el programa intenta reproducir el sonido en la salida predeterminada de Windows.
+
 ## Calidad de sesión, estadísticas y Excel
 
 El detalle de una sesión nueva muestra:
@@ -138,11 +142,15 @@ El detalle de una sesión nueva muestra:
 
 Las sesiones anteriores conservan sus datos y muestran «Calidad: sin medición».
 
-En **Historial de sesiones**, filtra por fecha inicial y final inclusivas, nombre o cédula, y placa o tipo de vehículo. La tabla, las estadísticas y el Excel usan esa misma selección. Selecciona una sesión y pulsa **Ver línea temporal** para ver la hora y duración de cada episodio. Las alarmas antiguas sin hora se indican con un recuento.
+El monitoreo muestra los FPS de procesamiento en ventanas de al menos dos segundos y avisa cuando bajan de 12 FPS. Las ventanas bajas consecutivas cuentan como un solo episodio. La pausa excluye ese tiempo del cálculo. El puntaje de calidad (0–100) combina fotogramas analizables (45 %), cobertura facial (35 %) y la proporción del tiempo evaluado con FPS suficientes (20 %). Las sesiones previas conservan sus métricas, con el nuevo puntaje vacío cuando falta la medición de estabilidad.
+
+El resumen final muestra el tiempo con FPS bajos, la cobertura y un indicador ocular de atención (1 − PERCLOS). El indicador expresa la proporción del tiempo ocular válido con ojos abiertos. Su cobertura indica cuánto de la sesión activa pudo evaluarse.
+
+En **Historial de sesiones**, filtra por fecha inicial y final inclusivas, nombre o cédula, placa o tipo de vehículo, presencia de alarmas, puntaje y caídas de FPS. La tabla, las estadísticas y el Excel usan esa selección. En **Estadísticas → Comparar períodos**, compara el rango elegido o una ventana de 7, 30 o 90 días con un período anterior de igual duración. Ambos períodos aplican los mismos filtros de conductor, vehículo, alarmas y calidad. Selecciona una sesión y pulsa **Ver línea temporal** para ver la hora y duración de cada episodio. Las alarmas antiguas sin hora se indican con un recuento.
 
 En **Historial de sesiones → Estadísticas**, consulta el total de sesiones y su duración promedio, con desgloses por día, semana, mes y hora de inicio. Se usa la hora local, las semanas comienzan el lunes y las franjas horarias se ordenan por número de sesiones. El promedio usa las sesiones con hora de finalización. Las alarmas por hora se cuentan según su hora local de inicio. El intervalo entre alarmas usa inicios consecutivos dentro de una misma sesión con todas sus horas registradas. La gravedad es **alta** para alarmas, **media** para posibles cierres prolongados y problemas de cámara, y **baja** para avisos de encuadre o iluminación.
 
-En **Historial de sesiones → Exportar Excel**, elige dónde guardar el archivo .xlsx. Contiene el resumen general, las sesiones con métricas de calidad y fatiga, la evolución de PERCLOS, los eventos con hora, el resumen de eventos por sesión y los desgloses históricos. Los ID de sesión vinculan las hojas. El libro incluye gráficos editables de sesiones, alarmas por hora y eventos por gravedad, vinculados a los datos de sus hojas. Los gráficos por periodo muestran hasta 24 filas. La tabla conserva todos los periodos. Las celdas correspondientes a valores desconocidos quedan vacías. El archivo incluye los datos personales que aparecen en el historial.
+En **Historial de sesiones → Exportar Excel**, elige dónde guardar el archivo .xlsx. Contiene el resumen general, las sesiones con métricas de calidad y fatiga, la evolución de PERCLOS, los eventos con hora, el resumen de eventos por sesión y los desgloses históricos. Los ID de sesión vinculan las hojas. El libro incluye gráficos editables de sesiones, alarmas por hora y eventos por gravedad, vinculados a los datos de sus hojas. Los gráficos incluyen títulos, unidades, leyendas, contexto y conclusiones calculadas a partir de los datos. Los gráficos temporales muestran hasta 24 periodos recientes con sesiones, en orden cronológico. La tabla conserva todos los periodos. Las celdas correspondientes a valores desconocidos quedan vacías. El archivo incluye los datos personales que aparecen en el historial.
 
 ## Identificación biométrica experimental
 

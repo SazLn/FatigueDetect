@@ -47,7 +47,8 @@ namespace FatigueDetect.Datos
                        Parpadeos, CierresProlongados, Cabeceos, TiempoOcularValidoMs, TiempoOcularCerradoMs,
                        VersionOcular, ParpadeosCortos, ParpadeosProlongados, CierresAnomalos,
                        DuracionParpadeosTotalMs, DuracionParpadeoMinMs, DuracionParpadeoMaxMs,
-                       CierreMasLargoMs, MicrosuenoMasLargoMs, DiferenciaAperturaPromedio
+                       CierreMasLargoMs, MicrosuenoMasLargoMs, DiferenciaAperturaPromedio,
+                       CaidasFps, TiempoFpsBajoMs, TiempoEvaluadoFpsMs
                 FROM Sesiones LEFT JOIN CalidadSesiones ON CalidadSesiones.SesionId = Sesiones.Id
                 LEFT JOIN MetricasFatigaSesiones ON MetricasFatigaSesiones.SesionId = Sesiones.Id
                 ORDER BY InicioUtcMs DESC, Id;
@@ -69,7 +70,8 @@ namespace FatigueDetect.Datos
                         Fin = lector.IsDBNull(7) ? null : LeerInstante(lector, 7).LocalDateTime,
                         CantidadAlarmas = lector.GetInt32(8),
                         Calidad = lector.IsDBNull(9) ? null : new CalidadSesion(lector.GetInt64(9),
-                            lector.GetInt64(10), lector.GetInt64(11), lector.GetInt64(12), lector.GetInt64(13)),
+                            lector.GetInt64(10), lector.GetInt64(11), lector.GetInt64(12), lector.GetInt64(13),
+                            LeerEnteroOpcional(lector, 29), LeerEnteroOpcional(lector, 30), LeerEnteroOpcional(lector, 31)),
                         MetricasFatiga = lector.IsDBNull(14) ? null : new MetricasFatiga(lector.GetInt32(14),
                             lector.GetInt32(15), lector.GetInt32(16), lector.GetInt64(17), lector.GetInt64(18),
                             lector.GetInt32(19), lector.GetInt32(20), lector.GetInt32(21), lector.GetInt32(22),
@@ -212,6 +214,8 @@ namespace FatigueDetect.Datos
                 """);
             esquema.ExecuteNonQuery();
             AsegurarColumnasMetricasFatiga(conexion, transaccion);
+            AsegurarColumnas(conexion, transaccion, "CalidadSesiones",
+                [("CaidasFps", "INTEGER"), ("TiempoFpsBajoMs", "INTEGER"), ("TiempoEvaluadoFpsMs", "INTEGER")]);
 
             using SqliteCommand marca = CrearComando(conexion, transaccion,
                 "INSERT OR IGNORE INTO Migraciones (Nombre) VALUES ('historial_csv_v1');");
@@ -247,8 +251,9 @@ namespace FatigueDetect.Datos
             {
                 using SqliteCommand mediciones = CrearComando(conexion, transaccion, """
                     INSERT INTO CalidadSesiones
-                        (SesionId, Fotogramas, Analizables, TiempoActivoMs, TiempoRostroValidoMs, FallosCamara)
-                    VALUES ($id, $fotogramas, $analizables, $activo, $rostro, $fallos);
+                        (SesionId, Fotogramas, Analizables, TiempoActivoMs, TiempoRostroValidoMs, FallosCamara,
+                         CaidasFps, TiempoFpsBajoMs, TiempoEvaluadoFpsMs)
+                    VALUES ($id, $fotogramas, $analizables, $activo, $rostro, $fallos, $caidas, $fpsBajo, $fpsEvaluado);
                     """);
                 mediciones.Parameters.AddWithValue("$id", sesion.Id.ToString());
                 mediciones.Parameters.AddWithValue("$fotogramas", calidad.Fotogramas);
@@ -256,6 +261,9 @@ namespace FatigueDetect.Datos
                 mediciones.Parameters.AddWithValue("$activo", calidad.TiempoActivoMs);
                 mediciones.Parameters.AddWithValue("$rostro", calidad.TiempoRostroValidoMs);
                 mediciones.Parameters.AddWithValue("$fallos", calidad.FallosCamara);
+                mediciones.Parameters.AddWithValue("$caidas", (object?)calidad.CaidasFps ?? DBNull.Value);
+                mediciones.Parameters.AddWithValue("$fpsBajo", (object?)calidad.TiempoFpsBajoMs ?? DBNull.Value);
+                mediciones.Parameters.AddWithValue("$fpsEvaluado", (object?)calidad.TiempoEvaluadoFpsMs ?? DBNull.Value);
                 mediciones.ExecuteNonQuery();
             }
 
@@ -334,15 +342,6 @@ namespace FatigueDetect.Datos
 
         private static void AsegurarColumnasMetricasFatiga(SqliteConnection conexion, SqliteTransaction transaccion)
         {
-            var existentes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            using (SqliteCommand consulta = CrearComando(conexion, transaccion,
-                "PRAGMA table_info(MetricasFatigaSesiones);"))
-            using (SqliteDataReader lector = consulta.ExecuteReader())
-            {
-                while (lector.Read())
-                    existentes.Add(lector.GetString(1));
-            }
-
             (string Nombre, string Definicion)[] columnas =
             [
                 ("VersionOcular", "INTEGER NOT NULL DEFAULT 0"),
@@ -356,15 +355,32 @@ namespace FatigueDetect.Datos
                 ("MicrosuenoMasLargoMs", "INTEGER NOT NULL DEFAULT 0"),
                 ("DiferenciaAperturaPromedio", "REAL")
             ];
+            AsegurarColumnas(conexion, transaccion, "MetricasFatigaSesiones", columnas);
+        }
+
+        private static void AsegurarColumnas(SqliteConnection conexion, SqliteTransaction transaccion,
+            string tabla, (string Nombre, string Definicion)[] columnas)
+        {
+            var existentes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            using (SqliteCommand consulta = CrearComando(conexion, transaccion, $"PRAGMA table_info({tabla});"))
+            using (SqliteDataReader lector = consulta.ExecuteReader())
+            {
+                while (lector.Read())
+                    existentes.Add(lector.GetString(1));
+            }
+
             foreach ((string nombre, string definicion) in columnas)
             {
                 if (existentes.Contains(nombre))
                     continue;
                 using SqliteCommand alteracion = CrearComando(conexion, transaccion,
-                    $"ALTER TABLE MetricasFatigaSesiones ADD COLUMN {nombre} {definicion};");
+                    $"ALTER TABLE {tabla} ADD COLUMN {nombre} {definicion};");
                 alteracion.ExecuteNonQuery();
             }
         }
+
+        private static long? LeerEnteroOpcional(SqliteDataReader lector, int columna) =>
+            lector.IsDBNull(columna) ? null : lector.GetInt64(columna);
 
         private static DateTimeOffset LeerInstante(SqliteDataReader lector, int columna) =>
             DateTimeOffset.FromUnixTimeMilliseconds(lector.GetInt64(columna));

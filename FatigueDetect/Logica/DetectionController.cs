@@ -154,6 +154,7 @@ namespace FatigueDetect.Logica
 
                 EyeState estado;
                 FatigaEnVivo lectura;
+                double? fpsRecientes;
                 EstadoIluminacion? avisoIluminacion;
                 TipoEventoSesion? avisoRostro;
                 lock (candadoEstado)
@@ -164,8 +165,8 @@ namespace FatigueDetect.Logica
                     registro.ObservarCamara(instante, indicio, avisoCalidad);
                     bool analisisDisponible = !indicio.HasValue;
                     bool rostroValido = analisisDisponible && rostros.Length == 1;
-                    calidad.RegistrarFotograma(rostroValido,
-                        rostroValido && iluminacion == EstadoIluminacion.Adecuada);
+                    calidad.RegistrarFotograma(rostroValido, medicion.HasValue);
+                    fpsRecientes = calidad.FpsRecientes;
 
                     lectura = fatiga.Observar(instante, medicion, drowsinessLogic.UmbralCierreProlongado);
                     estado = drowsinessLogic.Evaluar(lectura.CierreMs);
@@ -181,7 +182,7 @@ namespace FatigueDetect.Logica
                 var image = ImageUtils.MatToBitmap(frame);
                 try
                 {
-                    view.UpdateImage(image, estado, lectura.CierreMs, avisoIluminacion, avisoRostro, avisoCalidad, lectura);
+                    view.UpdateImage(image, estado, lectura.CierreMs, avisoIluminacion, avisoRostro, avisoCalidad, lectura, fpsRecientes);
                 }
                 catch (Exception) when (!running)
                 {

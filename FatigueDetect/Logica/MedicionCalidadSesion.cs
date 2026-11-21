@@ -5,6 +5,7 @@ namespace FatigueDetect.Logica
 {
     internal sealed class MedicionCalidadSesion
     {
+        private const long VentanaMs = 2000;
         private readonly Stopwatch reloj = new();
         private long fotogramas;
         private long analizables;
@@ -12,6 +13,13 @@ namespace FatigueDetect.Logica
         private long? ultimoRostroValido;
         private long fallos;
         private bool lecturaFallida;
+        private long inicioVentana;
+        private long fotogramasVentana;
+        private long tiempoEvaluado;
+        private long tiempoFpsBajo;
+        private long caidas;
+        public double? FpsRecientes { get; private set; }
+        public bool FpsBajos => FpsRecientes < CalidadSesion.UmbralFps;
 
         public void Reanudar() => reloj.Start();
 
@@ -20,6 +28,9 @@ namespace FatigueDetect.Logica
             reloj.Stop();
             ultimoRostroValido = null;
             lecturaFallida = false;
+            inicioVentana = reloj.ElapsedMilliseconds;
+            fotogramasVentana = 0;
+            FpsRecientes = null;
         }
 
         public void RegistrarFallo()
@@ -29,23 +40,47 @@ namespace FatigueDetect.Logica
 
             lecturaFallida = true;
             ultimoRostroValido = null;
+            EvaluarVentana(reloj.ElapsedMilliseconds);
         }
 
         public void RegistrarFotograma(bool rostroValido, bool analizable)
         {
+            long instante = reloj.ElapsedMilliseconds;
+            EvaluarVentana(instante);
             fotogramas++;
+            fotogramasVentana++;
             if (analizable)
                 analizables++;
 
             lecturaFallida = false;
-            long instante = reloj.ElapsedMilliseconds;
-            if (rostroValido && ultimoRostroValido is long anterior)
+            if (rostroValido && ultimoRostroValido is long anterior && instante - anterior <= 250)
                 tiempoRostroMs += instante - anterior;
 
             ultimoRostroValido = rostroValido ? instante : null;
         }
 
-        public CalidadSesion Resumen() =>
-            new(fotogramas, analizables, reloj.ElapsedMilliseconds, tiempoRostroMs, fallos);
+        private void EvaluarVentana(long instante)
+        {
+            long intervalo = instante - inicioVentana;
+            if (intervalo < VentanaMs)
+                return;
+
+            bool anteriorBajo = FpsBajos;
+            FpsRecientes = fotogramasVentana * 1000.0 / intervalo;
+            tiempoEvaluado += intervalo;
+            if (FpsBajos)
+            {
+                tiempoFpsBajo += intervalo;
+                if (!anteriorBajo)
+                    caidas++;
+            }
+
+            inicioVentana = instante;
+            fotogramasVentana = 0;
+        }
+
+        public CalidadSesion Resumen() => new(fotogramas, analizables, reloj.ElapsedMilliseconds,
+            tiempoRostroMs, fallos, tiempoEvaluado > 0 ? caidas : null,
+            tiempoEvaluado > 0 ? tiempoFpsBajo : null, tiempoEvaluado > 0 ? tiempoEvaluado : null);
     }
 }
