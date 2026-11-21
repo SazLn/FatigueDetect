@@ -110,6 +110,8 @@ try
         Verificar(libro.Worksheet("Evolución atención").LastRowUsed()!.RowNumber() == informe.Muestras.Count + 1, "Excel incluye muestras");
         Verificar(libro.Worksheet("Respuesta a alarmas").Cell(2, 3).GetDouble() == 1.1, "Excel conserva tiempos de respuesta");
         Verificar(libro.Worksheet("Eventos").Cell(2, 2).GetString() == "DistraccionFutura", "Excel conserva nombres futuros");
+        Verificar(libro.Worksheet("Comparación personal").LastRowUsed()!.RowNumber() == 3,
+            "Excel representa sesiones anteriores sin inventar comparación personal");
     }
     ExportadorHistorialExcel.Guardar(excel, Array.Empty<SesionConduccion>());
     using (var libro = new XLWorkbook(excel))
@@ -126,4 +128,77 @@ finally
     SqliteConnection.ClearAllPools();
     Directory.Delete(carpeta, true);
 }
-Console.WriteLine($"{comprobaciones} comprobaciones de atención, recuperación, SQLite y Excel correctas.");
+
+string carpetaPersonal = Path.Combine(Path.GetTempPath(), "fatiguedetect-personal-" + Guid.NewGuid().ToString("N"));
+Directory.CreateDirectory(carpetaPersonal);
+try
+{
+    var repo = new HistorialSqliteRepository(Path.Combine(carpetaPersonal, "historial.sqlite"),
+        Path.Combine(carpetaPersonal, "ausente.csv"));
+    PerfilPersonalConductor? perfil = null;
+    SesionConduccion CrearReferencia(int parpadeos, long cerradoMs, double atencion)
+    {
+        var muestra = new MuestraAtencion(instante.AddMinutes(parpadeos), 60_000, 60_000,
+            atencion, 100, false, Array.Empty<FactorAtencion>());
+        return new SesionConduccion
+        {
+            Conductor = new Conductor { Cedula = "  cc-123  ", Nombre = "Ana" },
+            Inicio = instante.LocalDateTime,
+            Fin = instante.AddMinutes(1).LocalDateTime,
+            Calidad = new CalidadSesion(1200, 1200, 60_000, 60_000, 0, 0, 0, 60_000),
+            MetricasFatiga = new MetricasFatiga(parpadeos, 0, 0, 60_000, cerradoMs, VersionMetricasOculares: 1),
+            Atencion = new InformeAtencion(1, null, [muestra], Array.Empty<RespuestaAlarma>())
+        };
+    }
+    void ProcesarYGuardar(SesionConduccion actual)
+    {
+        var resultado = PersonalizacionConductor.Procesar(perfil, actual, instante);
+        actual.ComparacionPersonal = resultado.Comparacion;
+        perfil = resultado.PerfilActualizado;
+        repo.Guardar(actual, perfil);
+    }
+
+    var primera = CrearReferencia(12, 6_000, 90);
+    var segunda = CrearReferencia(13, 6_600, 91);
+    var tercera = CrearReferencia(11, 5_400, 89);
+    ProcesarYGuardar(primera);
+    ProcesarYGuardar(segunda);
+    ProcesarYGuardar(tercera);
+    Verificar(perfil is { Calibrado: true, SesionesValidas: 3 }, "Perfil calibrado después de tres referencias válidas");
+    Verificar(tercera.ComparacionPersonal is { PerfilCalibradoAntes: false, PerfilCalibradoDespues: true },
+        "La tercera sesión completa la calibración sin compararse retroactivamente");
+
+    var normal = CrearReferencia(12, 6_300, 90);
+    ProcesarYGuardar(normal);
+    Verificar(normal.ComparacionPersonal is { PerfilCalibradoAntes: true, CambioAnormal: false, IncorporadaAlPerfil: true },
+        "Sesión normal comparada e incorporada");
+    Verificar(perfil?.SesionesValidas == 4, "La referencia normal amplía el perfil");
+
+    var anomala = CrearReferencia(12, 21_000, 60);
+    ProcesarYGuardar(anomala);
+    Verificar(anomala.ComparacionPersonal is { PerclosAnormal: true, AtencionAnormal: true, IncorporadaAlPerfil: false },
+        "PERCLOS y atención anormales detectados");
+    Verificar(perfil?.SesionesValidas == 4, "Una sesión anómala no desplaza la línea base");
+
+    PerfilPersonalConductor? persistido = repo.LeerPerfilPersonal("CC-123");
+    Verificar(persistido is { Calibrado: true, SesionesValidas: 4 }, "Perfil persistente normalizado por cédula");
+    var leidas = repo.LeerTodas();
+    Verificar(leidas.Single(s => s.Id == anomala.Id).ComparacionPersonal?.PerclosAnormal == true,
+        "Comparación personal persiste con la sesión");
+    string excel = Path.Combine(carpetaPersonal, "personal.xlsx");
+    ExportadorHistorialExcel.Guardar(excel, leidas);
+    using (var libro = new XLWorkbook(excel))
+    {
+        var hoja = libro.Worksheet("Comparación personal");
+        Verificar(hoja.LastRowUsed()!.RowNumber() == leidas.Count + 1, "Excel incluye todas las comparaciones personales");
+        Verificar(hoja.RowsUsed().Any(f => f.Cell(19).GetString() == "Sí"), "Excel identifica PERCLOS anormal");
+    }
+    repo.Borrar();
+    Verificar(repo.LeerPerfilPersonal("CC-123") is null, "Borrar historial elimina la línea base derivada");
+}
+finally
+{
+    SqliteConnection.ClearAllPools();
+    Directory.Delete(carpetaPersonal, true);
+}
+Console.WriteLine($"{comprobaciones} comprobaciones de atención, personalización, SQLite y Excel correctas.");

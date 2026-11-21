@@ -2,6 +2,14 @@
 
 ## Sin publicar
 
+### Propuesta en `descarga/personalizacion-conductor`
+
+- Añade una línea base local por cédula para parpadeos por minuto, PERCLOS y atención; queda calibrada tras tres sesiones de referencia y 180 segundos o más de observación ocular acumulada.
+- Exige sesiones de al menos 60 segundos, calidad 70/100, cobertura ocular del 60 % y ausencia de alarmas, microsueños y cierres anómalos para aprender del conductor.
+- Compara sesiones nuevas contra el promedio personal y usa la variación observada para detectar cambios anormales. Las sesiones anómalas no desplazan la línea base.
+- Guarda perfiles y comparaciones en SQLite, los muestra en los resúmenes y exporta la hoja **Comparación personal**. Al borrar el historial también se eliminan los perfiles derivados.
+- Incluye 42 comprobaciones automáticas y compilación Release sin advertencias. Falta validación manual con cámara Windows y distintos conductores; la propuesta no está integrada en `main`.
+
 - Se integraron en `main` el puntaje experimental de atención, los descuentos por factor, el primer síntoma, el minuto de menor puntaje y la tendencia. La calidad y la cobertura condicionan la disponibilidad; distracción sigue pendiente del detector del colaborador.
 - El informe final y la consulta histórica incluyen evolución, respuesta ocular y recuperación frontal tras alarmas. Las interrupciones dejan la recuperación sin confirmar.
 - Añade persistencia versionada de atención en SQLite y hojas de atención, evolución y respuesta a alarmas en Excel. Las sesiones anteriores mantienen atención sin medición.

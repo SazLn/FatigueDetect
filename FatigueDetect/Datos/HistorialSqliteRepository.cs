@@ -30,10 +30,30 @@ namespace FatigueDetect.Datos
 
         public void Guardar(SesionConduccion sesion)
         {
+            Guardar(sesion, null);
+        }
+
+        public void Guardar(SesionConduccion sesion, PerfilPersonalConductor? perfil)
+        {
             using SqliteConnection conexion = Abrir();
             using SqliteTransaction transaccion = conexion.BeginTransaction();
-            InsertarSesion(conexion, transaccion, sesion);
+            bool insertada = InsertarSesion(conexion, transaccion, sesion);
+            if (insertada && perfil is not null)
+                GuardarPerfil(conexion, transaccion, perfil);
             transaccion.Commit();
+        }
+
+        public PerfilPersonalConductor? LeerPerfilPersonal(string cedula)
+        {
+            string clave = NormalizarCedula(cedula);
+            if (clave.Length == 0)
+                return null;
+            using SqliteConnection conexion = Abrir();
+            using SqliteCommand consulta = conexion.CreateCommand();
+            consulta.CommandText = "SELECT Contenido FROM PerfilesPersonalizados WHERE Cedula = $cedula;";
+            consulta.Parameters.AddWithValue("$cedula", clave);
+            object? contenido = consulta.ExecuteScalar();
+            return contenido is string json ? JsonSerializer.Deserialize<PerfilPersonalConductor>(json) : null;
         }
 
         public List<SesionConduccion> LeerTodas()
@@ -94,6 +114,17 @@ namespace FatigueDetect.Datos
                 }
             }
 
+            using (SqliteCommand consulta = CrearComando(conexion, transaccion,
+                "SELECT SesionId, Contenido FROM ComparacionesPersonalizadas;"))
+            using (SqliteDataReader lector = consulta.ExecuteReader())
+            {
+                while (lector.Read())
+                {
+                    if (sesiones.TryGetValue(lector.GetString(0), out SesionConduccion? sesion))
+                        sesion.ComparacionPersonal = JsonSerializer.Deserialize<ComparacionPersonal>(lector.GetString(1));
+                }
+            }
+
             var evolucionPerclos = new Dictionary<string, List<MuestraPerclos>>();
             using (SqliteCommand consulta = CrearComando(conexion, transaccion, """
                 SELECT SesionId, InstanteUtcMs, Valor
@@ -150,7 +181,7 @@ namespace FatigueDetect.Datos
         {
             using SqliteConnection conexion = Abrir();
             using SqliteCommand comando = conexion.CreateCommand();
-            comando.CommandText = "DELETE FROM Sesiones;";
+            comando.CommandText = "DELETE FROM Sesiones; DELETE FROM PerfilesPersonalizados;";
             comando.ExecuteNonQuery();
         }
 
@@ -228,6 +259,14 @@ namespace FatigueDetect.Datos
                     SesionId TEXT PRIMARY KEY NOT NULL REFERENCES Sesiones(Id) ON DELETE CASCADE,
                     Contenido TEXT NOT NULL
                 );
+                CREATE TABLE IF NOT EXISTS ComparacionesPersonalizadas (
+                    SesionId TEXT PRIMARY KEY NOT NULL REFERENCES Sesiones(Id) ON DELETE CASCADE,
+                    Contenido TEXT NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS PerfilesPersonalizados (
+                    Cedula TEXT PRIMARY KEY NOT NULL,
+                    Contenido TEXT NOT NULL
+                );
                 """);
             esquema.ExecuteNonQuery();
             AsegurarColumnasMetricasFatiga(conexion, transaccion);
@@ -244,7 +283,7 @@ namespace FatigueDetect.Datos
             transaccion.Commit();
         }
 
-        private static void InsertarSesion(SqliteConnection conexion, SqliteTransaction transaccion, SesionConduccion sesion)
+        private static bool InsertarSesion(SqliteConnection conexion, SqliteTransaction transaccion, SesionConduccion sesion)
         {
             using SqliteCommand insercion = CrearComando(conexion, transaccion, """
                 INSERT INTO Sesiones (Id, Cedula, Nombre, Apellidos, TipoCarro, Placa, InicioUtcMs, FinUtcMs, CantidadAlarmas)
@@ -262,7 +301,7 @@ namespace FatigueDetect.Datos
                 ? new DateTimeOffset(fin).ToUnixTimeMilliseconds() : DBNull.Value);
             insercion.Parameters.AddWithValue("$alarmas", sesion.CantidadAlarmas);
             if (insercion.ExecuteNonQuery() == 0)
-                return;
+                return false;
 
             if (sesion.Calidad is CalidadSesion calidad)
             {
@@ -339,6 +378,15 @@ namespace FatigueDetect.Datos
                 informe.ExecuteNonQuery();
             }
 
+            if (sesion.ComparacionPersonal is ComparacionPersonal comparacion)
+            {
+                using SqliteCommand informe = CrearComando(conexion, transaccion,
+                    "INSERT INTO ComparacionesPersonalizadas (SesionId, Contenido) VALUES ($id, $contenido);");
+                informe.Parameters.AddWithValue("$id", sesion.Id.ToString());
+                informe.Parameters.AddWithValue("$contenido", JsonSerializer.Serialize(comparacion));
+                informe.ExecuteNonQuery();
+            }
+
             using SqliteCommand eventos = CrearComando(conexion, transaccion, """
                 INSERT INTO Eventos (SesionId, Tipo, InicioUtcMs, FinUtcMs, DuracionMs)
                 VALUES ($sesion, $tipo, $inicio, $fin, $duracion);
@@ -356,6 +404,7 @@ namespace FatigueDetect.Datos
                 duracion.Value = evento.DuracionMilisegundos is long ms ? ms : DBNull.Value;
                 eventos.ExecuteNonQuery();
             }
+            return true;
         }
 
         private static SqliteCommand CrearComando(SqliteConnection conexion, SqliteTransaction transaccion, string sql)
@@ -365,6 +414,20 @@ namespace FatigueDetect.Datos
             comando.CommandText = sql;
             return comando;
         }
+
+        private static void GuardarPerfil(SqliteConnection conexion, SqliteTransaction transaccion,
+            PerfilPersonalConductor perfil)
+        {
+            using SqliteCommand comando = CrearComando(conexion, transaccion, """
+                INSERT INTO PerfilesPersonalizados (Cedula, Contenido) VALUES ($cedula, $contenido)
+                ON CONFLICT (Cedula) DO UPDATE SET Contenido = excluded.Contenido;
+                """);
+            comando.Parameters.AddWithValue("$cedula", NormalizarCedula(perfil.Cedula));
+            comando.Parameters.AddWithValue("$contenido", JsonSerializer.Serialize(perfil));
+            comando.ExecuteNonQuery();
+        }
+
+        private static string NormalizarCedula(string? cedula) => (cedula ?? string.Empty).Trim().ToUpperInvariant();
 
         private static void AsegurarColumnasMetricasFatiga(SqliteConnection conexion, SqliteTransaction transaccion)
         {

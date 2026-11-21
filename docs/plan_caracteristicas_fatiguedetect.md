@@ -29,9 +29,10 @@
 | Parpadeos, cierres prolongados y PERCLOS | Integrado en `main` | Conteos, PERCLOS de 60 s en vivo y acumulado por sesión. |
 | Métricas oculares avanzadas | Integrado en `main` | Parpadeos por minuto y por duración, cierres anómalos, microsueños, tiempos cerrados, diferencia entre ojos y evolución de PERCLOS. |
 | Ángulos de cabeza y posibles cabeceos | Integrado en `main` | Tres ángulos en vivo y registro de descenso con retorno a la postura neutra. |
-| Resto de propuestas | Pendiente | Incluye bostezos, mirada, distracción y análisis histórico avanzado. |
+| Resto de propuestas | Pendiente | Incluye bostezos, mirada, distracción y análisis histórico avanzado más allá de la comparación personal propuesta en la rama de descarga. |
 | Atención y resúmenes avanzados | Integrado en `main` | Puntaje experimental, descuentos, primer síntoma, minuto de menor puntaje, tendencia, respuesta y recuperación tras alarmas, informe y evolución. Pendiente calibración e integración del detector de distracción. |
 | Línea temporal extensible | Integrado en `main` | Pistas desplazables para todos los tipos registrados y conservación de códigos de eventos futuros. |
+| Personalización por conductor | Implementado en rama de descarga | `descarga/personalizacion-conductor` calibra una línea base tras tres sesiones válidas, compara PERCLOS, parpadeos y atención, persiste el perfil y evita aprender de cambios anormales. Pendiente validar con cámara y decidir su integración. |
 
 La medición facial fue validada de forma inicial con una cámara Windows. La calibración de umbrales y las pruebas con más cámaras, iluminación y personas siguen pendientes.
 Las métricas oculares avanzadas también fueron validadas manualmente con cámara y están integradas en `main`. Su calibración con más cámaras, condiciones de iluminación y personas sigue pendiente.
@@ -180,11 +181,11 @@ La dificultad de programar una función y la dificultad de hacerla confiable no 
 
 | Característica | Dificultad | Descripción sencilla |
 |---|---:|---|
-| Comparar sesiones del mismo conductor | **Baja-media** | Ver si los indicadores mejoran o empeoran con el tiempo. |
-| Promedio personal de parpadeos | **Media** | Crear una referencia propia, ya que cada persona tiene un patrón diferente. |
-| Umbrales personalizados | **Media** | Ajustar sensibilidad según el rostro, las gafas, la cámara y el comportamiento normal del conductor. |
-| Comparar sesión actual con el promedio personal | **Media** | Mostrar diferencias de PERCLOS, cabeceos, distracciones y puntaje. |
-| Detectar cambios anormales | **Media-alta** | Avisar cuando una sesión se aleja considerablemente del comportamiento habitual. |
+| Comparar sesiones del mismo conductor | **Baja-media** | Implementado en la rama de descarga para PERCLOS, parpadeos por minuto y atención, con perfil separado por cédula. |
+| Promedio personal de parpadeos | **Media** | Implementado en la rama de descarga como promedio ponderado por tiempo ocular válido. |
+| Umbrales personalizados | **Media** | Implementado parcialmente en la rama de descarga para detectar desviaciones respecto al perfil; no cambia los umbrales físicos de cierre ni alarma. |
+| Comparar sesión actual con el promedio personal | **Media** | Implementado en la rama de descarga para PERCLOS, parpadeos y atención. Cabeza y distracción se incorporarán cuando sus detectores aporten métricas. |
+| Detectar cambios anormales | **Media-alta** | Implementado de forma experimental en la rama de descarga con mínimos absolutos y variación personal. Pendiente calibración con usuarios reales. |
 | Sesiones más seguras y más riesgosas | **Baja** | Ordenar sesiones por puntaje, alertas o gravedad. |
 | Comparar por vehículo | **Baja-media** | Analizar si la fatiga o las distracciones cambian según el vehículo registrado. |
 | Comparar por hora o franja del día | **Baja** | Identificar si hay más riesgo en la mañana, tarde, noche o madrugada. |

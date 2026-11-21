@@ -141,6 +141,35 @@ namespace FatigueDetect.Presentacion
             FormatoDecimal(evolucionAtencion, 3, 4, 5, 6);
             FormatoDecimal(respuestas, 3, 4);
 
+            var personal = CrearHoja(libro, "Comparación personal", "ID de sesión", "Cédula",
+                "Sesiones base antes", "Sesiones base después", "Perfil calibrado antes",
+                "Parpadeos/min actual", "Parpadeos/min base", "Diferencia parpadeos/min",
+                "PERCLOS actual", "PERCLOS base", "Diferencia PERCLOS",
+                "Atención actual /100", "Atención base /100", "Diferencia atención",
+                "Umbral parpadeos/min", "Umbral PERCLOS", "Umbral atención",
+                "Cambio de parpadeos anormal", "PERCLOS anormal", "Atención anormal",
+                "Incorporada al perfil", "Estado");
+            personal.Columns(9, 11).Style.NumberFormat.Format = "0.00%";
+            personal.Column(16).Style.NumberFormat.Format = "0.00%";
+            FormatoDecimal(personal, 6, 7, 8, 12, 13, 14, 15, 17);
+            int filaPersonal = 2;
+            foreach (SesionConduccion s in sesiones)
+            {
+                ComparacionPersonal? c = s.ComparacionPersonal;
+                Escribir(personal, filaPersonal++, s.Id.ToString(), s.Conductor.Cedula,
+                    c?.SesionesBaseAntes, c?.SesionesBaseDespues,
+                    c is null ? "Sin medición" : c.PerfilCalibradoAntes ? "Sí" : "No",
+                    c?.ParpadeosActual, c?.ParpadeosBase, c?.DiferenciaParpadeos,
+                    c?.PerclosActual, c?.PerclosBase, c?.DiferenciaPerclos,
+                    c?.AtencionActual, c?.AtencionBase, c?.DiferenciaAtencion,
+                    c?.UmbralParpadeos, c?.UmbralPerclos, c?.UmbralAtencion,
+                    c is null ? "Sin medición" : c.CambioParpadeosAnormal ? "Sí" : "No",
+                    c is null ? "Sin medición" : c.PerclosAnormal ? "Sí" : "No",
+                    c is null ? "Sin medición" : c.AtencionAnormal ? "Sí" : "No",
+                    c is null ? "Sin medición" : c.IncorporadaAlPerfil ? "Sí" : "No",
+                    c?.Estado ?? "Sin comparación personal");
+            }
+
             foreach (IXLWorksheet hoja in libro.Worksheets)
             {
 
