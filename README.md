@@ -127,9 +127,9 @@ conservan las métricas disponibles y muestran el detalle nuevo como «sin medic
 confirmó el funcionamiento de estas métricas. La clasificación y los umbrales aún deben calibrarse con distintas
 cámaras, condiciones de iluminación y personas.
 
-## Propuesta de atención y resúmenes (rama de descarga)
+## Atención y resúmenes
 
-La rama `descarga/atencion-y-resumenes` incorpora un puntaje experimental de atención de 0 a 100,
+La aplicación incorpora un puntaje experimental de atención de 0 a 100,
 sus factores de descuento, el tiempo activo hasta el primer cierre prolongado o cabeceo, el minuto
 con menor puntaje y la tendencia durante la sesión. Al detener el monitoreo se abre un informe con
 resumen automático, evolución, factores, respuesta a alarmas y acceso a todos los eventos.
@@ -140,8 +140,8 @@ y 50 % de cobertura ocular. Una pausa o pérdida de medición interrumpe la recu
 en la evolución. Los registros antiguos indican «sin medición». La distracción tiene un contrato de
 entrada opcional y seguirá sin medirse hasta integrar el detector del colaborador.
 
-Esta propuesta aún no forma parte de `main` y requiere validación de cámara e interfaz en Windows.
-La fórmula, los límites, la integración y las pruebas se explican en
+La validación manual confirmó el funcionamiento básico con cámara e interfaz en Windows. La fórmula
+y sus umbrales aún requieren calibración con más personas y condiciones. Los límites, la integración y las pruebas se explican en
 [Atención y resúmenes](docs/atencion_y_resumenes.md).
 
 ## Salida de audio de la alarma

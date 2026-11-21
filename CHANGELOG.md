@@ -2,11 +2,11 @@
 
 ## Sin publicar
 
-- Propuesta en `descarga/atencion-y-resumenes`: puntaje experimental de atención, descuentos por factor, primer síntoma, minuto de menor puntaje y tendencia. La calidad y la cobertura condicionan la disponibilidad; distracción sigue pendiente del detector del colaborador.
-- La propuesta incluye informe final y consulta histórica con evolución, respuesta ocular y recuperación frontal tras alarmas. Las interrupciones dejan la recuperación sin confirmar.
+- Se integraron en `main` el puntaje experimental de atención, los descuentos por factor, el primer síntoma, el minuto de menor puntaje y la tendencia. La calidad y la cobertura condicionan la disponibilidad; distracción sigue pendiente del detector del colaborador.
+- El informe final y la consulta histórica incluyen evolución, respuesta ocular y recuperación frontal tras alarmas. Las interrupciones dejan la recuperación sin confirmar.
 - Añade persistencia versionada de atención en SQLite y hojas de atención, evolución y respuesta a alarmas en Excel. Las sesiones anteriores mantienen atención sin medición.
 - La línea temporal admite pistas desplazables y conserva códigos de eventos nuevos que esta versión aún no conoce.
-- Incluye pruebas reproducibles de fórmula, temporalidad, interrupciones, migración SQLite y exportación. Sigue pendiente probar cámara e interfaz de esta propuesta en Windows antes de integrar en `main`.
+- Incluye pruebas reproducibles de fórmula, temporalidad, interrupciones, migración SQLite y exportación. La validación manual confirmó el funcionamiento básico con cámara e interfaz en Windows; sigue pendiente calibrar la fórmula y sus umbrales en más condiciones.
 
 - Añade selección persistente y prueba de salidas de audio de Windows para la alarma.
 - Rediseña el monitoreo, muestra FPS recientes y registra caídas, cobertura y un puntaje de calidad.
