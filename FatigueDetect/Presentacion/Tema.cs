@@ -16,9 +16,14 @@ namespace FatigueDetect.Presentacion
         public static readonly Color TextoSuave = Color.FromArgb(167, 158, 196);
         public static readonly Color Azul = Color.FromArgb(132, 102, 240);
         public static readonly Color AzulOscuro = Color.FromArgb(103, 76, 211);
+        public static readonly Color Lila = Color.FromArgb(167, 139, 250);
+        public static readonly Color Rosa = Color.FromArgb(244, 165, 192);
         public static readonly Color Verde = Color.FromArgb(126, 224, 195);
         public static readonly Color Ambar = Color.FromArgb(255, 184, 107);
         public static readonly Color Rojo = Color.FromArgb(220, 75, 116);
+        public static readonly Color Peligro = Color.FromArgb(255, 107, 129);
+        public static readonly Color Campo = Color.FromArgb(39, 33, 56);
+        public static readonly Color CampoBorde = Color.FromArgb(53, 46, 77);
         public static readonly Color TextoSobreAcento = Color.FromArgb(20, 15, 38);
 
         public static Font Fuente(float tamano, FontStyle estilo = FontStyle.Regular)
