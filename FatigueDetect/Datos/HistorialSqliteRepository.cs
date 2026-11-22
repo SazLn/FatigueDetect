@@ -12,6 +12,8 @@ namespace FatigueDetect.Datos
     {
         private readonly string rutaCsv;
         private readonly string cadenaConexion;
+        private readonly string rutaClaveCompatibilidad;
+        private ProtectorDatosLocal? protectorCompatibilidad;
         private readonly object candado = new object();
         private bool inicializado;
 
@@ -21,6 +23,7 @@ namespace FatigueDetect.Datos
         {
             RutaArchivo = Path.GetFullPath(rutaArchivo);
             this.rutaCsv = rutaCsv;
+            rutaClaveCompatibilidad = Path.Combine(Path.GetDirectoryName(RutaArchivo)!, "clave_datos.bin");
             cadenaConexion = new SqliteConnectionStringBuilder
             {
                 DataSource = RutaArchivo,
@@ -55,6 +58,26 @@ namespace FatigueDetect.Datos
             using SqliteCommand consulta = conexion.CreateCommand();
             string camara = NormalizarContexto(camaraId);
             string vehiculo = NormalizarContexto(vehiculoClave);
+            if (File.Exists(rutaClaveCompatibilidad))
+            {
+                ProtectorDatosLocal protector = ObtenerProtectorCompatibilidad();
+                if (camara.Length > 0 || vehiculo.Length > 0)
+                {
+                    consulta.CommandText = """
+                        SELECT Contenido FROM PerfilesPersonalizadosContexto
+                        WHERE Cedula = $cedula AND CamaraId = $camara AND VehiculoClave = $vehiculo;
+                        """;
+                    consulta.Parameters.AddWithValue("$camara", protector.ClaveBusqueda(camara));
+                    consulta.Parameters.AddWithValue("$vehiculo", protector.ClaveBusqueda(vehiculo));
+                }
+                else
+                    consulta.CommandText = "SELECT Contenido FROM PerfilesPersonalizados WHERE Cedula = $cedula;";
+                consulta.Parameters.AddWithValue("$cedula", protector.ClaveBusqueda(clave));
+                object? protegido = consulta.ExecuteScalar();
+                if (protegido is string jsonProtegido)
+                    return JsonSerializer.Deserialize<PerfilPersonalConductor>(DescifrarCompatible(jsonProtegido));
+                consulta.Parameters.Clear();
+            }
             if (camara.Length > 0 || vehiculo.Length > 0)
             {
                 consulta.CommandText = """
@@ -69,7 +92,7 @@ namespace FatigueDetect.Datos
             consulta.Parameters.AddWithValue("$cedula", clave);
             object? contenido = consulta.ExecuteScalar();
             if (contenido is string json)
-                return JsonSerializer.Deserialize<PerfilPersonalConductor>(json);
+                return JsonSerializer.Deserialize<PerfilPersonalConductor>(DescifrarCompatible(json));
 
             // Un perfil de versiones anteriores sirve como punto de partida del primer contexto.
             if (camara.Length == 0 && vehiculo.Length == 0)
@@ -79,17 +102,27 @@ namespace FatigueDetect.Datos
                     SELECT Contenido FROM PerfilesPersonalizadosContexto
                     WHERE Cedula = $cedula ORDER BY CamaraId, VehiculoClave LIMIT 1;
                     """;
-                consulta.Parameters.AddWithValue("$cedula", clave);
+                consulta.Parameters.AddWithValue("$cedula", File.Exists(rutaClaveCompatibilidad)
+                    ? ObtenerProtectorCompatibilidad().ClaveBusqueda(clave) : clave);
                 contenido = consulta.ExecuteScalar();
-                return contenido is string contextual
-                    ? JsonSerializer.Deserialize<PerfilPersonalConductor>(contextual) : null;
+                if (contenido is string contextual)
+                    return JsonSerializer.Deserialize<PerfilPersonalConductor>(DescifrarCompatible(contextual));
+                if (File.Exists(rutaClaveCompatibilidad))
+                {
+                    consulta.Parameters.Clear();
+                    consulta.Parameters.AddWithValue("$cedula", clave);
+                    contenido = consulta.ExecuteScalar();
+                    if (contenido is string contextualPlano)
+                        return JsonSerializer.Deserialize<PerfilPersonalConductor>(contextualPlano);
+                }
+                return null;
             }
             consulta.Parameters.Clear();
             consulta.CommandText = "SELECT Contenido FROM PerfilesPersonalizados WHERE Cedula = $cedula;";
             consulta.Parameters.AddWithValue("$cedula", clave);
             contenido = consulta.ExecuteScalar();
             PerfilPersonalConductor? anterior = contenido is string legado
-                ? JsonSerializer.Deserialize<PerfilPersonalConductor>(legado) : null;
+                ? JsonSerializer.Deserialize<PerfilPersonalConductor>(DescifrarCompatible(legado)) : null;
             return anterior is null ? null : anterior with { CamaraId = camara, VehiculoClave = vehiculo };
         }
 
@@ -121,9 +154,12 @@ namespace FatigueDetect.Datos
                         Id = Guid.Parse(id),
                         Conductor = new Conductor
                         {
-                            Cedula = lector.GetString(1), Nombre = lector.GetString(2), Apellidos = lector.GetString(3)
+                            Cedula = DescifrarCompatible(lector.GetString(1)),
+                            Nombre = DescifrarCompatible(lector.GetString(2)),
+                            Apellidos = DescifrarCompatible(lector.GetString(3))
                         },
-                        Vehiculo = new Vehiculo { TipoCarro = lector.GetString(4), Placa = lector.GetString(5) },
+                        Vehiculo = new Vehiculo { TipoCarro = DescifrarCompatible(lector.GetString(4)),
+                            Placa = DescifrarCompatible(lector.GetString(5)) },
                         Inicio = LeerInstante(lector, 6).LocalDateTime,
                         Fin = lector.IsDBNull(7) ? null : LeerInstante(lector, 7).LocalDateTime,
                         CantidadAlarmas = lector.GetInt32(8),
@@ -147,7 +183,7 @@ namespace FatigueDetect.Datos
                 while (lector.Read())
                 {
                     if (sesiones.TryGetValue(lector.GetString(0), out SesionConduccion? sesion))
-                        sesion.Atencion = JsonSerializer.Deserialize<InformeAtencion>(lector.GetString(1));
+                        sesion.Atencion = JsonSerializer.Deserialize<InformeAtencion>(DescifrarCompatible(lector.GetString(1)));
                 }
             }
 
@@ -158,7 +194,7 @@ namespace FatigueDetect.Datos
                 while (lector.Read())
                 {
                     if (sesiones.TryGetValue(lector.GetString(0), out SesionConduccion? sesion))
-                        sesion.ComparacionPersonal = JsonSerializer.Deserialize<ComparacionPersonal>(lector.GetString(1));
+                        sesion.ComparacionPersonal = JsonSerializer.Deserialize<ComparacionPersonal>(DescifrarCompatible(lector.GetString(1)));
                 }
             }
 
@@ -205,7 +241,7 @@ namespace FatigueDetect.Datos
                     {
                         CodigoTipo = codigo,
                         Confiabilidad = lector.IsDBNull(4) ? null
-                            : JsonSerializer.Deserialize<EvaluacionConfiabilidadEvento>(lector.GetString(4))
+                            : JsonSerializer.Deserialize<EvaluacionConfiabilidadEvento>(DescifrarCompatible(lector.GetString(4)))
                     });
                 }
             }
@@ -215,7 +251,7 @@ namespace FatigueDetect.Datos
             {
                 while (lector.Read())
                     if (sesiones.TryGetValue(lector.GetString(0), out SesionConduccion? sesion))
-                        sesion.Postura = System.Text.Json.JsonSerializer.Deserialize<MetricasPostura>(lector.GetString(1));
+                        sesion.Postura = System.Text.Json.JsonSerializer.Deserialize<MetricasPostura>(DescifrarCompatible(lector.GetString(1)));
             }
 
             foreach (SesionConduccion sesion in sesiones.Values)
@@ -565,6 +601,16 @@ namespace FatigueDetect.Datos
 
         private static long? LeerEnteroOpcional(SqliteDataReader lector, int columna) =>
             lector.IsDBNull(columna) ? null : lector.GetInt64(columna);
+
+        private ProtectorDatosLocal ObtenerProtectorCompatibilidad()
+        {
+            if (!File.Exists(rutaClaveCompatibilidad))
+                throw new InvalidDataException("El historial contiene datos cifrados, pero falta clave_datos.bin.");
+            return protectorCompatibilidad ??= new ProtectorDatosLocal(rutaClaveCompatibilidad);
+        }
+
+        private string DescifrarCompatible(string contenido) => contenido.StartsWith("FDENC1:", StringComparison.Ordinal)
+            ? ObtenerProtectorCompatibilidad().Descifrar(contenido) : contenido;
 
         private static DateTimeOffset LeerInstante(SqliteDataReader lector, int columna) =>
             DateTimeOffset.FromUnixTimeMilliseconds(lector.GetInt64(columna));

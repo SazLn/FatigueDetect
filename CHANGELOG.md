@@ -8,7 +8,7 @@
 - Calcula visibilidad de ojos y boca y una confianza facial; una medición insuficiente queda fuera del análisis de fatiga.
 - Exige dos segundos de persistencia para mostrar y guardar el accesorio, evitando registrar cambios aislados.
 - Incorpora los episodios al historial, la línea temporal y Excel con una advertencia explícita de que no identifica accesorios con certeza.
-- Corrige la identificación biométrica después de probar la rama de protección: reconoce `FDENC1:`, usa la clave local existente y conserva el cifrado sin migrar perfiles en texto claro.
+- Corrige la compatibilidad después de probar la rama de protección: reconoce perfiles `FDENC1:`, identidades y documentos JSON cifrados del historial, usa la clave local existente y conserva el formato del perfil.
 
 ### Alertas progresivas integradas mediante el PR #25
 

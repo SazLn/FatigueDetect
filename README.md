@@ -255,7 +255,8 @@ cámara: son advertencias de obstrucción, no una clasificación cierta. Consult
 [Detección de accesorios](docs/deteccion_accesorios.md). La rama aún no está integrada en `main`.
 Si `perfiles_biometricos.json` fue cifrado previamente por `descarga/proteccion-datos`, esta rama lo abre
 con `clave_datos.bin` del mismo usuario de Windows y conserva el cifrado al actualizarlo. Los perfiles
-que siguen en texto JSON no se migran ni se cifran desde esta rama.
+que siguen en texto JSON no se migran ni se cifran desde esta rama. Al consultar el historial también
+descifra las identidades y documentos JSON creados por la rama de protección.
 
 Al calibrar, mira al frente con la cabeza erguida. El historial y Excel registran inicio, fin y duración de cada cabeceo y de los giros a izquierda, derecha, arriba o abajo. El resumen recoge el tiempo fuera de la zona frontal, el episodio más largo y la proporción respecto al tiempo activo. También indica cuánto tiempo tuvo una pose medible.
 

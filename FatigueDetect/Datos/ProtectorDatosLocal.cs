@@ -50,6 +50,13 @@ namespace FatigueDetect.Datos
 
         public bool EstaCifrado(string? texto) => texto?.StartsWith(Prefijo, StringComparison.Ordinal) == true;
 
+        public string ClaveBusqueda(string valor)
+        {
+            using var hmac = new HMACSHA256(clave);
+            return "FDKEY1:" + Convert.ToHexString(hmac.ComputeHash(
+                Encoding.UTF8.GetBytes(valor.Trim().ToUpperInvariant())));
+        }
+
         private byte[] CargarOCrear()
         {
             if (File.Exists(RutaClave))

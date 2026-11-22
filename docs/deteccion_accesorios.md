@@ -5,6 +5,7 @@ Estado: disponible en `descarga/deteccion-accesorios`, pendiente de validación 
 La rama reconoce perfiles biométricos `FDENC1:` creados por `descarga/proteccion-datos` siempre que
 `clave_datos.bin` permanezca en la misma carpeta y se ejecute con el mismo usuario de Windows. Conserva
 el cifrado al guardar; un perfil JSON normal permanece normal para no activar protección de forma implícita.
+Al consultar el historial también descifra identidades y documentos JSON protegidos por esa rama.
 
 ## Alcance
 
