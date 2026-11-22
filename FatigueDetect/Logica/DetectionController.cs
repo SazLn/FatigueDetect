@@ -36,7 +36,7 @@ namespace FatigueDetect.Logica
         public DetectionController(IDetectorView view,
             FaceDetector faceDetector, string rutaModeloFacial,
             DrowsinessLogic drowsinessLogic, AlarmService alarmService,
-            SesionConduccion sesion)
+            SesionConduccion sesion, CalibracionGuiada? calibracion = null)
         {
             this.view = view;
             this.faceDetector = faceDetector;
@@ -45,7 +45,7 @@ namespace FatigueDetect.Logica
             this.alarmService = alarmService;
             this.sesion = sesion;
             registro = new RegistroEventosSesion(sesion);
-            fatiga = new RastreadorFatiga(sesion);
+            fatiga = new RastreadorFatiga(sesion, calibracion);
         }
 
         public Task IniciarAsync(string? camaraId, CancellationToken cancelacion, FormatoCamara? formato = null)

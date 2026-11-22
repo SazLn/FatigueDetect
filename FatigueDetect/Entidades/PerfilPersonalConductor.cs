@@ -8,7 +8,8 @@ namespace FatigueDetect.Entidades
         int SesionesValidas, long TiempoOcularValidoMs, long TiempoOcularCerradoMs, long Parpadeos,
         double MediaParpadeosSesion, double M2ParpadeosSesion,
         double MediaPerclosSesion, double M2PerclosSesion,
-        int SesionesAtencion, double MediaAtencion, double M2Atencion)
+        int SesionesAtencion, double MediaAtencion, double M2Atencion,
+        string CamaraId = "", string VehiculoClave = "", CalibracionGuiada? Calibracion = null)
     {
         public bool Calibrado => SesionesValidas >= 3 && TiempoOcularValidoMs >= 180_000;
 
@@ -36,7 +37,9 @@ namespace FatigueDetect.Entidades
         double? AtencionActual, double? AtencionBase, double? DiferenciaAtencion,
         double UmbralParpadeos, double UmbralPerclos, double UmbralAtencion,
         bool CambioParpadeosAnormal, bool PerclosAnormal, bool AtencionAnormal,
-        bool IncorporadaAlPerfil, string Estado)
+        bool IncorporadaAlPerfil, string Estado,
+        string CamaraId = "", string VehiculoClave = "",
+        double? UmbralSomnoliento = null, double? UmbralAlarma = null)
     {
         public bool CambioAnormal => CambioParpadeosAnormal || PerclosAnormal || AtencionAnormal;
     }

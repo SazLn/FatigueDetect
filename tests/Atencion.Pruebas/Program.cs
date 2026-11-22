@@ -324,4 +324,46 @@ Verificar(AnalisisHistoricoAvanzado.MapaCalor(historia)[0, 8] == 1 &&
 Verificar(AnalisisHistoricoAvanzado.TendenciaPersonal(historia, "1").Count == 2 &&
     AnalisisHistoricoAvanzado.Riesgo(historia[0]) is null,
     "Tendencia personal conserva ausencias de atención sin inventar riesgo");
+
+var guia = new CalibradorGuiado("cam-1", "abc123");
+for (int ms = 0; ms <= 2000; ms += 100)
+    guia.Observar(instante.AddMilliseconds(ms), new MedicionFacial(.30, .29, new AngulosCabeza(1, 2, 0)));
+guia.Observar(instante.AddMilliseconds(2100), new MedicionFacial(.10, .10, new AngulosCabeza(1, 2, 0)));
+guia.Observar(instante.AddMilliseconds(2200), new MedicionFacial(.30, .29, new AngulosCabeza(1, 2, 0)));
+guia.Observar(instante.AddMilliseconds(2300), new MedicionFacial(.10, .10, new AngulosCabeza(1, 2, 0)));
+EstadoCalibracion finGuia = guia.Observar(instante.AddMilliseconds(2400),
+    new MedicionFacial(.30, .29, new AngulosCabeza(1, 2, 0)));
+Verificar(finGuia.Completa && guia.Resultado is { ParpadeosConfirmados: 2, CamaraId: "CAM-1", VehiculoClave: "ABC123" },
+    "Calibración guiada exige referencia frontal y dos parpadeos");
+
+var perfilRiesgo = new PerfilPersonalConductor(2, "1", instante, 3, 180_000, 36_000, 36,
+    12, 0, .20, 0, 3, 65, 0, "CAM-1", "ABC123", guia.Resultado);
+UmbralesPersonalizados adaptados = PersonalizacionConductor.CalcularUmbrales(perfilRiesgo,
+    AjustesDeteccion.Predeterminados);
+Verificar(adaptados.Personalizados && adaptados.SegundosSomnoliento < 1.5 &&
+    adaptados.SegundosAlarma < 3 && adaptados.SegundosAlarma >= AjustesDeteccion.MinimoAlarma,
+    "Umbrales contextuales solo anticipan los límites configurados");
+
+string carpetaContexto = Path.Combine(Path.GetTempPath(), "fatiga-contexto-" + Guid.NewGuid().ToString("N"));
+Directory.CreateDirectory(carpetaContexto);
+try
+{
+    var repoContexto = new HistorialSqliteRepository(Path.Combine(carpetaContexto, "historial.sqlite"),
+        Path.Combine(carpetaContexto, "ausente.csv"));
+    var sesionContexto = new SesionConduccion { Inicio = instante.LocalDateTime,
+        Conductor = new Conductor { Cedula = "1" }, Vehiculo = new Vehiculo { Placa = "ABC123" } };
+    repoContexto.Guardar(sesionContexto, perfilRiesgo);
+    Verificar(repoContexto.LeerPerfilPersonal("1", "CAM-1", "ABC123")?.Calibracion?.ParpadeosConfirmados == 2,
+        "Perfil persistente separado por cámara y vehículo");
+    Verificar(repoContexto.LeerPerfilPersonal("1", "CAM-1", "OTRO") is null,
+        "Otro vehículo no reutiliza una línea base contextual");
+    repoContexto.Borrar();
+    Verificar(repoContexto.LeerPerfilPersonal("1", "CAM-1", "ABC123") is null,
+        "Borrar historial elimina perfiles contextuales");
+}
+finally
+{
+    SqliteConnection.ClearAllPools();
+    Directory.Delete(carpetaContexto, true);
+}
 Console.WriteLine($"{comprobaciones} comprobaciones de atención, postura, historial, SQLite y Excel correctas.");
