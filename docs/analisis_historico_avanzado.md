@@ -1,6 +1,6 @@
 # Análisis histórico avanzado
 
-Estado: disponible en `descarga/analisis-historico-avanzado`, pendiente de validación en Windows y merge.
+Estado: integrado en `main` mediante el PR #22. Se recomienda seguir validando la interfaz con historiales reales en Windows.
 
 En **Historial → Estadísticas** se agregan pestañas de riesgo, vehículo, horario, día semanal, mapa de calor, tendencia personal y comparación de sesiones. Los filtros del historial se aplican a estas vistas.
 
@@ -16,4 +16,4 @@ El índice de riesgo es `100 − atención media` y solo se ordenan sesiones con
 6. En **Comparar sesiones**, marca dos y luego tres sesiones. Deben aparecer sus valores individuales y una fila para el conjunto seleccionado. Desmarca una y comprueba que cambie el resultado.
 7. Aplica filtros de fecha, conductor o vehículo en Historial y reabre Estadísticas. Las vistas nuevas deben limitarse a esas sesiones. Limpia los filtros y verifica que vuelvan.
 
-La interfaz todavía no se ha probado en Windows desde este entorno Linux.
+Las comprobaciones automatizadas se ejecutaron desde Linux. La guía anterior permite repetir la validación visual y de datos en Windows.

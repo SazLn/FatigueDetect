@@ -2,11 +2,11 @@
 
 ## Sin publicar
 
-### Propuesta en `descarga/analisis-historico-avanzado`
+### Análisis histórico avanzado integrado mediante el PR #22
 
 - Añade en Estadísticas vistas de sesiones seguras y riesgosas, tendencia personal, comparaciones por vehículo, hora y día, mapa de calor día/hora y selección manual de varias sesiones.
 - Normaliza alarmas por tiempo activo y pondera métricas por tiempo medible. Conserva como desconocidos los indicadores ausentes en sesiones antiguas.
-- Incluye pruebas de agrupación, ponderación y cobertura. Pendiente validación de la interfaz en Windows antes de integrarla en `main`.
+- Incluye pruebas de agrupación, ponderación y cobertura. Queda recomendada la validación continua de la interfaz con historiales reales en Windows.
 
 ### Cabeza, postura, distracción y bostezos integrados mediante el PR #20
 
