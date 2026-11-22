@@ -16,7 +16,7 @@
 | Resumen de eventos en el historial | Integrado en `main` | Agrupa por tipo y muestra cantidad, duración total, máxima y eventos sin duración. |
 | Resumen al finalizar el monitoreo | Integrado en `main` | Muestra duración, alarmas, eventos, calidad de detección, cobertura facial, estabilidad de FPS e indicadores oculares. |
 | Configuración persistente de detección y sonido | Integrado en `main` | Guarda y restablece los umbrales de somnolencia y alarma y el estado del sonido. |
-| Métricas de calidad de sesión | Integrado en `main` | FPS medios y recientes, fotogramas analizables, cobertura facial, caídas de FPS, fallos de cámara y puntaje de calidad de 0 a 100. |
+| Métricas de calidad de sesión | Integrado en `main`; ampliación en rama de descarga | `main` incluye FPS, analizabilidad y cobertura. `descarga/calidad-imagen-ampliada` añade brillo, contraste, nitidez, posición y separación cámara/entorno frente a colocación; pendiente de validación y autorización para integrar. |
 | Dashboard histórico básico | Integrado en `main` | Sesiones por día, semana y mes, duración promedio y franjas de mayor uso. |
 | Exportación a Excel | Integrado en `main` | Sesiones, eventos y resúmenes. |
 | Filtros y análisis histórico | Integrado en `main` | Fecha, conductor, vehículo, alarmas y calidad. Incluye comparaciones entre períodos de igual duración. |
@@ -159,7 +159,7 @@ La dificultad de programar una función y la dificultad de hacerla confiable no 
 
 | Característica | Dificultad | Descripción sencilla |
 |---|---:|---|
-| Puntaje de calidad de la imagen | **Baja-media** | Integrado parcialmente en `main` como puntaje de calidad de detección basado en fotogramas analizables, cobertura facial y estabilidad de FPS. Queda pendiente incorporar brillo, contraste, nitidez y posición. |
+| Puntaje de calidad de la imagen | **Baja-media** | `main` usa analizabilidad, cobertura facial y estabilidad de FPS. La rama `descarga/calidad-imagen-ampliada` incorpora brillo, contraste, nitidez y posición, y separa cámara/entorno de colocación. Pendiente de prueba con cámara y decisión de integración. |
 | Porcentaje de fotogramas analizables | **Baja** | Medir en qué proporción de la sesión el rostro y los ojos estuvieron disponibles para el análisis. |
 | Confianza de cada evento | **Media** | Integrada en `main` como confiabilidad de los datos, con puntaje, factores y advertencias. No se presenta como probabilidad médica. |
 | Separar “atención” de “calidad de datos” | **Baja-media** | Evitar castigar al usuario por una cámara oscura o mal colocada. Un puntaje mide la atención y otro la confiabilidad de la medición. |
@@ -222,7 +222,7 @@ Las siguientes funciones ofrecen mucho valor y no dependen todavía de un modelo
 5. Analizar si la imagen está oscura o sobreexpuesta y mostrar avisos en la vista previa y durante el monitoreo.
 6. Permitir seleccionar la cámara, guardar la preferencia y reutilizarla en biometría y monitoreo.
 7. Mostrar alertas visuales en vivo para las condiciones que todavía no se muestran. **Ausencia y varios rostros integrados en `main`; las alertas de futuros detectores siguen pendientes.**
-8. Registrar calidad de imagen, FPS y porcentaje de fotogramas analizables.
+8. Registrar calidad de imagen, FPS y porcentaje de fotogramas analizables. **La ampliación de brillo, contraste, nitidez y posición está disponible para validar en `descarga/calidad-imagen-ampliada`.**
 9. Crear estadísticas de sesiones por día, semana, mes, hora y día de la semana.
 10. Crear un dashboard histórico inicial.
 11. Exportar tablas y resúmenes básicos a Excel.

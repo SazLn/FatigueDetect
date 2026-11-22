@@ -48,6 +48,19 @@ la interfaz muestra que no hay señal y limpia el aviso anterior.
 
 La vista previa y el monitoreo avisan si la imagen parece tapada o desenfocada durante dos segundos, o si las muestras de imagen se repiten durante tres segundos. Estas señales se estiman por oscuridad y contraste, nitidez y repetición. Un encuadre oscuro, uniforme o completamente estático puede dar un falso aviso. Durante el monitoreo se guardan los episodios confirmados y los cuadros sospechosos quedan fuera del análisis de fatiga.
 
+### Calidad de imagen ampliada (rama de descarga)
+
+La rama `descarga/calidad-imagen-ampliada` evalúa cada fotograma con puntajes de 0 a 100 para
+brillo, contraste y nitidez, y evalúa la posición cuando existe exactamente un rostro. En vivo separa
+**cámara/entorno** (luz, contraste y enfoque) de **colocación** (centrado, distancia aparente y margen
+respecto a los bordes), de modo que un problema técnico no se atribuya al conductor.
+
+Los promedios se guardan en SQLite, aparecen en el resumen final y el historial, y se exportan en las
+columnas nuevas de la hoja **Sesiones**. El puntaje global usa los indicadores disponibles; las sesiones
+anteriores conservan su cálculo y muestran las métricas nuevas como «sin medición». Los umbrales son
+heurísticos y todavía deben validarse con cámaras, resoluciones, iluminación y tonos de piel diversos.
+Consulta [calidad de imagen ampliada](docs/calidad_imagen_ampliada.md) para conocer la fórmula y la prueba manual.
+
 ## Historial y registro de eventos
 
 Al pulsar **Detener monitoreo**, aparece el resumen final de la sesión con su duración,

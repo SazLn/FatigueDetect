@@ -2,6 +2,13 @@
 
 ## Sin publicar
 
+### Calidad de imagen ampliada propuesta en rama de descarga
+
+- Incorpora brillo, contraste, nitidez y posición facial al puntaje de calidad de las sesiones nuevas, conservando el cálculo compatible para historiales anteriores.
+- Separa un puntaje de cámara/entorno de otro de colocación y muestra recomendaciones concretas en vivo para no atribuir al conductor una cámara deficiente.
+- Persiste los promedios y las muestras en SQLite y los presenta en el resumen final, historial y exportación Excel con factores explicables.
+- Añade migración compatible y comprobaciones de cálculo, separación de causas, persistencia y exportación. Pendiente de prueba con cámara Windows y de autorización para integrar en `main`.
+
 ### Alertas progresivas integradas mediante el PR #25
 
 - Añade niveles preventivo, alto y crítico a partir de cierre ocular, atención, PERCLOS y distracción disponibles.

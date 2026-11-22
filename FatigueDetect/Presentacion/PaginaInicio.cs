@@ -355,7 +355,8 @@ namespace FatigueDetect.Presentacion
         public void UpdateImage(Bitmap? image, EyeState estado, long tiempoMs,
             EstadoIluminacion? avisoIluminacion, TipoEventoSesion? avisoRostro,
             TipoEventoSesion? avisoCalidad = null, FatigaEnVivo? fatiga = null, double? fpsRecientes = null,
-            MuestraAtencion? atencion = null, EstadoAlertaProgresiva? alerta = null)
+            MuestraAtencion? atencion = null, EstadoAlertaProgresiva? alerta = null,
+            EvaluacionCalidadImagen? calidadImagen = null)
         {
             // Si la pantalla sigue ocupada con el cuadro anterior, se descarta este.
             if (IsDisposed || !IsHandleCreated || Interlocked.CompareExchange(ref actualizando, 1, 0) != 0)
@@ -367,7 +368,7 @@ namespace FatigueDetect.Presentacion
             try
             {
                 BeginInvoke(new Action(() => Actualizar(image, estado, tiempoMs, avisoIluminacion,
-                    avisoRostro, avisoCalidad, fatiga, fpsRecientes, atencion, alerta)));
+                    avisoRostro, avisoCalidad, fatiga, fpsRecientes, atencion, alerta, calidadImagen)));
             }
             catch (Exception)
             {
@@ -389,7 +390,8 @@ namespace FatigueDetect.Presentacion
         private void Actualizar(Bitmap? imagen, EyeState estado, long tiempoMs,
             EstadoIluminacion? avisoIluminacion, TipoEventoSesion? avisoRostro,
             TipoEventoSesion? avisoCalidad, FatigaEnVivo? fatiga, double? fpsRecientes,
-            MuestraAtencion? atencion, EstadoAlertaProgresiva? alerta)
+            MuestraAtencion? atencion, EstadoAlertaProgresiva? alerta,
+            EvaluacionCalidadImagen? calidadImagen)
         {
             try
             {
@@ -421,14 +423,17 @@ namespace FatigueDetect.Presentacion
                 };
                 string avisoLuzTexto = avisoIluminacion is EstadoIluminacion luz
                     ? AvisosIluminacion.Mensaje(luz) : "";
+                string avisoCalidadImagen = calidadImagen?.Advertencia ?? "";
                 string avisos = avisoCalidad is TipoEventoSesion problema ? AvisosIluminacion.Mensaje(problema) : string.Join(Environment.NewLine,
-                    new[] { avisoRostroTexto, avisoLuzTexto }.Where(texto => texto.Length > 0));
+                    new[] { avisoRostroTexto, avisoLuzTexto, avisoCalidadImagen }.Where(texto => texto.Length > 0));
                 if (avisoCamara.Text != avisos)
                     avisoCamara.Text = avisos;
                 MostrarMetricasFaciales(fatiga);
                 bool fpsBajos = fpsRecientes < CalidadSesion.UmbralFps;
                 string estadoVideo = imagen is null ? "Cámara sin señal"
-                    : fpsRecientes is double fps ? $"{fps:0.0} FPS {(fpsBajos ? "· Fluidez baja" : "· Cámara activa")}"
+                    : fpsRecientes is double fps ? $"{fps:0.0} FPS {(fpsBajos ? "· Fluidez baja" : "· Cámara activa")}" +
+                      (calidadImagen is null ? "" : $" · Cámara/entorno {calidadImagen.PuntajeCamaraEntorno:0}" +
+                       (calidadImagen.PuntajeColocacion is double posicion ? $" · Colocación {posicion:0}" : ""))
                     : "Cámara activa · Midiendo FPS…";
                 if (estadoCaptura.Text != estadoVideo)
                 {

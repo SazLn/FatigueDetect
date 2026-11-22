@@ -106,6 +106,7 @@ namespace FatigueDetect.Logica
             CancellationToken cancelacion)
         {
             using var detectorCalidad = new DetectorCalidadImagen();
+            using var analizadorCalidad = new AnalizadorCalidadImagen();
             DateTimeOffset ultimaContinuidad = DateTimeOffset.MinValue;
             while (running && !cancelacion.IsCancellationRequested)
             {
@@ -148,6 +149,8 @@ namespace FatigueDetect.Logica
                     avisoCalidad = detectorCalidad.Observar(frame, instante, out indicio);
                 }
                 Rect[] rostros = indicio.HasValue ? Array.Empty<Rect>() : faceDetector.Detect(frame);
+                EvaluacionCalidadImagen evaluacionImagen = analizadorCalidad.Evaluar(frame,
+                    rostros.Length == 1 ? rostros[0] : null);
                 EstadoIluminacion iluminacion = MedidorIluminacion.Evaluar(frame);
                 MedicionFacial? medicion = rostros.Length == 1 && iluminacion == EstadoIluminacion.Adecuada
                     ? detectorFacial.Medir(frame, rostros[0]) : null;
@@ -173,7 +176,7 @@ namespace FatigueDetect.Logica
                     registro.ObservarCamara(instante, indicio, avisoCalidad);
                     bool analisisDisponible = !indicio.HasValue;
                     bool rostroValido = analisisDisponible && rostros.Length == 1;
-                    calidad.RegistrarFotograma(rostroValido, medicion.HasValue);
+                    calidad.RegistrarFotograma(rostroValido, medicion.HasValue, evaluacionImagen);
                     fpsRecientes = calidad.FpsRecientes;
 
                     lectura = fatiga.Observar(instante, medicion, drowsinessLogic.UmbralCierreProlongado, rostroParcial);
@@ -192,7 +195,7 @@ namespace FatigueDetect.Logica
                 try
                 {
                     view.UpdateImage(image, estado, lectura.CierreMs, avisoIluminacion, avisoRostro,
-                        avisoCalidad, lectura, fpsRecientes, muestraAtencion, alerta);
+                        avisoCalidad, lectura, fpsRecientes, muestraAtencion, alerta, evaluacionImagen);
                 }
                 catch (Exception) when (!running)
                 {

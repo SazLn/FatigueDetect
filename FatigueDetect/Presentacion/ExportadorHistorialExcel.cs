@@ -19,8 +19,8 @@ namespace FatigueDetect.Presentacion
                 : $"Se registraron {resumen.TotalAlertas} alarmas en {sesiones.Count} sesiones. " +
                   $"{resumen.AlertasSinHora} alarmas carecen de hora y se excluyen del gráfico horario.");
             AgregarNota(general, 11, 1, 5, "Cómo leer los indicadores",
-                "Calidad (0–100) combina fotogramas analizables (45 %), cobertura facial (35 %) y estabilidad de FPS (20 %). " +
-                "La estabilidad usa ventanas de al menos 2 s y un umbral de 12 FPS. " +
+                "En sesiones nuevas, calidad (0–100) combina analizabilidad (35 %), cobertura facial (25 %), estabilidad de FPS (15 %), brillo (10 %), contraste (5 %), nitidez (5 %) y posición facial (5 %). " +
+                "Las sesiones antiguas conservan el cálculo con los indicadores disponibles. La estabilidad usa ventanas de al menos 2 s y un umbral de 12 FPS. " +
                 "Ojos abiertos observados equivale a 1 − PERCLOS. La cobertura indica cuánto tiempo pudo evaluarse.");
             AgregarNota(general, 14, 1, 5, "Datos disponibles",
                 $"Calidad calculable en {sesiones.Count(s => s.Calidad?.Puntaje is not null)} sesiones. " +
@@ -41,9 +41,12 @@ namespace FatigueDetect.Presentacion
                 "Caídas de FPS", "Tiempo con FPS bajos (s)", "Ojos abiertos observados (%)", "Cobertura ocular (%)",
                 "Pose observada (s)", "Fuera del frente (s)", "Distracción más larga (s)",
                 "Sesión activa fuera del frente (%)", "Distancia media aprox. (cm)",
-                "Posibles bostezos", "Bostezos por hora observada", "Boca observada (s)");
+                "Posibles bostezos", "Bostezos por hora observada", "Boca observada (s)",
+                "Cámara/entorno (0–100)", "Colocación (0–100)", "Brillo (0–100)",
+                "Contraste (0–100)", "Nitidez (0–100)", "Posición facial (0–100)", "Factores de calidad");
             detalle.Columns(6, 7).Style.DateFormat.Format = "yyyy-mm-dd hh:mm:ss";
-            FormatoDecimal(detalle, 8, 10, 12, 18, 19, 23, 24, 25, 26, 27, 28, 30, 32, 35, 36, 37, 39, 41, 42);
+            FormatoDecimal(detalle, 8, 10, 12, 18, 19, 23, 24, 25, 26, 27, 28, 30, 32, 35, 36, 37, 39, 41, 42,
+                43, 44, 45, 46, 47, 48);
             foreach (int columna in new[] { 11, 17, 29, 33, 34, 38 })
                 detalle.Column(columna).Style.NumberFormat.Format = "0.00%";
 
@@ -88,7 +91,10 @@ namespace FatigueDetect.Presentacion
                     postura is { TiempoPoseMs: > 0 } ? postura.DistraccionMaximaMs / 1000.0 : null,
                     postura?.ProporcionDistraida(calidad?.TiempoActivoMs), postura?.DistanciaMediaCm,
                     postura is { TiempoBocaMs: > 0 } ? postura.Bostezos : null,
-                    postura?.BostezosPorHora, postura?.TiempoBocaMs / 1000.0);
+                    postura?.BostezosPorHora, postura?.TiempoBocaMs / 1000.0,
+                    calidad?.PuntajeCamaraEntorno, calidad?.PuntajeColocacion, calidad?.BrilloPromedio,
+                    calidad?.ContrastePromedio, calidad?.NitidezPromedio, calidad?.PosicionFacialPromedio,
+                    calidad?.ExplicarReducciones());
 
                 if (fatiga is not null)
                 {

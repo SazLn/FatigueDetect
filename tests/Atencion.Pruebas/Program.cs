@@ -20,6 +20,22 @@ Verificar(AnalisisAtencion.Calcular(0, 0, 0, true, null, 90, .49).Puntaje is nul
 Verificar(AnalisisAtencion.Calcular(null, 0, 0, true, null, 90, 1).Puntaje is null, "Ojos sin medición");
 Verificar(AnalisisAtencion.Calcular(0, 0, 0, false, null, 90, 1).Factores.Count == 2, "Cabeza y distracción desconocidas no se inventan");
 Verificar(AnalisisAtencion.Calcular(0, 0, 0, true, .3, 90, 1).Puntaje == 85, "Contrato de distracción aporta descuento");
+Verificar(Math.Abs(new CalidadSesion(100, 80, 10_000, 7_000, 0, 0, 2_000, 10_000).Puntaje!.Value - 76.5) < .001,
+    "Sesiones anteriores conservan la fórmula de calidad");
+
+var calidadAmpliada = new CalidadSesion(600, 570, 30_000, 27_000, 0, 0, 0, 30_000,
+    88, 76, 64, 52, 600, 540);
+Verificar(calidadAmpliada.Puntaje is > 0 and <= 100 && calidadAmpliada.PuntajeCamaraEntorno is > 0,
+    "Calidad ampliada combina señal, detección y posición");
+var problemaCamara = calidadAmpliada with { BrilloPromedio = 20, ContrastePromedio = 30,
+    NitidezPromedio = 25, PosicionFacialPromedio = 95 };
+var problemaColocacion = calidadAmpliada with { BrilloPromedio = 95, ContrastePromedio = 95,
+    NitidezPromedio = 95, PosicionFacialPromedio = 20 };
+Verificar(problemaCamara.PuntajeCamaraEntorno < 50 && problemaCamara.PuntajeColocacion == 95,
+    "Problema de cámara no se atribuye a la colocación");
+Verificar(problemaColocacion.PuntajeCamaraEntorno > 90 && problemaColocacion.PuntajeColocacion == 20 &&
+    problemaColocacion.ExplicarReducciones().Contains("posición facial"),
+    "Mala colocación se explica por separado");
 
 var instante = DateTimeOffset.Parse("2026-01-01T12:00:00Z");
 var sesion = new SesionConduccion { Inicio = instante.LocalDateTime, Fin = instante.AddSeconds(30).LocalDateTime };
@@ -130,6 +146,7 @@ try
     var antigua = new SesionConduccion { Inicio = instante.LocalDateTime, Fin = instante.AddMinutes(1).LocalDateTime };
     repo.Guardar(antigua);
     sesion.Atencion = informe;
+    sesion.Calidad = calidadAmpliada;
     sesion.RegistrarEvento(new EventoSesion(TipoEventoSesion.EventoExterno, instante, instante.AddSeconds(2))
         { CodigoTipo = "DistraccionFutura", Confiabilidad = confianzaPropia });
     repo.Guardar(sesion);
@@ -137,6 +154,9 @@ try
     Verificar(leidas.Single(s => s.Id == antigua.Id).Atencion is null, "Sesión antigua conserva ausencia de medición");
     var leida = leidas.Single(s => s.Id == sesion.Id);
     Verificar(leida.Atencion?.Muestras.Count == informe.Muestras.Count && leida.Atencion.Respuestas[0] == informe.Respuestas[0], "Persistencia de muestras y respuestas");
+    Verificar(leida.Calidad is { MuestrasImagen: 600, MuestrasPosicion: 540 } &&
+        leida.Calidad.NitidezPromedio == 64 && leida.Calidad.PosicionFacialPromedio == 52,
+        "Persistencia de calidad ampliada");
     Verificar(leida.Eventos[0].CodigoTipo == "DistraccionFutura", "Eventos futuros preservados");
     Verificar(leida.Eventos[0].Confiabilidad is { Version: 9, Puntaje: 99 } confianzaLeida &&
         confianzaLeida.Advertencias.Single() == "Detector futuro",
@@ -152,6 +172,10 @@ try
         Verificar(libro.Worksheet("Eventos").Cell(2, 8).GetDouble() == 99 &&
             libro.Worksheet("Eventos").Cell(2, 10).GetString() == "Detector futuro",
             "Excel exporta confianza y explicación");
+        Verificar(libro.Worksheet("Sesiones").Cell(1, 43).GetString() == "Cámara/entorno (0–100)" &&
+            libro.Worksheet("Sesiones").RowsUsed().Skip(1).Any(f =>
+                f.Cell(47).TryGetValue<double>(out double nitidez) && nitidez == 64),
+            "Excel exporta diagnóstico de cámara y calidad de imagen");
         Verificar(libro.Worksheet("Comparación personal").LastRowUsed()!.RowNumber() == 3,
             "Excel representa sesiones anteriores sin inventar comparación personal");
     }

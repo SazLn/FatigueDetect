@@ -408,6 +408,10 @@ namespace FatigueDetect.Presentacion
                 ? $"Calidad: {calidad.Puntaje?.ToString("0.0") ?? "—"}/100 · FPS medios: {calidad.Fps?.ToString("0.0") ?? "—"}\n" +
                   $"Analizables: {calidad.ProporcionAnalizable?.ToString("P1") ?? "—"} · Cobertura facial: {calidad.CoberturaRostro?.ToString("P0") ?? "—"}\n" +
                   $"Caídas de FPS: {calidad.CaidasFps?.ToString() ?? "—"} · Fallos de cámara: {calidad.FallosCamara}\n" +
+                  $"Cámara/entorno: {calidad.PuntajeCamaraEntorno?.ToString("0.0") ?? "—"}/100 · Colocación: {calidad.PuntajeColocacion?.ToString("0.0") ?? "—"}/100\n" +
+                  $"Brillo {calidad.BrilloPromedio?.ToString("0") ?? "—"} · Contraste {calidad.ContrastePromedio?.ToString("0") ?? "—"} · " +
+                  $"Nitidez {calidad.NitidezPromedio?.ToString("0") ?? "—"} · Posición {calidad.PosicionFacialPromedio?.ToString("0") ?? "—"}\n" +
+                  calidad.ExplicarReducciones() + "\n" +
                   $"Ojos abiertos observados: {s.OjosAbiertosObservados?.ToString("P1") ?? "—"}" +
                   $" · Cobertura ocular: {s.CoberturaOcular?.ToString("P0") ?? "—"}"
                 : "Calidad: sin medición";
