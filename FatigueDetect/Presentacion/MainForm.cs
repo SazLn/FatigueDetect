@@ -17,7 +17,7 @@ namespace FatigueDetect.Presentacion
         private readonly CatalogoTiposCarro catalogo;
         private readonly Configuracion config;
 
-        private readonly Panel contenido = new Panel();
+        private readonly PanelDobleBuffer contenido = new PanelDobleBuffer();
         private readonly BotonNavegacion btnInicio = new BotonNavegacion("Inicio");
         private readonly BotonNavegacion btnRegistro = new BotonNavegacion("Registro / Persona");
         private readonly BotonNavegacion btnHistorial = new BotonNavegacion("Historial de sesiones");
@@ -34,6 +34,7 @@ namespace FatigueDetect.Presentacion
         private CancellationTokenSource? arranqueCamara;
 
         private FaceDetector? detectorRostros;
+        private bool repintadoPendiente;
 
         public MainForm(SesionService sesionService, CatalogoTiposCarro catalogo, Configuracion config,
             ServicioBiometrico servicioBiometrico, PreferenciaCamara preferenciaCamara,
@@ -50,6 +51,10 @@ namespace FatigueDetect.Presentacion
             StartPosition = FormStartPosition.CenterScreen;
             BackColor = Tema.Fondo;
             Font = Tema.Fuente(10);
+            AutoScaleMode = AutoScaleMode.Dpi;
+            DoubleBuffered = true;
+            SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer |
+                ControlStyles.ResizeRedraw, true);
 
             paginaInicio = new PaginaInicio(config);
             paginaRegistro = new PaginaRegistro(catalogo, servicioBiometrico);
@@ -96,7 +101,43 @@ namespace FatigueDetect.Presentacion
                 }
             };
 
+            Shown += (_, _) => AjustarVentanaAlAreaUtil();
+            SizeChanged += (_, _) => SolicitarRepintadoCompleto();
+
             Mostrar(paginaRegistro, btnRegistro);
+        }
+
+        private void AjustarVentanaAlAreaUtil()
+        {
+            if (WindowState != FormWindowState.Normal)
+                return;
+
+            Rectangle area = Screen.FromControl(this).WorkingArea;
+            int ancho = Math.Min(Width, area.Width);
+            int alto = Math.Min(Height, area.Height);
+            ancho = Math.Max(Math.Min(MinimumSize.Width, area.Width), ancho);
+            alto = Math.Max(Math.Min(MinimumSize.Height, area.Height), alto);
+            Bounds = new Rectangle(
+                area.Left + Math.Max(0, (area.Width - ancho) / 2),
+                area.Top + Math.Max(0, (area.Height - alto) / 2),
+                ancho,
+                alto);
+        }
+
+        private void SolicitarRepintadoCompleto()
+        {
+            if (!IsHandleCreated || IsDisposed || repintadoPendiente)
+                return;
+
+            repintadoPendiente = true;
+            BeginInvoke(() =>
+            {
+                repintadoPendiente = false;
+                if (IsDisposed)
+                    return;
+                contenido.PerformLayout();
+                contenido.Invalidate(true);
+            });
         }
 
         private Control ConstruirMenu()
@@ -150,6 +191,8 @@ namespace FatigueDetect.Presentacion
             if (!ReferenceEquals(pagina, paginaConfig) && paginaConfig.Visible)
                 paginaConfig.DetenerVistaPrevia();
 
+            SuspendLayout();
+            contenido.SuspendLayout();
             foreach (Control c in contenido.Controls)
             {
                 c.Visible = ReferenceEquals(c, pagina);
@@ -160,6 +203,9 @@ namespace FatigueDetect.Presentacion
             btnRegistro.Activo = ReferenceEquals(boton, btnRegistro);
             btnHistorial.Activo = ReferenceEquals(boton, btnHistorial);
             btnConfig.Activo = ReferenceEquals(boton, btnConfig);
+            contenido.ResumeLayout(true);
+            ResumeLayout(true);
+            SolicitarRepintadoCompleto();
         }
 
         // ------------------------------------------------------------------
