@@ -367,6 +367,21 @@ Verificar(sesionAlertas.Eventos.Select(e => e.Tipo).SequenceEqual(new[]
       TipoEventoSesion.AlertaAlta, TipoEventoSesion.AlertaPreventiva }),
     "La línea temporal conserva cada nivel de alerta");
 
+var sesionAccesorios = new SesionConduccion { Inicio = instante.LocalDateTime };
+var rastreadorAccesorios = new RastreadorAccesorios(sesionAccesorios);
+var obstruida = new EvaluacionAccesorios(true, false, false, .25, 1, .45, false,
+    "Posible obstrucción oscura sobre los ojos");
+rastreadorAccesorios.Observar(instante, obstruida);
+rastreadorAccesorios.Observar(instante.AddSeconds(1), obstruida);
+EvaluacionAccesorios confirmada = rastreadorAccesorios.Observar(instante.AddSeconds(2), obstruida);
+Verificar(confirmada.PosiblesGafasOscuras && !confirmada.Confiable,
+    "Accesorio persistente confirma medición no confiable después de dos segundos");
+rastreadorAccesorios.Observar(instante.AddSeconds(3), new EvaluacionAccesorios(false, false, false,
+    1, 1, 1, true, "Visible"));
+Verificar(sesionAccesorios.Eventos.Select(e => e.Tipo).Order().SequenceEqual(new[]
+    { TipoEventoSesion.PosiblesGafasOscuras, TipoEventoSesion.MedicionFacialNoConfiable }.Order()),
+    "Obstrucción y falta de confiabilidad quedan en la línea temporal");
+
 string carpetaProtegida = Path.Combine(Path.GetTempPath(), "fatiga-protegida-" + Guid.NewGuid().ToString("N"));
 Directory.CreateDirectory(carpetaProtegida);
 try

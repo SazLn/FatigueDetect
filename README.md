@@ -24,13 +24,13 @@ Proyecto de inicio: `Presentacion`.
 - configuracion.json (umbrales de somnolencia y alarma, y estado del sonido)
 - perfiles_biometricos.json (datos del conductor y descriptores numéricos del rostro; no contiene fotografías)
 
-La rama `descarga/proteccion-datos` cifra los perfiles biométricos y los identificadores personales del
+FatigueDetect cifra los perfiles biométricos y los identificadores personales del
 historial. La clave local se guarda en `clave_datos.bin` protegida por el usuario actual de Windows; no debe
 eliminarse por separado. En **Configuración → Protección y conservación de datos** se puede activar una
 retención entre 30 y 3650 días, crear respaldos `.fdbak` con contraseña y restaurarlos. El respaldo incluye
 una clave portátil dentro del contenedor cifrado, por lo que puede restaurarse con la contraseña. La
 restauración valida el archivo y la base SQLite y requiere reiniciar la aplicación. Consulta
-[Protección de datos](docs/proteccion_datos.md). Esta propuesta aún no está integrada en `main`.
+[Protección de datos](docs/proteccion_datos.md).
 La creación del respaldo usa una instantánea consistente de SQLite, por lo que funciona aunque la aplicación
 mantenga conexiones internas abiertas y no copia directamente un archivo de base de datos en uso.
 
@@ -255,6 +255,15 @@ sola cara. La cámara se libera al terminar para que el monitor de fatiga pueda 
 > Siempre se ofrece confirmación manual cuando la identificación no se ha completado.
 
 ## Cabeza, encuadre y boca
+
+La aplicación añade un análisis heurístico de regiones de ojos, boca y frente.
+Después de dos segundos puede mostrar **posibles gafas oscuras**, **posible mascarilla** o **posible gorra u
+obstrucción superior**. También presenta porcentajes de visibilidad y confianza facial. Si la visibilidad
+ocular o los puntos faciales no son suficientes, esa muestra no alimenta las métricas de fatiga y se registra
+un episodio de medición no confiable. Los resultados dependen de iluminación, tono, diseño del accesorio y
+cámara: son advertencias de obstrucción, no una clasificación cierta. Consulta
+[Detección de accesorios](docs/deteccion_accesorios.md). Los perfiles biométricos y el historial se leen
+mediante la protección de datos integrada.
 
 Al calibrar, mira al frente con la cabeza erguida. El historial y Excel registran inicio, fin y duración de cada cabeceo y de los giros a izquierda, derecha, arriba o abajo. El resumen recoge el tiempo fuera de la zona frontal, el episodio más largo y la proporción respecto al tiempo activo. También indica cuánto tiempo tuvo una pose medible.
 

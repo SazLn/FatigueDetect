@@ -2,13 +2,21 @@
 
 ## Sin publicar
 
-### Propuesta en `descarga/proteccion-datos`
+### Protección de datos integrada en `main`
 
 - Cifra con AES-GCM los perfiles biométricos, identificadores del historial y cargas JSON sensibles; la clave se protege con DPAPI para el usuario actual de Windows.
 - Migra perfiles biométricos legados al leerlos y mantiene lectura compatible del historial anterior sin cifrar.
 - Añade retención automática configurable para sesiones y perfiles biométricos inactivos.
 - Crea y restaura respaldos `.fdbak` cifrados y autenticados con contraseña; valida formato e integridad SQLite antes de reemplazar datos.
 - Corrige la creación del respaldo cuando SQLite permanece abierto: usa la API de instantáneas de SQLite y libera conexiones en caché antes de restaurar.
+
+### Detección experimental de accesorios integrada en `main`
+
+- Añade indicios heurísticos de posibles gafas oscuras, mascarilla y gorra u obstrucción superior.
+- Calcula visibilidad de ojos y boca y una confianza facial; una medición insuficiente queda fuera del análisis de fatiga.
+- Exige dos segundos de persistencia para mostrar y guardar el accesorio, evitando registrar cambios aislados.
+- Incorpora los episodios al historial, la línea temporal y Excel con una advertencia explícita de que no identifica accesorios con certeza.
+- Mantiene la compatibilidad con perfiles e historial cifrados por la protección integrada.
 
 ### Alertas progresivas integradas mediante el PR #25
 

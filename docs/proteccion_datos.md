@@ -1,6 +1,6 @@
 # Protección de datos
 
-Estado: disponible en `descarga/proteccion-datos`, pendiente de validación en Windows y decisión de integración.
+Estado: integrado en `main` después de la validación manual en Windows.
 
 ## Alcance
 

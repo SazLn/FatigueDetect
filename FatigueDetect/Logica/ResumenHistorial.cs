@@ -58,7 +58,8 @@ namespace FatigueDetect.Logica
             TipoEventoSesion.CierreOcularProlongado or TipoEventoSesion.CamaraTapada
                 or TipoEventoSesion.CamaraDesenfocada or TipoEventoSesion.CamaraCongelada
                 or TipoEventoSesion.Cabeceo or TipoEventoSesion.CierreOcularAnomalo
-                or TipoEventoSesion.FueraZonaFrontal or TipoEventoSesion.AlertaAlta => GravedadEvento.Media,
+                or TipoEventoSesion.FueraZonaFrontal or TipoEventoSesion.AlertaAlta
+                or TipoEventoSesion.MedicionFacialNoConfiable => GravedadEvento.Media,
             _ => GravedadEvento.Baja
         };
 

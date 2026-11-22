@@ -355,7 +355,8 @@ namespace FatigueDetect.Presentacion
         public void UpdateImage(Bitmap? image, EyeState estado, long tiempoMs,
             EstadoIluminacion? avisoIluminacion, TipoEventoSesion? avisoRostro,
             TipoEventoSesion? avisoCalidad = null, FatigaEnVivo? fatiga = null, double? fpsRecientes = null,
-            MuestraAtencion? atencion = null, EstadoAlertaProgresiva? alerta = null)
+            MuestraAtencion? atencion = null, EstadoAlertaProgresiva? alerta = null,
+            EvaluacionAccesorios? accesorios = null)
         {
             // Si la pantalla sigue ocupada con el cuadro anterior, se descarta este.
             if (IsDisposed || !IsHandleCreated || Interlocked.CompareExchange(ref actualizando, 1, 0) != 0)
@@ -367,7 +368,7 @@ namespace FatigueDetect.Presentacion
             try
             {
                 BeginInvoke(new Action(() => Actualizar(image, estado, tiempoMs, avisoIluminacion,
-                    avisoRostro, avisoCalidad, fatiga, fpsRecientes, atencion, alerta)));
+                    avisoRostro, avisoCalidad, fatiga, fpsRecientes, atencion, alerta, accesorios)));
             }
             catch (Exception)
             {
@@ -389,7 +390,7 @@ namespace FatigueDetect.Presentacion
         private void Actualizar(Bitmap? imagen, EyeState estado, long tiempoMs,
             EstadoIluminacion? avisoIluminacion, TipoEventoSesion? avisoRostro,
             TipoEventoSesion? avisoCalidad, FatigaEnVivo? fatiga, double? fpsRecientes,
-            MuestraAtencion? atencion, EstadoAlertaProgresiva? alerta)
+            MuestraAtencion? atencion, EstadoAlertaProgresiva? alerta, EvaluacionAccesorios? accesorios)
         {
             try
             {
@@ -421,11 +422,13 @@ namespace FatigueDetect.Presentacion
                 };
                 string avisoLuzTexto = avisoIluminacion is EstadoIluminacion luz
                     ? AvisosIluminacion.Mensaje(luz) : "";
+                string avisoAccesorios = accesorios is { Confiable: false } a
+                    ? "Medición facial no confiable: " + a.Explicacion : "";
                 string avisos = avisoCalidad is TipoEventoSesion problema ? AvisosIluminacion.Mensaje(problema) : string.Join(Environment.NewLine,
-                    new[] { avisoRostroTexto, avisoLuzTexto }.Where(texto => texto.Length > 0));
+                    new[] { avisoRostroTexto, avisoLuzTexto, avisoAccesorios }.Where(texto => texto.Length > 0));
                 if (avisoCamara.Text != avisos)
                     avisoCamara.Text = avisos;
-                MostrarMetricasFaciales(fatiga);
+                MostrarMetricasFaciales(fatiga, accesorios);
                 bool fpsBajos = fpsRecientes < CalidadSesion.UmbralFps;
                 string estadoVideo = imagen is null ? "Cámara sin señal"
                     : fpsRecientes is double fps ? $"{fps:0.0} FPS {(fpsBajos ? "· Fluidez baja" : "· Cámara activa")}"
@@ -492,7 +495,7 @@ namespace FatigueDetect.Presentacion
             }
         }
 
-        private void MostrarMetricasFaciales(FatigaEnVivo? fatiga)
+        private void MostrarMetricasFaciales(FatigaEnVivo? fatiga, EvaluacionAccesorios? accesorios = null)
         {
             if (fatiga is null)
             {
@@ -516,6 +519,9 @@ namespace FatigueDetect.Presentacion
             string avisoPostura = postura.FueraEncuadre ? " · Rostro al borde"
                 : postura.Encorvada ? " · Posible postura encorvada" : "";
             MetricasFatiga acumulado = fatiga.Acumulado;
+            string visibilidad = accesorios is null ? ""
+                : $"\nVisibilidad: ojos {accesorios.VisibilidadOjos:P0} · boca {accesorios.VisibilidadBoca:P0}" +
+                  $" · confianza facial {accesorios.ConfiabilidadMedicion:P0}";
             metricasFaciales.Text =
                 $"Apertura izq./der.: {fatiga.AperturaIzquierda?.ToString("P0") ?? "—"} / {fatiga.AperturaDerecha?.ToString("P0") ?? "—"}" +
                 $" · diferencia {fatiga.DiferenciaApertura?.ToString("P0") ?? "—"} · PERCLOS 60 s {fatiga.Perclos?.ToString("P1") ?? "—"}\n" +
@@ -524,7 +530,7 @@ namespace FatigueDetect.Presentacion
                 $"Microsueños {acumulado.Microsuenos} · cierres anómalos {acumulado.CierresAnomalos}" +
                 $" · cierre máx. {acumulado.CierreMasLargoMs / 1000.0:0.0} s\n{pose}\n" +
                 $"Mirada estimada: {orientacion} · Distancia aprox.: {postura.DistanciaCm?.ToString("0") ?? "—"} cm" +
-                $" · Bostezos: {postura.Bostezos}{avisoPostura}";
+                $" · Bostezos: {postura.Bostezos}{avisoPostura}{visibilidad}";
         }
 
         private void ActualizarMedidor(MuestraAtencion? atencion)

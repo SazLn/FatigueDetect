@@ -23,6 +23,7 @@ namespace FatigueDetect.Logica
         private readonly RastreadorFatiga fatiga;
         private readonly RastreadorAtencion atencion = new();
         private readonly GestorAlertasProgresivas alertas;
+        private readonly RastreadorAccesorios accesorios;
         private readonly SesionConduccion sesion;
         private readonly object candadoEstado = new object();
         private readonly DateTimeOffset origenUtc = DateTimeOffset.UtcNow;
@@ -48,6 +49,7 @@ namespace FatigueDetect.Logica
             registro = new RegistroEventosSesion(sesion);
             fatiga = new RastreadorFatiga(sesion, calibracion);
             alertas = new GestorAlertasProgresivas(sesion);
+            accesorios = new RastreadorAccesorios(sesion);
         }
 
         public Task IniciarAsync(string? camaraId, CancellationToken cancelacion, FormatoCamara? formato = null)
@@ -106,6 +108,7 @@ namespace FatigueDetect.Logica
             CancellationToken cancelacion)
         {
             using var detectorCalidad = new DetectorCalidadImagen();
+            var detectorAccesorios = new DetectorAccesorios();
             DateTimeOffset ultimaContinuidad = DateTimeOffset.MinValue;
             while (running && !cancelacion.IsCancellationRequested)
             {
@@ -151,6 +154,9 @@ namespace FatigueDetect.Logica
                 EstadoIluminacion iluminacion = MedidorIluminacion.Evaluar(frame);
                 MedicionFacial? medicion = rostros.Length == 1 && iluminacion == EstadoIluminacion.Adecuada
                     ? detectorFacial.Medir(frame, rostros[0]) : null;
+                EvaluacionAccesorios? evaluacionAccesorios = rostros.Length == 1 &&
+                    iluminacion == EstadoIluminacion.Adecuada
+                    ? detectorAccesorios.Evaluar(frame, rostros[0], medicion) : null;
                 bool rostroParcial = rostros.Length == 1 &&
                     (rostros[0].X <= frame.Width * 0.025 || rostros[0].Y <= frame.Height * 0.025 ||
                      rostros[0].Right >= frame.Width * 0.975 || rostros[0].Bottom >= frame.Height * 0.975);
@@ -163,6 +169,7 @@ namespace FatigueDetect.Logica
                 double? fpsRecientes;
                 MuestraAtencion? muestraAtencion;
                 EstadoAlertaProgresiva? alerta;
+                EvaluacionAccesorios? accesoriosEnVivo;
                 EstadoIluminacion? avisoIluminacion;
                 TipoEventoSesion? avisoRostro;
                 lock (candadoEstado)
@@ -173,10 +180,18 @@ namespace FatigueDetect.Logica
                     registro.ObservarCamara(instante, indicio, avisoCalidad);
                     bool analisisDisponible = !indicio.HasValue;
                     bool rostroValido = analisisDisponible && rostros.Length == 1;
-                    calidad.RegistrarFotograma(rostroValido, medicion.HasValue);
+                    if (evaluacionAccesorios is null)
+                    {
+                        accesorios.Interrumpir(instante);
+                        accesoriosEnVivo = null;
+                    }
+                    else accesoriosEnVivo = accesorios.Observar(instante, evaluacionAccesorios);
+                    bool medicionConfiable = medicion.HasValue && accesoriosEnVivo?.Confiable == true;
+                    calidad.RegistrarFotograma(rostroValido, medicionConfiable);
                     fpsRecientes = calidad.FpsRecientes;
 
-                    lectura = fatiga.Observar(instante, medicion, drowsinessLogic.UmbralCierreProlongado, rostroParcial);
+                    lectura = fatiga.Observar(instante, medicionConfiable ? medicion : null,
+                        drowsinessLogic.UmbralCierreProlongado, rostroParcial);
                     estado = drowsinessLogic.Evaluar(lectura.CierreMs);
                     atencion.Observar(instante, lectura, estado, calidad.Resumen(), sesion,
                         drowsinessLogic.UmbralCierreProlongado);
@@ -192,7 +207,7 @@ namespace FatigueDetect.Logica
                 try
                 {
                     view.UpdateImage(image, estado, lectura.CierreMs, avisoIluminacion, avisoRostro,
-                        avisoCalidad, lectura, fpsRecientes, muestraAtencion, alerta);
+                        avisoCalidad, lectura, fpsRecientes, muestraAtencion, alerta, accesoriosEnVivo);
                 }
                 catch (Exception) when (!running)
                 {
@@ -262,6 +277,7 @@ namespace FatigueDetect.Logica
             fatiga.Interrumpir(instante, drowsinessLogic.UmbralCierreProlongado);
             atencion.Interrumpir(instante);
             alertas.Interrumpir(instante);
+            accesorios.Interrumpir(instante);
             alarmService.Detener();
         }
     }

@@ -526,6 +526,10 @@ namespace FatigueDetect.Presentacion
             TipoEventoSesion.AlertaPreventiva => "Alerta preventiva",
             TipoEventoSesion.AlertaAlta => "Alerta alta",
             TipoEventoSesion.AlertaCritica => "Alerta crítica",
+            TipoEventoSesion.PosiblesGafasOscuras => "Posibles gafas oscuras",
+            TipoEventoSesion.PosibleMascarilla => "Posible mascarilla",
+            TipoEventoSesion.PosibleGorra => "Posible gorra u obstrucción superior",
+            TipoEventoSesion.MedicionFacialNoConfiable => "Medición facial no confiable",
             _ => tipo.ToString()
         };
 
