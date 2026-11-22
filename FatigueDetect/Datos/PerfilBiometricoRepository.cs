@@ -11,6 +11,7 @@ namespace FatigueDetect.Datos
     public class PerfilBiometricoRepository
     {
         private readonly string rutaArchivo;
+        private readonly ProtectorDatosLocal protector;
         private readonly object candado = new object();
         private readonly JsonSerializerOptions opciones = new JsonSerializerOptions
         {
@@ -18,9 +19,11 @@ namespace FatigueDetect.Datos
             PropertyNameCaseInsensitive = true
         };
 
-        public PerfilBiometricoRepository(string rutaArchivo)
+        public PerfilBiometricoRepository(string rutaArchivo, ProtectorDatosLocal? protector = null)
         {
             this.rutaArchivo = rutaArchivo;
+            this.protector = protector ?? new ProtectorDatosLocal(
+                Path.Combine(Path.GetDirectoryName(Path.GetFullPath(rutaArchivo))!, "clave_datos.bin"));
         }
 
         public string RutaArchivo => rutaArchivo;
@@ -34,14 +37,19 @@ namespace FatigueDetect.Datos
                     return new List<PerfilBiometrico>();
                 }
 
-                string json = File.ReadAllText(rutaArchivo);
+                string contenido = File.ReadAllText(rutaArchivo);
+                bool legado = !protector.EstaCifrado(contenido);
+                string json = protector.Descifrar(contenido);
                 if (string.IsNullOrWhiteSpace(json))
                 {
                     return new List<PerfilBiometrico>();
                 }
 
-                return JsonSerializer.Deserialize<List<PerfilBiometrico>>(json, opciones)
-                       ?? new List<PerfilBiometrico>();
+                List<PerfilBiometrico> perfiles = JsonSerializer.Deserialize<List<PerfilBiometrico>>(json, opciones)
+                    ?? new List<PerfilBiometrico>();
+                if (legado)
+                    EscribirSinCandado(perfiles);
+                return perfiles;
             }
         }
 
@@ -77,6 +85,18 @@ namespace FatigueDetect.Datos
             }
         }
 
+        public int EliminarAnteriores(DateTime limiteUtc)
+        {
+            lock (candado)
+            {
+                List<PerfilBiometrico> perfiles = LeerTodosSinCandado();
+                int eliminados = perfiles.RemoveAll(p => p.ActualizadoUtc < limiteUtc);
+                if (eliminados > 0)
+                    EscribirSinCandado(perfiles);
+                return eliminados;
+            }
+        }
+
         private List<PerfilBiometrico> LeerTodosSinCandado()
         {
             if (!File.Exists(rutaArchivo))
@@ -84,7 +104,7 @@ namespace FatigueDetect.Datos
                 return new List<PerfilBiometrico>();
             }
 
-            string json = File.ReadAllText(rutaArchivo);
+            string json = protector.Descifrar(File.ReadAllText(rutaArchivo));
             return string.IsNullOrWhiteSpace(json)
                 ? new List<PerfilBiometrico>()
                 : JsonSerializer.Deserialize<List<PerfilBiometrico>>(json, opciones)
@@ -100,7 +120,7 @@ namespace FatigueDetect.Datos
             }
 
             string temporal = rutaArchivo + ".tmp";
-            File.WriteAllText(temporal, JsonSerializer.Serialize(perfiles, opciones));
+            File.WriteAllText(temporal, protector.Cifrar(JsonSerializer.Serialize(perfiles, opciones)));
             File.Move(temporal, rutaArchivo, true);
         }
     }

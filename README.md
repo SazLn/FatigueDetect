@@ -24,6 +24,16 @@ Proyecto de inicio: `Presentacion`.
 - configuracion.json (umbrales de somnolencia y alarma, y estado del sonido)
 - perfiles_biometricos.json (datos del conductor y descriptores numéricos del rostro; no contiene fotografías)
 
+La rama `descarga/proteccion-datos` cifra los perfiles biométricos y los identificadores personales del
+historial. La clave local se guarda en `clave_datos.bin` protegida por el usuario actual de Windows; no debe
+eliminarse por separado. En **Configuración → Protección y conservación de datos** se puede activar una
+retención entre 30 y 3650 días, crear respaldos `.fdbak` con contraseña y restaurarlos. El respaldo incluye
+una clave portátil dentro del contenedor cifrado, por lo que puede restaurarse con la contraseña. La
+restauración valida el archivo y la base SQLite y requiere reiniciar la aplicación. Consulta
+[Protección de datos](docs/proteccion_datos.md). Esta propuesta aún no está integrada en `main`.
+La creación del respaldo usa una instantánea consistente de SQLite, por lo que funciona aunque la aplicación
+mantenga conexiones internas abiertas y no copia directamente un archivo de base de datos en uso.
+
 ## Elegir la cámara y revisar la iluminación
 
 En **Configuración → Cámara**, elige la cámara por el nombre que muestra Windows o selecciona **Automática**.

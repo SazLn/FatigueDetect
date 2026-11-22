@@ -19,8 +19,20 @@ namespace FatigueDetect.Presentacion
             string documentos = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
             string carpeta = Path.Combine(documentos, "FatigueDetect");
 
-            var sesionService = new SesionService(new HistorialSqliteRepository(
-                Path.Combine(carpeta, "historial.sqlite"), Path.Combine(carpeta, "historial.csv")));
+            var protector = new ProtectorDatosLocal(Path.Combine(carpeta, "clave_datos.bin"));
+            var historialRepository = new HistorialSqliteRepository(
+                Path.Combine(carpeta, "historial.sqlite"), Path.Combine(carpeta, "historial.csv"), protector);
+            var perfilesRepository = new PerfilBiometricoRepository(
+                Path.Combine(carpeta, "perfiles_biometricos.json"), protector);
+            var politicaRepository = new PoliticaProteccionRepository(Path.Combine(carpeta, "politica_datos.json"));
+            var proteccionDatos = new ProteccionDatosService(carpeta, protector, historialRepository, perfilesRepository);
+            try { proteccionDatos.AplicarRetencion(politicaRepository.Leer(), DateTime.Now); }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException or InvalidDataException)
+            {
+                MessageBox.Show("No se pudo aplicar la política de retención. No se eliminó información.\n" + ex.Message,
+                    "Protección de datos", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+            var sesionService = new SesionService(historialRepository);
             var catalogoTipos = new CatalogoTiposCarro(new TiposCarroRepository(Path.Combine(carpeta, "tipos_carro.txt")));
             var configuracion = new Configuracion();
             var repositorioAjustes = new ConfiguracionDeteccionRepository(Path.Combine(carpeta, "configuracion.json"));
@@ -46,11 +58,11 @@ namespace FatigueDetect.Presentacion
             string cascadaRostros = Path.Combine(
                 AppContext.BaseDirectory, "Resources", "cascades", "haarcascade_frontalface_default.xml");
             var servicioBiometrico = new ServicioBiometrico(
-                new PerfilBiometricoRepository(Path.Combine(carpeta, "perfiles_biometricos.json")),
+                perfilesRepository,
                 cascadaRostros, configuracion);
 
             Application.Run(new MainForm(sesionService, catalogoTipos, configuracion, servicioBiometrico,
-                preferenciaCamara, repositorioAjustes));
+                preferenciaCamara, repositorioAjustes, proteccionDatos, politicaRepository));
         }
     }
 }

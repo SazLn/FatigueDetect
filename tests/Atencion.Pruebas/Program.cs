@@ -367,6 +367,59 @@ Verificar(sesionAlertas.Eventos.Select(e => e.Tipo).SequenceEqual(new[]
       TipoEventoSesion.AlertaAlta, TipoEventoSesion.AlertaPreventiva }),
     "La línea temporal conserva cada nivel de alerta");
 
+string carpetaProtegida = Path.Combine(Path.GetTempPath(), "fatiga-protegida-" + Guid.NewGuid().ToString("N"));
+Directory.CreateDirectory(carpetaProtegida);
+try
+{
+    var protector = new ProtectorDatosLocal(Path.Combine(carpetaProtegida, "clave_datos.bin"));
+    var repoSeguro = new HistorialSqliteRepository(Path.Combine(carpetaProtegida, "historial.sqlite"),
+        Path.Combine(carpetaProtegida, "ausente.csv"), protector);
+    var perfilesSeguros = new PerfilBiometricoRepository(Path.Combine(carpetaProtegida, "perfiles_biometricos.json"), protector);
+    perfilesSeguros.Guardar(new PerfilBiometrico { Cedula = "987654", Nombre = "Dato secreto",
+        DescriptorFacial = [1, 2, 3], ActualizadoUtc = DateTime.UtcNow });
+    string archivoPerfil = File.ReadAllText(perfilesSeguros.RutaArchivo);
+    Verificar(protector.EstaCifrado(archivoPerfil) && !archivoPerfil.Contains("987654"),
+        "Perfil biométrico cifrado sin identificadores en texto claro");
+    var privada = new SesionConduccion { Inicio = instante.LocalDateTime,
+        Conductor = new Conductor { Cedula = "987654", Nombre = "Dato secreto" },
+        Vehiculo = new Vehiculo { Placa = "SEC123", TipoCarro = "Prueba" } };
+    repoSeguro.Guardar(privada);
+    using (var conexionSegura = new SqliteConnection($"Data Source={repoSeguro.RutaArchivo}"))
+    {
+        conexionSegura.Open();
+        using var consultaSegura = conexionSegura.CreateCommand();
+        consultaSegura.CommandText = "SELECT Cedula || Nombre || Placa FROM Sesiones LIMIT 1;";
+        string almacenado = (string)consultaSegura.ExecuteScalar()!;
+        Verificar(!almacenado.Contains("987654") && !almacenado.Contains("Dato secreto") &&
+            almacenado.Contains("FDENC1:"), "Identidad del historial cifrada por campo");
+    }
+    Verificar(repoSeguro.LeerTodas().Single().Conductor.Cedula == "987654",
+        "Historial cifrado se descifra transparentemente");
+    var servicioSeguro = new ProteccionDatosService(carpetaProtegida, protector, repoSeguro, perfilesSeguros);
+    string respaldo = Path.Combine(carpetaProtegida, "respaldo.fdbak");
+    using (var conexionAbierta = new SqliteConnection($"Data Source={repoSeguro.RutaArchivo}"))
+    {
+        conexionAbierta.Open();
+        servicioSeguro.CrearRespaldo(respaldo, "clave-segura-123");
+    }
+    Verificar(File.ReadAllBytes(respaldo).AsSpan(0, 9).SequenceEqual("FDBACKUP1"u8),
+        "Respaldo protegido usa instantánea aunque SQLite esté abierto");
+    bool rechazada = false;
+    try { servicioSeguro.RestaurarRespaldo(respaldo, "clave-erronea-123"); }
+    catch (InvalidDataException) { rechazada = true; }
+    Verificar(rechazada, "Contraseña incorrecta rechaza la restauración");
+    perfilesSeguros.Eliminar("987654");
+    servicioSeguro.RestaurarRespaldo(respaldo, "clave-segura-123");
+    Verificar(new PerfilBiometricoRepository(perfilesSeguros.RutaArchivo,
+        new ProtectorDatosLocal(Path.Combine(carpetaProtegida, "clave_datos.bin"))).Existe("987654"),
+        "Restauración recupera perfiles y clave portátil");
+}
+finally
+{
+    SqliteConnection.ClearAllPools();
+    Directory.Delete(carpetaProtegida, true);
+}
+
 var guia = new CalibradorGuiado("cam-1", "abc123");
 for (int ms = 0; ms <= 2000; ms += 100)
     guia.Observar(instante.AddMilliseconds(ms), new MedicionFacial(.30, .29, new AngulosCabeza(1, 2, 0)));

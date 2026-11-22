@@ -38,6 +38,7 @@
 | Confiabilidad explicable por evento | Integrado en `main` | Puntúa la evidencia de cada evento y explica las limitaciones de persistencia, cobertura, FPS o captura. Integrado mediante el PR #18 después de la validación manual inicial. |
 | Análisis histórico avanzado | Integrado en `main` | Riesgo, tendencia personal, grupos por vehículo/hora/día, mapa de calor, alarmas por hora activa y comparación de sesiones marcadas. Integrado mediante el PR #22. |
 | Alertas progresivas | Integrado en `main` | Niveles preventivo/alto/crítico, sonido escalonado, enfriamiento y reducción tras recuperación estable. Validado manualmente e integrado mediante el PR #25. |
+| Protección, retención y respaldos | Implementado en rama de descarga | `descarga/proteccion-datos`: cifrado local, retención automática y respaldo/restauración autenticados. El respaldo usa una instantánea aunque SQLite esté abierto. Pendiente repetir la prueba corregida en Windows. |
 
 La medición facial fue validada de forma inicial con una cámara Windows. La calibración de umbrales y las pruebas con más cámaras, iluminación y personas siguen pendientes.
 Las métricas oculares avanzadas también fueron validadas manualmente con cámara y están integradas en `main`. Su calibración con más cámaras, condiciones de iluminación y personas sigue pendiente.
@@ -206,8 +207,8 @@ La dificultad de programar una función y la dificultad de hacerla confiable no 
 | Combinar varias instrucciones aleatorias | **Media-alta** | Pedir secuencias diferentes para dificultar suplantaciones sencillas. |
 | Detectar una fotografía o pantalla | **Alta** | Usar un modelo antisuplantación que analice textura, reflejos y profundidad aparente. |
 | Detectar reproducción de video | **Alta** | Requiere una prueba de vida más robusta; los movimientos básicos no son suficientes. |
-| Cifrar perfiles biométricos | **Media** | Proteger los descriptores almacenados y limitar quién puede leerlos. |
-| Política de eliminación y conservación | **Baja-media** | Permitir borrar perfiles y definir cuánto tiempo se conservan evidencias y datos personales. |
+| Cifrar perfiles biométricos | **Media** | Implementado en `descarga/proteccion-datos` con AES-GCM y clave local protegida por DPAPI. |
+| Política de eliminación y conservación | **Baja-media** | Implementada en la rama de descarga para sesiones y perfiles biométricos, entre 30 y 3650 días. |
 
 ---
 
@@ -665,7 +666,7 @@ Prioridad alta porque desbloquea los dashboards y evita rehacer el almacenamient
 
 1. Añadir una prueba de vida básica.
 2. Probar un modelo antisuplantación.
-3. Cifrar perfiles biométricos y evidencias.
+3. Cifrar perfiles biométricos y datos sensibles. **Implementado en `descarga/proteccion-datos`; pendiente validación en Windows.**
 4. Añadir detección de accesorios.
 5. Añadir evidencias opcionales y su política de conservación.
 6. Crear reportes avanzados con gráficos.

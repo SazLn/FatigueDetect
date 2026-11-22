@@ -37,7 +37,8 @@ namespace FatigueDetect.Presentacion
 
         public MainForm(SesionService sesionService, CatalogoTiposCarro catalogo, Configuracion config,
             ServicioBiometrico servicioBiometrico, PreferenciaCamara preferenciaCamara,
-            ConfiguracionDeteccionRepository repositorioAjustes)
+            ConfiguracionDeteccionRepository repositorioAjustes,
+            ProteccionDatosService proteccionDatos, PoliticaProteccionRepository politicaDatos)
         {
             this.sesionService = sesionService;
             this.catalogo = catalogo;
@@ -53,7 +54,8 @@ namespace FatigueDetect.Presentacion
             paginaInicio = new PaginaInicio(config);
             paginaRegistro = new PaginaRegistro(catalogo, servicioBiometrico);
             paginaHistorial = new PaginaHistorial(sesionService);
-            paginaConfig = new PaginaConfiguracion(config, preferenciaCamara, repositorioAjustes);
+            paginaConfig = new PaginaConfiguracion(config, preferenciaCamara, repositorioAjustes,
+                proteccionDatos, politicaDatos);
 
             contenido.Dock = DockStyle.Fill;
             contenido.BackColor = Tema.Fondo;
