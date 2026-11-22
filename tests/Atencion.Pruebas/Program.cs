@@ -412,9 +412,37 @@ try
         { Cedula = "789", Nombre = "Sin migrar", DescriptorFacial = [1] });
     Verificar(File.ReadAllText(rutaPlana).TrimStart().StartsWith("["),
         "Calidad no activa cifrado sobre perfiles normales");
+
+    var repoHistorialCompatible = new HistorialSqliteRepository(
+        Path.Combine(carpetaPerfilCifrado, "historial.sqlite"),
+        Path.Combine(carpetaPerfilCifrado, "ausente.csv"));
+    var sesionProtegida = new SesionConduccion
+    {
+        Conductor = new Conductor { Cedula = "123", Nombre = "Nombre protegido" },
+        Inicio = instante.LocalDateTime,
+        Atencion = new InformeAtencion(1, null, Array.Empty<MuestraAtencion>(), Array.Empty<RespuestaAlarma>())
+    };
+    repoHistorialCompatible.Guardar(sesionProtegida);
+    using (var conexionProtegida = new SqliteConnection($"Data Source={repoHistorialCompatible.RutaArchivo}"))
+    {
+        conexionProtegida.Open();
+        using var cifrarDatos = conexionProtegida.CreateCommand();
+        cifrarDatos.CommandText = "UPDATE Sesiones SET Cedula=$cedula, Nombre=$nombre WHERE Id=$id; " +
+            "UPDATE AtencionSesiones SET Contenido=$atencion WHERE SesionId=$id;";
+        cifrarDatos.Parameters.AddWithValue("$cedula", protectorPerfil.Cifrar("123"));
+        cifrarDatos.Parameters.AddWithValue("$nombre", protectorPerfil.Cifrar("Nombre protegido"));
+        cifrarDatos.Parameters.AddWithValue("$atencion", protectorPerfil.Cifrar(
+            System.Text.Json.JsonSerializer.Serialize(sesionProtegida.Atencion)));
+        cifrarDatos.Parameters.AddWithValue("$id", sesionProtegida.Id.ToString());
+        cifrarDatos.ExecuteNonQuery();
+    }
+    SesionConduccion historialDescifrado = repoHistorialCompatible.LeerTodas().Single();
+    Verificar(historialDescifrado.Conductor.Nombre == "Nombre protegido" && historialDescifrado.Atencion?.Version == 1,
+        "Calidad abre identidad y documentos JSON cifrados del historial");
 }
 finally
 {
+    SqliteConnection.ClearAllPools();
     Directory.Delete(carpetaPerfilCifrado, true);
 }
 

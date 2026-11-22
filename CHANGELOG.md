@@ -8,7 +8,7 @@
 - Separa un puntaje de cámara/entorno de otro de colocación y muestra recomendaciones concretas en vivo para no atribuir al conductor una cámara deficiente.
 - Persiste los promedios y las muestras en SQLite y los presenta en el resumen final, historial y exportación Excel con factores explicables.
 - Añade migración compatible y comprobaciones de cálculo, separación de causas, persistencia y exportación. Pendiente de prueba con cámara Windows y de autorización para integrar en `main`.
-- Corrige la identificación biométrica después de probar protección de datos: reconoce perfiles `FDENC1:`, usa la clave local existente y mantiene su formato cifrado.
+- Corrige la compatibilidad después de probar protección de datos: reconoce perfiles `FDENC1:`, identidades y documentos JSON cifrados del historial, usa la clave local existente y mantiene el formato del perfil.
 
 ### Alertas progresivas integradas mediante el PR #25
 

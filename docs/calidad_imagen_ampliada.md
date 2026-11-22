@@ -7,7 +7,8 @@ validación manual en Windows con cámaras y condiciones variadas.
 
 La rama reconoce perfiles biométricos `FDENC1:` creados por `descarga/proteccion-datos` si conserva
 `clave_datos.bin` y se ejecuta con el mismo usuario de Windows. Mantiene cifrados esos perfiles al guardar,
-pero no cifra perfiles JSON normales desde esta propuesta.
+pero no cifra perfiles JSON normales desde esta propuesta. Al consultar el historial también descifra las
+identidades y documentos JSON protegidos por esa rama.
 
 ## Qué mide
 
