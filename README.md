@@ -246,6 +246,14 @@ sola cara. La cámara se libera al terminar para que el monitor de fatiga pueda 
 
 ## Cabeza, encuadre y boca
 
+La rama `descarga/deteccion-accesorios` añade un análisis heurístico de regiones de ojos, boca y frente.
+Después de dos segundos puede mostrar **posibles gafas oscuras**, **posible mascarilla** o **posible gorra u
+obstrucción superior**. También presenta porcentajes de visibilidad y confianza facial. Si la visibilidad
+ocular o los puntos faciales no son suficientes, esa muestra no alimenta las métricas de fatiga y se registra
+un episodio de medición no confiable. Los resultados dependen de iluminación, tono, diseño del accesorio y
+cámara: son advertencias de obstrucción, no una clasificación cierta. Consulta
+[Detección de accesorios](docs/deteccion_accesorios.md). La rama aún no está integrada en `main`.
+
 Al calibrar, mira al frente con la cabeza erguida. El historial y Excel registran inicio, fin y duración de cada cabeceo y de los giros a izquierda, derecha, arriba o abajo. El resumen recoge el tiempo fuera de la zona frontal, el episodio más largo y la proporción respecto al tiempo activo. También indica cuánto tiempo tuvo una pose medible.
 
 La dirección estimada de mirada se basa en la orientación de la cabeza. El modelo actual no mide pupilas. La postura encorvada se estima con el descenso del rostro y la inclinación de la cabeza respecto a la posición frontal inicial. La distancia es una aproximación en centímetros con una focal y escala facial supuestas. El aviso de encuadre se activa al detectar un rostro cerca del borde.

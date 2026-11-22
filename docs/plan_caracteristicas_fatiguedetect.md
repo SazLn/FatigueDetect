@@ -38,6 +38,7 @@
 | Confiabilidad explicable por evento | Integrado en `main` | Puntúa la evidencia de cada evento y explica las limitaciones de persistencia, cobertura, FPS o captura. Integrado mediante el PR #18 después de la validación manual inicial. |
 | Análisis histórico avanzado | Integrado en `main` | Riesgo, tendencia personal, grupos por vehículo/hora/día, mapa de calor, alarmas por hora activa y comparación de sesiones marcadas. Integrado mediante el PR #22. |
 | Alertas progresivas | Integrado en `main` | Niveles preventivo/alto/crítico, sonido escalonado, enfriamiento y reducción tras recuperación estable. Validado manualmente e integrado mediante el PR #25. |
+| Detección de accesorios | Implementado en rama de descarga | `descarga/deteccion-accesorios`: indicios heurísticos de gafas oscuras, mascarilla, gorra y visibilidad facial. Pendiente prueba con cámaras reales. |
 
 La medición facial fue validada de forma inicial con una cámara Windows. La calibración de umbrales y las pruebas con más cámaras, iluminación y personas siguen pendientes.
 Las métricas oculares avanzadas también fueron validadas manualmente con cámara y están integradas en `main`. Su calibración con más cámaras, condiciones de iluminación y personas sigue pendiente.
@@ -666,7 +667,7 @@ Prioridad alta porque desbloquea los dashboards y evita rehacer el almacenamient
 1. Añadir una prueba de vida básica.
 2. Probar un modelo antisuplantación.
 3. Cifrar perfiles biométricos y evidencias.
-4. Añadir detección de accesorios.
+4. Añadir detección de accesorios. **Implementado experimentalmente en `descarga/deteccion-accesorios`; pendiente validación con cámaras reales.**
 5. Añadir evidencias opcionales y su política de conservación.
 6. Crear reportes avanzados con gráficos.
 

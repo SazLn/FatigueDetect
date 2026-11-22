@@ -18,7 +18,8 @@ namespace FatigueDetect.Entidades
         EventoExterno,
         GiroIzquierda, GiroDerecha, CabezaArriba, CabezaAbajo,
         FueraZonaFrontal, PosiblePosturaEncorvada, RostroParcial, PosibleBostezo,
-        AlertaPreventiva, AlertaAlta, AlertaCritica
+        AlertaPreventiva, AlertaAlta, AlertaCritica,
+        PosiblesGafasOscuras, PosibleMascarilla, PosibleGorra, MedicionFacialNoConfiable
     }
 
     public sealed record EventoSesion(TipoEventoSesion Tipo, DateTimeOffset Inicio, DateTimeOffset? Fin)

@@ -2,6 +2,13 @@
 
 ## Sin publicar
 
+### Propuesta en `descarga/deteccion-accesorios`
+
+- Añade indicios heurísticos de posibles gafas oscuras, mascarilla y gorra u obstrucción superior.
+- Calcula visibilidad de ojos y boca y una confianza facial; una medición insuficiente queda fuera del análisis de fatiga.
+- Exige dos segundos de persistencia para mostrar y guardar el accesorio, evitando registrar cambios aislados.
+- Incorpora los episodios al historial, la línea temporal y Excel con una advertencia explícita de que no identifica accesorios con certeza.
+
 ### Alertas progresivas integradas mediante el PR #25
 
 - Añade niveles preventivo, alto y crítico a partir de cierre ocular, atención, PERCLOS y distracción disponibles.

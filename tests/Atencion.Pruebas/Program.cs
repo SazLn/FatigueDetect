@@ -367,6 +367,21 @@ Verificar(sesionAlertas.Eventos.Select(e => e.Tipo).SequenceEqual(new[]
       TipoEventoSesion.AlertaAlta, TipoEventoSesion.AlertaPreventiva }),
     "La línea temporal conserva cada nivel de alerta");
 
+var sesionAccesorios = new SesionConduccion { Inicio = instante.LocalDateTime };
+var rastreadorAccesorios = new RastreadorAccesorios(sesionAccesorios);
+var obstruida = new EvaluacionAccesorios(true, false, false, .25, 1, .45, false,
+    "Posible obstrucción oscura sobre los ojos");
+rastreadorAccesorios.Observar(instante, obstruida);
+rastreadorAccesorios.Observar(instante.AddSeconds(1), obstruida);
+EvaluacionAccesorios confirmada = rastreadorAccesorios.Observar(instante.AddSeconds(2), obstruida);
+Verificar(confirmada.PosiblesGafasOscuras && !confirmada.Confiable,
+    "Accesorio persistente confirma medición no confiable después de dos segundos");
+rastreadorAccesorios.Observar(instante.AddSeconds(3), new EvaluacionAccesorios(false, false, false,
+    1, 1, 1, true, "Visible"));
+Verificar(sesionAccesorios.Eventos.Select(e => e.Tipo).Order().SequenceEqual(new[]
+    { TipoEventoSesion.PosiblesGafasOscuras, TipoEventoSesion.MedicionFacialNoConfiable }.Order()),
+    "Obstrucción y falta de confiabilidad quedan en la línea temporal");
+
 var guia = new CalibradorGuiado("cam-1", "abc123");
 for (int ms = 0; ms <= 2000; ms += 100)
     guia.Observar(instante.AddMilliseconds(ms), new MedicionFacial(.30, .29, new AngulosCabeza(1, 2, 0)));
