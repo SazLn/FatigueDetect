@@ -21,6 +21,7 @@ namespace FatigueDetect.Presentacion
         private readonly TextBox placaBox = new TextBox();
         private readonly PictureBox vistaCamara = new PictureBox();
         private readonly Label estadoBiometrico = new Label();
+        private TableLayoutPanel tablaBiometria = null!;
         private Button btnIdentificar = null!;
         private Button btnRegistrarRostro = null!;
         private Button btnCancelarCaptura = null!;
@@ -39,6 +40,9 @@ namespace FatigueDetect.Presentacion
             Dock = DockStyle.Fill;
             BackColor = Tema.Fondo;
             Padding = new Padding(22);
+            AutoScaleMode = AutoScaleMode.Dpi;
+            AutoScroll = true;
+            AutoScrollMinSize = new Size(0, LogicalToDeviceUnits(650));
 
             ConfigurarEntradas();
 
@@ -148,7 +152,8 @@ namespace FatigueDetect.Presentacion
         private Control ConstruirBiometria()
         {
             var tarjeta = new PanelRedondeado { Dock = DockStyle.Fill, Margin = new Padding(14, 0, 0, 0) };
-            var tabla = Tema.TablaFilas(Tema.Tarjeta, 40, 62, 270, 52, 52, 24, 28, 70, 0);
+            tablaBiometria = Tema.TablaFilas(Tema.Tarjeta, 40, 62, 270, 52, 52, 24, 28, 70, 0);
+            var tabla = tablaBiometria;
 
             tabla.Controls.Add(Tema.Etiqueta("Identificación biométrica", 14, Tema.Texto, Tema.Tarjeta, FontStyle.Bold), 0, 0);
             tabla.Controls.Add(Tema.Etiqueta(
@@ -170,27 +175,33 @@ namespace FatigueDetect.Presentacion
             estadoBiometrico.BackColor = Tema.Tarjeta;
             tabla.Controls.Add(estadoBiometrico, 0, 3);
 
-            var acciones = new FlowLayoutPanel
+            var acciones = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
-                WrapContents = false,
-                FlowDirection = FlowDirection.LeftToRight,
+                ColumnCount = 3,
+                RowCount = 1,
                 BackColor = Tema.Tarjeta,
                 Margin = new Padding(0)
             };
+            acciones.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 34));
+            acciones.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 40));
+            acciones.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 26));
             btnIdentificar = Tema.Boton("Identificarme", Tema.Azul, Color.White);
-            btnIdentificar.Width = 108;
+            btnIdentificar.Dock = DockStyle.Fill;
+            btnIdentificar.Margin = new Padding(0, 0, 5, 0);
             btnIdentificar.Click += Identificar_Click;
             btnRegistrarRostro = Tema.Boton("Registrar rostro", Tema.TarjetaClara, Tema.Texto);
-            btnRegistrarRostro.Width = 124;
+            btnRegistrarRostro.Dock = DockStyle.Fill;
+            btnRegistrarRostro.Margin = new Padding(5, 0, 5, 0);
             btnRegistrarRostro.Click += RegistrarRostro_Click;
             btnCancelarCaptura = Tema.Boton("Cancelar", Tema.TarjetaClara, Tema.Texto);
-            btnCancelarCaptura.Width = 82;
+            btnCancelarCaptura.Dock = DockStyle.Fill;
+            btnCancelarCaptura.Margin = new Padding(5, 0, 0, 0);
             btnCancelarCaptura.Enabled = false;
             btnCancelarCaptura.Click += (remitente, evento) => capturaCts?.Cancel();
-            acciones.Controls.Add(btnIdentificar);
-            acciones.Controls.Add(btnRegistrarRostro);
-            acciones.Controls.Add(btnCancelarCaptura);
+            acciones.Controls.Add(btnIdentificar, 0, 0);
+            acciones.Controls.Add(btnRegistrarRostro, 1, 0);
+            acciones.Controls.Add(btnCancelarCaptura, 2, 0);
             tabla.Controls.Add(acciones, 0, 4);
 
             enlaceEliminar = new LinkLabel
@@ -211,8 +222,25 @@ namespace FatigueDetect.Presentacion
                 "Se guardan descriptores numéricos en Documentos\\FatigueDetect; no se guardan fotografías. " +
                 "La función es experimental y permite continuar manualmente si la cámara no reconoce al usuario.",
                 9.5f, Tema.TextoSuave, Tema.Tarjeta), 0, 7);
+            tabla.SizeChanged += (_, _) => AjustarRelacionVistaCamara();
             tarjeta.Controls.Add(tabla);
+            tarjeta.SizeChanged += (_, _) => tarjeta.Invalidate(true);
+            AjustarRelacionVistaCamara();
             return tarjeta;
+        }
+
+        private void AjustarRelacionVistaCamara()
+        {
+            if (tablaBiometria is null || tablaBiometria.ClientSize.Width <= 0)
+                return;
+
+            // El marco conserva 16:10 al cambiar entre ventana restaurada y maximizada.
+            // PictureBoxSizeMode.Zoom mantiene además la proporción real de cada cámara.
+            int alto = tablaBiometria.ClientSize.Width * 10 / 16;
+            alto = Math.Clamp(alto, LogicalToDeviceUnits(210), LogicalToDeviceUnits(300));
+            tablaBiometria.RowStyles[2].SizeType = SizeType.Absolute;
+            tablaBiometria.RowStyles[2].Height = alto;
+            vistaCamara.Invalidate();
         }
 
         private static Control Campo(string etiqueta, Control entrada)
@@ -367,6 +395,7 @@ namespace FatigueDetect.Presentacion
             {
                 Image? anterior = vistaCamara.Image;
                 vistaCamara.Image = progreso.Imagen;
+                vistaCamara.Invalidate();
                 anterior?.Dispose();
                 estadoBiometrico.Text = $"{progreso.Mensaje} ({progreso.Capturas}/{progreso.Requeridas})";
                 estadoBiometrico.ForeColor = Tema.TextoSuave;

@@ -36,6 +36,19 @@ mantenga conexiones internas abiertas y no copia directamente un archivo de base
 
 ## Elegir la cámara y revisar la iluminación
 
+### Interfaz adaptable de Configuración
+
+La rama `ui/mejoras-graficas` inicia la renovación visual con la pantalla **Configuración**. En ventanas
+amplias presenta sensibilidad y protección de datos a la izquierda y la cámara a la derecha; cuando el
+ancho disponible disminuye, reorganiza las tarjetas en una sola columna y habilita desplazamiento vertical.
+La implementación reproduce con controles WinForms nativos los selectores `− / valor / +`, interruptores,
+campos y botones redondeados del prototipo visual. Los controles dependientes se desactivan de forma visible,
+los tiempos incompatibles se señalan junto al campo y la vista previa 16:10, con borde discontinuo e icono de
+cámara, diferencia los estados vacío, apertura, captura, detención y error sin estirar la imagen. Los límites
+funcionales y la persistencia no cambian. Esta rama debe validarse en Windows a
+1366×768, 1920×1080 y 2560×1440 con escalado de 100 %, 125 %, 150 % y, cuando sea posible, 200 % antes de
+integrarse en `main`.
+
 En **Configuración → Cámara**, elige la cámara por el nombre que muestra Windows o selecciona **Automática**.
 Pulsa **Actualizar lista** después de conectar una cámara externa y **Ver vista previa** para comprobar
 el encuadre y la iluminación. La selección se guarda al cambiarla y se usa tanto para la captura
@@ -73,6 +86,22 @@ Consulta [calidad de imagen ampliada](docs/calidad_imagen_ampliada.md) para cono
 Los perfiles biométricos y el historial usan la protección de datos integrada.
 
 ## Historial y registro de eventos
+
+La ventana principal limita su tamaño restaurado al área útil de Windows y repinta de forma atómica los
+cambios de pantalla y tamaño. En **Registro / Persona**, el contenido puede desplazarse verticalmente cuando
+el escalado reduce la altura disponible, y la vista biométrica mantiene una relación 16:10 sin deformar los
+fotogramas reales de la cámara.
+
+### Interfaz renovada de Historial
+
+La rama `ui/mejoras-graficas` traslada el prototipo visual de **Historial de sesiones** a WinForms. La
+cabecera, los filtros y las acciones mantienen la jerarquía de la referencia; la tabla conserva anchos de
+columna estables, fija la fecha al desplazarse horizontalmente y ofrece desplazamiento en ambos ejes. El
+panel de detalle mantiene visibles su cabecera y sus botones mientras desplaza de forma independiente las
+métricas reales de calidad, ojos y parpadeos, los resúmenes y los eventos. Las consultas, filtros,
+exportación, borrado y ventanas de detalle siguen usando los datos y servicios existentes.
+Las acciones de cabecera y filtros mantienen su alineación, y los textos del resumen ajustan su altura
+para no solaparse con las secciones siguientes al aplicar escalado de Windows.
 
 Al pulsar **Detener monitoreo**, aparece el resumen final de la sesión con su duración,
 el número de alarmas, los episodios sin rostro detectado y los demás eventos destacados

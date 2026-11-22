@@ -2,6 +2,32 @@
 
 ## Sin publicar
 
+### Correcciones de redimensionado en `ui/mejoras-graficas`
+
+- Evita restos de bordes, textos duplicados y fotogramas parciales al maximizar, restaurar o cambiar de pantalla.
+- Limita el tamaño restaurado de la ventana principal al área útil de Windows para que la barra de tareas no cubra contenido.
+- Ajusta la vista biométrica a una relación 16:10 y conserva la imagen real con `Zoom`; los botones se reparten según el ancho disponible.
+- Habilita desplazamiento vertical seguro en Registro cuando el escalado DPI reduce la altura disponible.
+
+### Rediseño de Historial en `ui/mejoras-graficas`
+
+- Traslada el prototipo HTML de **Historial de sesiones** a controles WinForms nativos sin sustituir las sesiones ni métricas reales.
+- Reproduce la cabecera compacta, los filtros redondeados, el contador de resultados y las acciones primaria, secundaria y de peligro.
+- Presenta la tabla dentro de una tarjeta con encabezado y primera columna fijos, anchos estables, selección resaltada y desplazamiento horizontal y vertical.
+- Mantiene visibles las acciones de la tabla y la cabecera y el pie del detalle; solo el cuerpo de métricas y eventos se desplaza.
+- Reorganiza el detalle en cuadrículas de dos columnas, secciones de calidad y ojos, y tarjetas para resúmenes y eventos, incluidos los estados sin datos.
+- Corrige la alineación vertical de «Limpiar filtros» y evita que notas, duraciones y encabezados de eventos se superpongan al escalar la interfaz.
+
+### Rediseño adaptable de Configuración en `ui/mejoras-graficas`
+
+- Adopta una paleta morada compartida y mejora el contraste de los controles principales y del elemento activo del menú.
+- Separa sensibilidad, protección de datos y cámara en tarjetas con una jerarquía visual consistente.
+- Traslada los componentes del prototipo HTML a controles WinForms nativos: selectores `− / valor / +`, campos y botones redondeados, variantes primaria y secundaria, e interruptores dibujados con foco visible.
+- Cambia automáticamente entre dos columnas y una columna, y añade desplazamiento vertical cuando el contenido no cabe.
+- Añade interruptores accesibles con foco visible, validación junto a los umbrales y desactivación coherente de los campos dependientes.
+- Mantiene la vista previa en proporción 16:10, con borde discontinuo e icono de cámara, y diferencia los estados vacío, abriendo, activo, detenido y error.
+- Conserva los límites, datos reales, persistencia y comportamiento de detección existentes. La compilación Release finaliza con 0 errores y 0 advertencias y pasan 87 comprobaciones automáticas; queda pendiente la validación visual en Windows.
+
 ### Protección de datos integrada en `main`
 
 - Cifra con AES-GCM los perfiles biométricos, identificadores del historial y cargas JSON sensibles; la clave se protege con DPAPI para el usuario actual de Windows.

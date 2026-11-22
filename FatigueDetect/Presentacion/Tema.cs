@@ -7,18 +7,19 @@ namespace FatigueDetect.Presentacion
     /// <summary>Colores, fuentes y utilidades para construir las pantallas.</summary>
     public static class Tema
     {
-        public static readonly Color Fondo = Color.FromArgb(10, 16, 30);
-        public static readonly Color Lateral = Color.FromArgb(13, 20, 36);
-        public static readonly Color Tarjeta = Color.FromArgb(18, 28, 48);
-        public static readonly Color TarjetaClara = Color.FromArgb(28, 42, 70);
-        public static readonly Color Borde = Color.FromArgb(38, 54, 86);
-        public static readonly Color Texto = Color.FromArgb(232, 238, 249);
-        public static readonly Color TextoSuave = Color.FromArgb(143, 160, 191);
-        public static readonly Color Azul = Color.FromArgb(47, 123, 255);
-        public static readonly Color AzulOscuro = Color.FromArgb(30, 78, 170);
-        public static readonly Color Verde = Color.FromArgb(34, 197, 94);
-        public static readonly Color Ambar = Color.FromArgb(245, 158, 11);
-        public static readonly Color Rojo = Color.FromArgb(239, 68, 68);
+        public static readonly Color Fondo = Color.FromArgb(20, 17, 31);
+        public static readonly Color Lateral = Color.FromArgb(16, 13, 25);
+        public static readonly Color Tarjeta = Color.FromArgb(29, 24, 48);
+        public static readonly Color TarjetaClara = Color.FromArgb(39, 33, 56);
+        public static readonly Color Borde = Color.FromArgb(53, 46, 77);
+        public static readonly Color Texto = Color.FromArgb(240, 235, 252);
+        public static readonly Color TextoSuave = Color.FromArgb(167, 158, 196);
+        public static readonly Color Azul = Color.FromArgb(132, 102, 240);
+        public static readonly Color AzulOscuro = Color.FromArgb(103, 76, 211);
+        public static readonly Color Verde = Color.FromArgb(126, 224, 195);
+        public static readonly Color Ambar = Color.FromArgb(255, 184, 107);
+        public static readonly Color Rojo = Color.FromArgb(220, 75, 116);
+        public static readonly Color TextoSobreAcento = Color.FromArgb(20, 15, 38);
 
         public static Font Fuente(float tamano, FontStyle estilo = FontStyle.Regular)
         {
@@ -44,6 +45,12 @@ namespace FatigueDetect.Presentacion
 
         public static Button Boton(string texto, Color fondo, Color letra)
         {
+            if (fondo.ToArgb() == Azul.ToArgb() || fondo.ToArgb() == Verde.ToArgb() ||
+                fondo.ToArgb() == Ambar.ToArgb() || fondo.ToArgb() == Rojo.ToArgb())
+            {
+                letra = TextoSobreAcento;
+            }
+
             var boton = new Button
             {
                 Text = texto,

@@ -15,6 +15,8 @@ namespace FatigueDetect.Presentacion
         private readonly SesionService sesionService;
 
         private DataGridView tabla = null!;
+        private Label tablaVacia = null!;
+        private readonly DetalleHistorialControl detalle = new();
         private List<SesionConduccion> sesiones = new();
         private readonly ComboBox filtroAlarmas = new() { DropDownStyle = ComboBoxStyle.DropDownList };
         private readonly ComboBox filtroCalidad = new() { DropDownStyle = ComboBoxStyle.DropDownList };
@@ -23,20 +25,7 @@ namespace FatigueDetect.Presentacion
         private readonly DateTimePicker hasta = new() { Format = DateTimePickerFormat.Short, ShowCheckBox = true, Checked = false };
         private readonly TextBox conductor = new() { PlaceholderText = "Nombre o cédula" };
         private readonly TextBox vehiculo = new() { PlaceholderText = "Placa o tipo" };
-        private Button lineaTemporal = null!;
-        private Button informeAtencion = null!;
         private Label estadoFiltros = null!;
-        private Label dConductor = null!;
-        private Label dCedula = null!;
-        private Label dVehiculo = null!;
-        private Label dPlaca = null!;
-        private Label dInicio = null!;
-        private Label dFin = null!;
-        private Label dDuracion = null!;
-        private Label dAlarmas = null!;
-        private Label dCalidad = null!;
-        private ListBox dResumen = null!;
-        private ListBox dEventos = null!;
 
         public PaginaHistorial(SesionService sesionService)
         {
@@ -44,13 +33,16 @@ namespace FatigueDetect.Presentacion
 
             Dock = DockStyle.Fill;
             BackColor = Tema.Fondo;
-            Padding = new Padding(22);
+            Padding = new Padding(30, 26, 16, 24);
+            AutoScaleMode = AutoScaleMode.Dpi;
 
-            var raiz = Tema.TablaFilas(Tema.Fondo, 84, 70, 0);
+            // Reserva separación real entre cabecera y filtros incluso al escalar DPI.
+            var raiz = Tema.TablaFilas(Tema.Fondo, 82, 70, 26, 0);
 
             var encabezado = Tema.TablaFilas(Tema.Fondo, 42, 30);
             encabezado.Controls.Add(Tema.Etiqueta("Historial de sesiones", 20, Tema.Texto, Tema.Fondo, FontStyle.Bold), 0, 0);
             Label archivo = Tema.Etiqueta(sesionService.RutaHistorial, 9.5f, Tema.TextoSuave, Tema.Fondo);
+            archivo.Font = new Font("Consolas", 8.5f, FontStyle.Regular);
             archivo.AutoEllipsis = true;
             encabezado.Controls.Add(archivo, 0, 1);
             var cabecera = new TableLayoutPanel
@@ -65,13 +57,13 @@ namespace FatigueDetect.Presentacion
             cabecera.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 132));
             cabecera.Controls.Add(encabezado, 0, 0);
 
-            Button estadisticas = Tema.Boton("Estadísticas", Tema.TarjetaClara, Tema.Texto);
+            Button estadisticas = new BotonConfiguracion("Estadísticas");
             estadisticas.Anchor = AnchorStyles.None;
             estadisticas.Width = 112;
             estadisticas.Click += (remitente, evento) => MostrarEstadisticas();
             cabecera.Controls.Add(estadisticas, 1, 0);
 
-            Button excel = Tema.Boton("Exportar Excel", Tema.TarjetaClara, Tema.Texto);
+            Button excel = new BotonConfiguracion("Exportar Excel", primario: true);
             excel.Anchor = AnchorStyles.None;
             excel.Width = 122;
             excel.Click += (remitente, evento) => ExportarExcel();
@@ -83,14 +75,16 @@ namespace FatigueDetect.Presentacion
                 Dock = DockStyle.Fill,
                 ColumnCount = 2,
                 RowCount = 1,
-                BackColor = Tema.Fondo
+                BackColor = Tema.Fondo,
+                Margin = Padding.Empty
             };
-            cuerpo.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 68));
-            cuerpo.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 32));
+            cuerpo.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+            cuerpo.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 386));
             cuerpo.Controls.Add(ConstruirTabla(), 0, 0);
-            cuerpo.Controls.Add(ConstruirDetalle(), 1, 0);
+            cuerpo.Controls.Add(ConstruirDetalleNuevo(), 1, 0);
             raiz.Controls.Add(ConstruirFiltros(), 0, 1);
-            raiz.Controls.Add(cuerpo, 0, 2);
+            raiz.Controls.Add(estadoFiltros, 0, 2);
+            raiz.Controls.Add(cuerpo, 0, 3);
 
             Controls.Add(raiz);
             MostrarDetalle(null);
@@ -98,9 +92,9 @@ namespace FatigueDetect.Presentacion
 
         private Control ConstruirFiltros()
         {
-            var filtros = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 7, RowCount = 2 };
-            filtros.RowStyles.Add(new RowStyle(SizeType.Absolute, 45));
-            filtros.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+            var filtros = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 7, RowCount = 1,
+                Margin = Padding.Empty, BackColor = Tema.Fondo };
+            filtros.RowStyles.Add(new RowStyle(SizeType.Absolute, 60));
             for (int i = 0; i < 6; i++)
                 filtros.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f / 6));
             filtros.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 126));
@@ -116,8 +110,9 @@ namespace FatigueDetect.Presentacion
             AgregarFiltro(filtros, 4, "Alarmas", filtroAlarmas);
             AgregarFiltro(filtros, 5, "Calidad de detección", filtroCalidad);
 
-            Button limpiar = Tema.Boton("Limpiar filtros", Tema.TarjetaClara, Tema.Texto);
+            Button limpiar = new BotonConfiguracion("Limpiar filtros", fantasma: true);
             limpiar.Dock = DockStyle.Fill;
+            limpiar.Margin = Padding.Empty;
             limpiar.Click += (_, _) =>
             {
                 desde.Checked = hasta.Checked = false;
@@ -126,10 +121,13 @@ namespace FatigueDetect.Presentacion
                 filtroAlarmas.SelectedIndex = filtroCalidad.SelectedIndex = 0;
                 AplicarFiltros();
             };
-            filtros.Controls.Add(limpiar, 6, 0);
+            // Alinea esta acción con los campos; la fila superior conserva el espacio
+            // de etiqueta que tienen el resto de filtros.
+            var contenedorLimpiar = Tema.TablaFilas(Tema.Fondo, 20, 40);
+            contenedorLimpiar.Margin = Padding.Empty;
+            contenedorLimpiar.Controls.Add(limpiar, 0, 1);
+            filtros.Controls.Add(contenedorLimpiar, 6, 0);
             estadoFiltros = Tema.Etiqueta("", 9, Tema.TextoSuave, Tema.Fondo);
-            filtros.Controls.Add(estadoFiltros, 0, 1);
-            filtros.SetColumnSpan(estadoFiltros, 7);
 
             desde.ValueChanged += (_, _) => AplicarFiltros();
             hasta.ValueChanged += (_, _) => AplicarFiltros();
@@ -142,19 +140,35 @@ namespace FatigueDetect.Presentacion
 
         private static void AgregarFiltro(TableLayoutPanel filtros, int columna, string etiqueta, Control control)
         {
-            var campo = Tema.TablaFilas(Tema.Fondo, 18, 0);
+            var campo = Tema.TablaFilas(Tema.Fondo, 20, 40);
             campo.Margin = new Padding(0, 0, 10, 0);
             campo.Controls.Add(Tema.Etiqueta(etiqueta, 9, Tema.TextoSuave, Tema.Fondo), 0, 0);
             control.Dock = DockStyle.Fill;
             control.AccessibleName = etiqueta;
-            campo.Controls.Add(control, 0, 1);
+            if (control is TextBox texto)
+            {
+                texto.BorderStyle = BorderStyle.None;
+                texto.Font = Tema.Fuente(9.5f);
+            }
+            else if (control is ComboBox lista)
+            {
+                lista.FlatStyle = FlatStyle.Flat;
+                lista.Font = Tema.Fuente(9.5f);
+            }
+            else if (control is DateTimePicker fecha)
+            {
+                fecha.Font = Tema.Fuente(9.5f);
+                fecha.CalendarForeColor = Tema.Texto;
+                fecha.CalendarMonthBackground = Tema.TarjetaClara;
+            }
+            campo.Controls.Add(new MarcoEntrada(control) { Dock = DockStyle.Fill }, 0, 1);
             filtros.Controls.Add(campo, columna, 0);
         }
 
         private Control ConstruirTabla()
         {
-            var tarjeta = new PanelRedondeado { Dock = DockStyle.Fill, Margin = new Padding(0, 0, 10, 0) };
-            var contenido = Tema.TablaFilas(Tema.Tarjeta, 0, 52);
+            var tarjeta = new PanelRedondeado { Dock = DockStyle.Fill, Margin = new Padding(0, 0, 8, 0) };
+            var contenido = Tema.TablaFilas(Tema.Tarjeta, 0, 56);
 
             tabla = new DataGridView
             {
@@ -166,28 +180,29 @@ namespace FatigueDetect.Presentacion
                 RowHeadersVisible = false,
                 MultiSelect = false,
                 SelectionMode = DataGridViewSelectionMode.FullRowSelect,
-                AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
+                AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.None,
                 BackgroundColor = Tema.Tarjeta,
                 BorderStyle = BorderStyle.None,
                 GridColor = Tema.Borde,
                 EnableHeadersVisualStyles = false,
                 ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing,
-                ColumnHeadersHeight = 38,
+                ColumnHeadersHeight = 42,
                 ColumnHeadersBorderStyle = DataGridViewHeaderBorderStyle.None,
                 CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal,
-                Margin = new Padding(0)
+                Margin = new Padding(0),
+                Font = Tema.Fuente(9.5f)
             };
-            tabla.RowTemplate.Height = 34;
+            tabla.RowTemplate.Height = 43;
 
-            tabla.ColumnHeadersDefaultCellStyle.BackColor = Tema.TarjetaClara;
+            tabla.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(38, 32, 64);
             tabla.ColumnHeadersDefaultCellStyle.ForeColor = Tema.Texto;
-            tabla.ColumnHeadersDefaultCellStyle.SelectionBackColor = Tema.TarjetaClara;
+            tabla.ColumnHeadersDefaultCellStyle.SelectionBackColor = Color.FromArgb(38, 32, 64);
             tabla.ColumnHeadersDefaultCellStyle.Font = Tema.Fuente(9.5f, FontStyle.Bold);
 
             tabla.DefaultCellStyle.BackColor = Tema.Tarjeta;
             tabla.DefaultCellStyle.ForeColor = Tema.Texto;
-            tabla.DefaultCellStyle.SelectionBackColor = Tema.AzulOscuro;
-            tabla.DefaultCellStyle.SelectionForeColor = Color.White;
+            tabla.DefaultCellStyle.SelectionBackColor = Color.FromArgb(52, 41, 92);
+            tabla.DefaultCellStyle.SelectionForeColor = Tema.Texto;
             tabla.DefaultCellStyle.Font = Tema.Fuente(9.5f);
 
             tabla.Columns.Add("fecha", "Fecha y hora");
@@ -199,10 +214,16 @@ namespace FatigueDetect.Presentacion
             tabla.Columns.Add("duracion", "Duración");
             tabla.Columns.Add("alarmas", "Alarmas");
             tabla.Columns.Add("estado", "Estado");
-            tabla.Columns["conductor"]!.FillWeight = 150;
-            tabla.Columns["fecha"]!.FillWeight = 120;
-            tabla.Columns["alarmas"]!.FillWeight = 70;
-            tabla.Columns["placa"]!.FillWeight = 80;
+            tabla.Columns["fecha"]!.Width = 155;
+            tabla.Columns["conductor"]!.Width = 142;
+            tabla.Columns["cedula"]!.Width = 104;
+            tabla.Columns["vehiculo"]!.Width = 92;
+            tabla.Columns["placa"]!.Width = 80;
+            tabla.Columns["fin"]!.Width = 92;
+            tabla.Columns["duracion"]!.Width = 92;
+            tabla.Columns["alarmas"]!.Width = 76;
+            tabla.Columns["estado"]!.Width = 120;
+            tabla.Columns["fecha"]!.Frozen = true;
 
             tabla.SelectionChanged += (remitente, evento) =>
             {
@@ -212,7 +233,23 @@ namespace FatigueDetect.Presentacion
                 }
             };
 
-            contenido.Controls.Add(tabla, 0, 0);
+            tabla.CellPainting += PintarCeldaTabla;
+
+            var marcoTabla = new PanelRedondeado
+            {
+                Dock = DockStyle.Fill,
+                Margin = Padding.Empty,
+                Padding = Padding.Empty,
+                Radio = 12,
+                ColorTarjeta = Tema.Tarjeta,
+                ColorBorde = Tema.Borde
+            };
+            tablaVacia = Tema.Etiqueta("Ninguna sesión coincide con los filtros.\nPrueba con «Limpiar filtros».",
+                10, Tema.TextoSuave, Tema.Tarjeta, alineacion: ContentAlignment.MiddleCenter);
+            tablaVacia.Visible = false;
+            marcoTabla.Controls.Add(tabla);
+            marcoTabla.Controls.Add(tablaVacia);
+            contenido.Controls.Add(marcoTabla, 0, 0);
 
             // Botones inferiores
             var botones = new FlowLayoutPanel
@@ -224,16 +261,16 @@ namespace FatigueDetect.Presentacion
                 Padding = new Padding(0, 10, 0, 0)
             };
 
-            Button eliminar = Tema.Boton("Eliminar historial", Tema.Rojo, Color.White);
-            eliminar.Width = 180;
+            Button eliminar = new BotonConfiguracion("Eliminar historial", peligro: true);
+            eliminar.Width = 140;
             eliminar.Click += Eliminar_Click;
 
-            Button carpeta = Tema.Boton("Abrir carpeta", Tema.TarjetaClara, Tema.Texto);
-            carpeta.Width = 150;
+            Button carpeta = new BotonConfiguracion("Abrir carpeta");
+            carpeta.Width = 116;
             carpeta.Click += (remitente, evento) => AbrirCarpeta();
 
-            Button actualizar = Tema.Boton("Actualizar", Tema.TarjetaClara, Tema.Texto);
-            actualizar.Width = 130;
+            Button actualizar = new BotonConfiguracion("Actualizar");
+            actualizar.Width = 102;
             actualizar.Click += (remitente, evento) => Recargar(null);
 
             botones.Controls.Add(eliminar);
@@ -245,89 +282,51 @@ namespace FatigueDetect.Presentacion
             return tarjeta;
         }
 
-        private Control ConstruirDetalle()
+        private Control ConstruirDetalleNuevo()
         {
-            var tarjeta = new PanelRedondeado { Dock = DockStyle.Fill, Margin = new Padding(10, 0, 0, 0) };
-            var tabla2 = Tema.TablaFilas(Tema.Tarjeta, 36, 39, 39, 39, 39, 39, 39, 39, 39, 250, 26, 0, 26, 0, 88);
-
-            tabla2.Controls.Add(Tema.Etiqueta("Detalle de la sesión", 13, Tema.Texto, Tema.Tarjeta, FontStyle.Bold), 0, 0);
-            tabla2.Controls.Add(Dato("Conductor", out dConductor), 0, 1);
-            tabla2.Controls.Add(Dato("Cédula", out dCedula), 0, 2);
-            tabla2.Controls.Add(Dato("Vehículo", out dVehiculo), 0, 3);
-            tabla2.Controls.Add(Dato("Placa", out dPlaca), 0, 4);
-            tabla2.Controls.Add(Dato("Inicio", out dInicio), 0, 5);
-            tabla2.Controls.Add(Dato("Fin", out dFin), 0, 6);
-            tabla2.Controls.Add(Dato("Duración", out dDuracion), 0, 7);
-            tabla2.Controls.Add(Dato("Alarmas activadas", out dAlarmas), 0, 8);
-            dCalidad = Tema.Etiqueta("Calidad: sin medición", 9, Tema.Texto, Tema.Tarjeta);
-            tabla2.Controls.Add(dCalidad, 0, 9);
-            tabla2.Controls.Add(Tema.Etiqueta("Resumen de eventos", 9, Tema.TextoSuave, Tema.Tarjeta), 0, 10);
-
-            dResumen = new ListBox
+            var tarjeta = new PanelRedondeado
             {
                 Dock = DockStyle.Fill,
-                BackColor = Tema.Tarjeta,
-                ForeColor = Tema.Texto,
-                BorderStyle = BorderStyle.None,
-                Font = Tema.Fuente(9),
-                Margin = new Padding(0),
-                IntegralHeight = false,
-                HorizontalScrollbar = true
+                Margin = new Padding(8, 0, 0, 0),
+                Padding = new Padding(14),
+                Radio = 16
             };
-            tabla2.Controls.Add(dResumen, 0, 11);
-            tabla2.Controls.Add(Tema.Etiqueta("Eventos de la sesión", 9, Tema.TextoSuave, Tema.Tarjeta), 0, 12);
-
-            dEventos = new ListBox
-            {
-                Dock = DockStyle.Fill,
-                BackColor = Tema.Tarjeta,
-                ForeColor = Tema.Texto,
-                BorderStyle = BorderStyle.None,
-                Font = Tema.Fuente(10),
-                Margin = new Padding(0),
-                IntegralHeight = false,
-                HorizontalScrollbar = true
-            };
-            tabla2.Controls.Add(dEventos, 0, 13);
-
-            lineaTemporal = Tema.Boton("Ver línea temporal", Tema.TarjetaClara, Tema.Texto);
-            lineaTemporal.Dock = DockStyle.Fill;
-            lineaTemporal.Click += (_, _) =>
-            {
-                if (tabla.CurrentRow?.Tag is SesionConduccion sesion)
-                {
-                    using var vista = new VentanaLineaTemporal(sesion);
-                    vista.ShowDialog(this);
-                }
-            };
-            var acciones = Tema.TablaFilas(Tema.Tarjeta, 42, 42);
-            informeAtencion = Tema.Boton("Atención y resumen", Tema.TarjetaClara, Tema.Texto);
-            informeAtencion.Dock = DockStyle.Fill;
-            informeAtencion.Click += (_, _) =>
-            {
-                if (tabla.CurrentRow?.Tag is SesionConduccion s)
-                { using var ventana = new VentanaInformeAtencion(s); ventana.ShowDialog(this); }
-            };
-            acciones.Controls.Add(lineaTemporal, 0, 0);
-            acciones.Controls.Add(informeAtencion, 0, 1);
-            tabla2.Controls.Add(acciones, 0, 14);
-            var desplazamiento = new Panel { Dock = DockStyle.Fill, AutoScroll = true, BackColor = Tema.Tarjeta };
-            tabla2.Dock = DockStyle.Top;
-            desplazamiento.SizeChanged += (_, _) => tabla2.Height = Math.Max(760, desplazamiento.ClientSize.Height);
-            tabla2.Height = 710;
-            desplazamiento.Controls.Add(tabla2);
-            tarjeta.Controls.Add(desplazamiento);
+            tarjeta.Controls.Add(detalle);
             return tarjeta;
         }
 
-        // Título pequeño + valor en negrita.
-        private static Control Dato(string titulo, out Label valor)
+        private void PintarCeldaTabla(object? sender, DataGridViewCellPaintingEventArgs e)
         {
-            var celda = Tema.TablaFilas(Tema.Tarjeta, 16, 21);
-            celda.Controls.Add(Tema.Etiqueta(titulo, 8.5f, Tema.TextoSuave, Tema.Tarjeta), 0, 0);
-            valor = Tema.Etiqueta("—", 11, Tema.Texto, Tema.Tarjeta, FontStyle.Bold);
-            celda.Controls.Add(valor, 0, 1);
-            return celda;
+            if (e.RowIndex < 0)
+                return;
+            Graphics? graphics = e.Graphics;
+            if (graphics is null)
+                return;
+
+            if (tabla.Columns[e.ColumnIndex].Name == "estado")
+            {
+                e.PaintBackground(e.CellBounds, true);
+                bool conAlertas = tabla.Rows[e.RowIndex].Tag is SesionConduccion s && s.CantidadAlarmas > 0;
+                Color color = conAlertas ? Tema.Rojo : Tema.Verde;
+                int y = e.CellBounds.Top + (e.CellBounds.Height - 8) / 2;
+                using var punto = new SolidBrush(color);
+                graphics.FillEllipse(punto, e.CellBounds.Left + 12, y, 8, 8);
+                var texto = new Rectangle(e.CellBounds.Left + 28, e.CellBounds.Top,
+                    Math.Max(0, e.CellBounds.Width - 30), e.CellBounds.Height);
+                TextRenderer.DrawText(graphics, conAlertas ? "Con alertas" : "Sin alertas",
+                    tabla.Font, texto, color,
+                    TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
+                e.Handled = true;
+                return;
+            }
+
+            if (e.ColumnIndex == 0 && tabla.Rows[e.RowIndex].Selected)
+            {
+                e.Paint(e.CellBounds, DataGridViewPaintParts.All);
+                using var acento = new SolidBrush(Tema.Azul);
+                graphics.FillRectangle(acento, e.CellBounds.Left, e.CellBounds.Top, 3, e.CellBounds.Height);
+                e.Handled = true;
+            }
         }
 
         /// <summary>Recarga la base de datos y selecciona la sesión indicada.</summary>
@@ -386,6 +385,7 @@ namespace FatigueDetect.Presentacion
 
             if (tabla.Rows.Count > 0)
             {
+                tablaVacia.Visible = false;
                 DataGridViewRow seleccionada = filaResaltada ?? tabla.Rows[0];
                 tabla.ClearSelection();
                 seleccionada.Selected = true;
@@ -394,114 +394,16 @@ namespace FatigueDetect.Presentacion
             }
             else
             {
+                tablaVacia.Visible = true;
+                tablaVacia.BringToFront();
                 MostrarDetalle(null);
             }
         }
 
         private void MostrarDetalle(SesionConduccion? s)
         {
-            lineaTemporal.Enabled = s != null;
-            informeAtencion.Enabled = s != null;
-            dResumen.Items.Clear();
-            dEventos.Items.Clear();
-            dCalidad.Text = s?.Calidad is CalidadSesion calidad
-                ? $"Calidad: {calidad.Puntaje?.ToString("0.0") ?? "—"}/100 · FPS medios: {calidad.Fps?.ToString("0.0") ?? "—"}\n" +
-                  $"Analizables: {calidad.ProporcionAnalizable?.ToString("P1") ?? "—"} · Cobertura facial: {calidad.CoberturaRostro?.ToString("P0") ?? "—"}\n" +
-                  $"Caídas de FPS: {calidad.CaidasFps?.ToString() ?? "—"} · Fallos de cámara: {calidad.FallosCamara}\n" +
-                  $"Cámara/entorno: {calidad.PuntajeCamaraEntorno?.ToString("0.0") ?? "—"}/100 · Colocación: {calidad.PuntajeColocacion?.ToString("0.0") ?? "—"}/100\n" +
-                  $"Brillo {calidad.BrilloPromedio?.ToString("0") ?? "—"} · Contraste {calidad.ContrastePromedio?.ToString("0") ?? "—"} · " +
-                  $"Nitidez {calidad.NitidezPromedio?.ToString("0") ?? "—"} · Posición {calidad.PosicionFacialPromedio?.ToString("0") ?? "—"}\n" +
-                  calidad.ExplicarReducciones() + "\n" +
-                  $"Ojos abiertos observados: {s.OjosAbiertosObservados?.ToString("P1") ?? "—"}" +
-                  $" · Cobertura ocular: {s.CoberturaOcular?.ToString("P0") ?? "—"}"
-                : "Calidad: sin medición";
-            dCalidad.Text += s?.MetricasFatiga is MetricasFatiga fatiga
-                ? FormatearMetricasOculares(fatiga)
-                : "\nMétricas faciales: sin medición";
-
-            if (s == null)
-            {
-                dConductor.Text = "—";
-                dCedula.Text = "—";
-                dVehiculo.Text = "—";
-                dPlaca.Text = "—";
-                dInicio.Text = "—";
-                dFin.Text = "—";
-                dDuracion.Text = "—";
-                dAlarmas.Text = "—";
-                dResumen.Items.Add("Sin registros");
-                dEventos.Items.Add("Sin registros");
-                return;
-            }
-
-            dConductor.Text = s.Conductor.NombreCompleto;
-            dCedula.Text = s.Conductor.Cedula;
-            dVehiculo.Text = s.Vehiculo.TipoCarro;
-            dPlaca.Text = s.Vehiculo.Placa;
-            dInicio.Text = s.Inicio.ToString("dd/MM/yyyy HH:mm:ss");
-            dFin.Text = s.Fin?.ToString("dd/MM/yyyy HH:mm:ss") ?? "-";
-            dDuracion.Text = s.Fin.HasValue ? Tema.FormatoDuracion(s.Duracion) : "—";
-            dAlarmas.Text = s.CantidadAlarmas.ToString();
-
-            List<EventoSesion> eventos = s.Eventos;
-            int alarmasSinHora = ResumenHistorial.AlarmasSinHora(s, eventos);
-            foreach (ResumenEvento resumen in ResumenHistorial.PorTipo(s, eventos))
-            {
-                string tiempo = resumen.TotalMs.HasValue
-                    ? $" · total {resumen.TotalMs / 1000.0:0.0} s · máximo {resumen.MaximoMs / 1000.0:0.0} s"
-                    : "";
-                string desconocidas = resumen.SinDuracion > 0 ? $" · {resumen.SinDuracion} sin duración" : "";
-                dResumen.Items.Add($"{NombreEvento(resumen.Tipo)} · {resumen.Cantidad}{tiempo}{desconocidas}");
-            }
-            if (s.Postura is { } postura)
-                foreach (string linea in MainForm.FormatearPostura(s, postura).Split('\n'))
-                    dResumen.Items.Add(linea);
-
-            if (dResumen.Items.Count == 0)
-                dResumen.Items.Add("Sin eventos registrados");
-
-            if (eventos.Count == 0 && s.CantidadAlarmas == 0)
-                dEventos.Items.Add("Sin eventos registrados");
-
-            foreach (EventoSesion evento in eventos.OrderBy(e => e.Inicio))
-            {
-                string inicio = evento.Inicio.LocalDateTime.ToString("dd/MM HH:mm:ss.fff");
-                string duracion = evento.DuracionMilisegundos is long ms
-                    ? $" · {ms / 1000.0:0.000} s" : "";
-                string confianza = evento.Confiabilidad?.Puntaje is double puntaje
-                    ? $" · confianza {puntaje:0}/100 ({evento.Confiabilidad.Nivel.ToLowerInvariant()})"
-                    : " · confianza sin medición";
-                dEventos.Items.Add($"{inicio} · {NombreEvento(evento)}{duracion}{confianza}");
-            }
-
-            if (alarmasSinHora > 0)
-                dEventos.Items.Add($"Alarmas sin hora registrada · {alarmasSinHora}");
+            detalle.Mostrar(s);
         }
-
-        private static string FormatearMetricasOculares(MetricasFatiga fatiga)
-        {
-            string texto = $"\nParpadeos: {fatiga.Parpadeos} · Microsueños: {fatiga.Microsuenos} · Cabeceos: {fatiga.Cabeceos}" +
-                $"\nPERCLOS de sesión: {fatiga.Perclos?.ToString("P1") ?? "—"} · Tiempo cerrado: {fatiga.TiempoOcularCerradoMs / 1000.0:0.0} s" +
-                $" · Tiempo ocular válido: {fatiga.TiempoOcularValidoMs / 1000.0:0.0} s";
-            if (fatiga.VersionMetricasOculares < 1)
-                return texto + "\nDetalle ocular avanzado: sin medición";
-
-            texto += $"\nFrecuencia: {fatiga.ParpadeosPorMinuto?.ToString("0.0") ?? "—"}/min" +
-                $" · Cortos: {fatiga.ParpadeosCortos} · Prolongados: {fatiga.ParpadeosProlongados}" +
-                $" · Cierres anómalos: {fatiga.CierresAnomalos}" +
-                $"\nDuración parpadeo mín./prom./máx.: {FormatoMs(fatiga.DuracionParpadeoMinMs)} /" +
-                $" {FormatoMs(fatiga.DuracionParpadeoPromedioMs)} / {FormatoMs(fatiga.DuracionParpadeoMaxMs)}" +
-                $"\nCierre más largo: {fatiga.CierreMasLargoMs / 1000.0:0.000} s" +
-                $" · Microsueño más largo: {fatiga.MicrosuenoMasLargoMs / 1000.0:0.000} s" +
-                $"\nDiferencia ocular promedio: {fatiga.DiferenciaAperturaPromedio?.ToString("P1") ?? "—"}";
-            if (fatiga.EvolucionPerclos.Count >= 2 && fatiga.CambioPerclos is double cambio)
-                texto += $" · PERCLOS {fatiga.EvolucionPerclos[0].Valor:P1} → {fatiga.EvolucionPerclos[^1].Valor:P1}" +
-                    $" ({cambio * 100:+0.0;-0.0;0.0} pp)";
-            return texto;
-        }
-
-        private static string FormatoMs(double? milisegundos) =>
-            milisegundos is double valor ? $"{valor:0} ms" : "—";
 
         internal static string NombreEvento(EventoSesion evento) => evento.Tipo == TipoEventoSesion.EventoExterno
             ? evento.CodigoTipo ?? "Evento externo" : NombreEvento(evento.Tipo);
