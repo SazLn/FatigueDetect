@@ -15,7 +15,9 @@ namespace FatigueDetect.Entidades
         CamaraCongelada,
         Cabeceo,
         CierreOcularAnomalo,
-        EventoExterno
+        EventoExterno,
+        GiroIzquierda, GiroDerecha, CabezaArriba, CabezaAbajo,
+        FueraZonaFrontal, PosiblePosturaEncorvada, RostroParcial, PosibleBostezo
     }
 
     public sealed record EventoSesion(TipoEventoSesion Tipo, DateTimeOffset Inicio, DateTimeOffset? Fin)

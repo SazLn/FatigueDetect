@@ -149,6 +149,9 @@ namespace FatigueDetect.Logica
                 EstadoIluminacion iluminacion = MedidorIluminacion.Evaluar(frame);
                 MedicionFacial? medicion = rostros.Length == 1 && iluminacion == EstadoIluminacion.Adecuada
                     ? detectorFacial.Medir(frame, rostros[0]) : null;
+                bool rostroParcial = rostros.Length == 1 &&
+                    (rostros[0].X <= frame.Width * 0.025 || rostros[0].Y <= frame.Height * 0.025 ||
+                     rostros[0].Right >= frame.Width * 0.975 || rostros[0].Bottom >= frame.Height * 0.975);
                 foreach (Rect rostro in rostros)
                     Cv2.Rectangle(frame, rostro, new Scalar(255, 0, 0), 2);
                 Cv2.Flip(frame, frame, FlipMode.Y);
@@ -170,7 +173,7 @@ namespace FatigueDetect.Logica
                     calidad.RegistrarFotograma(rostroValido, medicion.HasValue);
                     fpsRecientes = calidad.FpsRecientes;
 
-                    lectura = fatiga.Observar(instante, medicion, drowsinessLogic.UmbralCierreProlongado);
+                    lectura = fatiga.Observar(instante, medicion, drowsinessLogic.UmbralCierreProlongado, rostroParcial);
                     estado = drowsinessLogic.Evaluar(lectura.CierreMs);
                     atencion.Observar(instante, lectura, estado, calidad.Resumen(), sesion,
                         drowsinessLogic.UmbralCierreProlongado);
@@ -224,6 +227,7 @@ namespace FatigueDetect.Logica
                 InterrumpirObservacion(Ahora);
                 sesion.MetricasFatiga = fatiga.Resumen;
                 sesion.Atencion = atencion.Resumen();
+                sesion.Postura = fatiga.ResumenPostura;
             }
 
             if (hilo != null && hilo.IsAlive)

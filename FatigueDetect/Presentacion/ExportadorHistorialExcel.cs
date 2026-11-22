@@ -37,11 +37,14 @@ namespace FatigueDetect.Presentacion
                 "Parpadeos por minuto", "Parpadeos cortos", "Parpadeos prolongados", "Cierres anómalos",
                 "Duración promedio de parpadeo (ms)", "Duración mínima de parpadeo (ms)",
                 "Duración máxima de parpadeo (ms)", "Microsueño más largo (s)", "Cierre más largo (s)",
-                                "Tiempo con ojos cerrados (s)", "Diferencia ocular promedio (%)", "Calidad (0–100)",
-                "Caídas de FPS", "Tiempo con FPS bajos (s)", "Ojos abiertos observados (%)", "Cobertura ocular (%)");
+                "Tiempo con ojos cerrados (s)", "Diferencia ocular promedio (%)", "Calidad (0–100)",
+                "Caídas de FPS", "Tiempo con FPS bajos (s)", "Ojos abiertos observados (%)", "Cobertura ocular (%)",
+                "Pose observada (s)", "Fuera del frente (s)", "Distracción más larga (s)",
+                "Sesión activa fuera del frente (%)", "Distancia media aprox. (cm)",
+                "Posibles bostezos", "Bostezos por hora observada", "Boca observada (s)");
             detalle.Columns(6, 7).Style.DateFormat.Format = "yyyy-mm-dd hh:mm:ss";
-            FormatoDecimal(detalle, 8, 10, 12, 18, 19, 23, 24, 25, 26, 27, 28, 30, 32);
-            foreach (int columna in new[] { 11, 17, 29, 33, 34 })
+            FormatoDecimal(detalle, 8, 10, 12, 18, 19, 23, 24, 25, 26, 27, 28, 30, 32, 35, 36, 37, 39, 41, 42);
+            foreach (int columna in new[] { 11, 17, 29, 33, 34, 38 })
                 detalle.Column(columna).Style.NumberFormat.Format = "0.00%";
 
             var eventos = CrearHoja(libro, "Eventos", "ID de sesión", "Tipo", "Inicio local",
@@ -65,6 +68,7 @@ namespace FatigueDetect.Presentacion
                 CalidadSesion? calidad = sesion.Calidad;
                 MetricasFatiga? fatiga = sesion.MetricasFatiga;
                 MetricasFatiga? detalleOcular = fatiga is { VersionMetricasOculares: >= 1 } ? fatiga : null;
+                MetricasPostura? postura = sesion.Postura;
                 Escribir(detalle, filaSesion++, id, sesion.Conductor.NombreCompleto,
                     sesion.Conductor.Cedula, sesion.Vehiculo.TipoCarro, sesion.Vehiculo.Placa,
                     sesion.Inicio, sesion.Fin, sesion.Fin.HasValue ? sesion.Duracion.TotalSeconds : null,
@@ -78,7 +82,13 @@ namespace FatigueDetect.Presentacion
                     detalleOcular?.MicrosuenoMasLargoMs / 1000.0, detalleOcular?.CierreMasLargoMs / 1000.0,
                     fatiga?.TiempoOcularCerradoMs / 1000.0, detalleOcular?.DiferenciaAperturaPromedio,
                     calidad?.Puntaje, calidad?.CaidasFps, calidad?.TiempoFpsBajoMs / 1000.0,
-                    sesion.OjosAbiertosObservados, sesion.CoberturaOcular);
+                    sesion.OjosAbiertosObservados, sesion.CoberturaOcular,
+                    postura?.TiempoPoseMs / 1000.0,
+                    postura is { TiempoPoseMs: > 0 } ? postura.TiempoFueraFrenteMs / 1000.0 : null,
+                    postura is { TiempoPoseMs: > 0 } ? postura.DistraccionMaximaMs / 1000.0 : null,
+                    postura?.ProporcionDistraida(calidad?.TiempoActivoMs), postura?.DistanciaMediaCm,
+                    postura is { TiempoBocaMs: > 0 } ? postura.Bostezos : null,
+                    postura?.BostezosPorHora, postura?.TiempoBocaMs / 1000.0);
 
                 if (fatiga is not null)
                 {

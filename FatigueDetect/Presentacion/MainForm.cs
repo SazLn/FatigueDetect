@@ -259,6 +259,17 @@ namespace FatigueDetect.Presentacion
             }
         }
 
+        internal static string FormatearPostura(SesionConduccion sesion, MetricasPostura lectura)
+        {
+            string tiempo = lectura.TiempoPoseMs > 0
+                ? $"{lectura.TiempoFueraFrenteMs / 1000.0:0.0} s · Máximo {lectura.DistraccionMaximaMs / 1000.0:0.0} s"
+                : "—";
+            return $"Fuera del frente: {tiempo} · {lectura.ProporcionDistraida(sesion.Calidad?.TiempoActivoMs)?.ToString("P1") ?? "—"} de sesión activa\n" +
+                $"Pose observada: {lectura.TiempoPoseMs / 1000.0:0.0} s · Distancia aprox.: {lectura.DistanciaMediaCm?.ToString("0") ?? "—"} cm\n" +
+                $"Posibles bostezos: {(lectura.TiempoBocaMs > 0 ? lectura.Bostezos.ToString() : "—")} · " +
+                $"{lectura.BostezosPorHora?.ToString("0.0") ?? "—"}/h observada";
+        }
+
         private void MostrarResumenFinSesion(SesionConduccion sesion, string? errorGuardado)
         {
             var eventos = sesion.Eventos;
@@ -294,6 +305,7 @@ namespace FatigueDetect.Presentacion
                       $"Cierre más largo: {fatiga.CierreMasLargoMs / 1000.0:0.000} s" +
                       $" · Posibles cabeceos: {fatiga.Cabeceos}\n"
                     : "") + "\n" +
+                (sesion.Postura is { } postura ? FormatearPostura(sesion, postura) + "\n\n" : "") +
                 (destacados.Length == 0 ? "Sin otros eventos destacados."
                     : "Otros eventos destacados\n" + string.Join("\n", destacados));
 

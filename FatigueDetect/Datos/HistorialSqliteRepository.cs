@@ -173,6 +173,14 @@ namespace FatigueDetect.Datos
                 }
             }
 
+            using (SqliteCommand consulta = CrearComando(conexion, transaccion, "SELECT SesionId, Datos FROM PosturaSesiones;"))
+            using (SqliteDataReader lector = consulta.ExecuteReader())
+            {
+                while (lector.Read())
+                    if (sesiones.TryGetValue(lector.GetString(0), out SesionConduccion? sesion))
+                        sesion.Postura = System.Text.Json.JsonSerializer.Deserialize<MetricasPostura>(lector.GetString(1));
+            }
+
             foreach (SesionConduccion sesion in sesiones.Values)
             {
                 sesion.EstablecerHorasAlarmas(sesion.Eventos.Where(e => e.Tipo == TipoEventoSesion.Alarma)
@@ -230,6 +238,10 @@ namespace FatigueDetect.Datos
                     SesionId TEXT NOT NULL REFERENCES Sesiones(Id) ON DELETE CASCADE,
                     Tipo TEXT NOT NULL, InicioUtcMs INTEGER NOT NULL, FinUtcMs INTEGER,
                     DuracionMs INTEGER
+                );
+                CREATE TABLE IF NOT EXISTS PosturaSesiones (
+                    SesionId TEXT PRIMARY KEY NOT NULL REFERENCES Sesiones(Id) ON DELETE CASCADE,
+                    Datos TEXT NOT NULL
                 );
                 CREATE TABLE IF NOT EXISTS CalidadSesiones (
                     SesionId TEXT PRIMARY KEY NOT NULL REFERENCES Sesiones(Id) ON DELETE CASCADE,
@@ -308,6 +320,15 @@ namespace FatigueDetect.Datos
             insercion.Parameters.AddWithValue("$alarmas", sesion.CantidadAlarmas);
             if (insercion.ExecuteNonQuery() == 0)
                 return false;
+
+            if (sesion.Postura is MetricasPostura postura)
+            {
+                using SqliteCommand datos = CrearComando(conexion, transaccion,
+                    "INSERT INTO PosturaSesiones (SesionId, Datos) VALUES ($id, $datos);");
+                datos.Parameters.AddWithValue("$id", sesion.Id.ToString());
+                datos.Parameters.AddWithValue("$datos", System.Text.Json.JsonSerializer.Serialize(postura));
+                datos.ExecuteNonQuery();
+            }
 
             if (sesion.Calidad is CalidadSesion calidad)
             {

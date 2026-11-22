@@ -243,4 +243,58 @@ finally
     SqliteConnection.ClearAllPools();
     Directory.Delete(carpetaPersonal, true);
 }
-Console.WriteLine($"{comprobaciones} comprobaciones de atención, personalización, SQLite y Excel correctas.");
+var sesionPostura = new SesionConduccion { Inicio = instante.LocalDateTime, Fin = instante.AddSeconds(15).LocalDateTime };
+var postura = new RastreadorFatiga(sesionPostura);
+FatigaEnVivo Cara(int ms, double vertical = 0, double horizontal = 0, double boca = .15,
+    double altura = 0, bool parcial = false) =>
+    postura.Observar(instante.AddMilliseconds(ms), new(.27, .27, new(vertical, horizontal, 0),
+        boca, 62, altura), 1.5, parcial);
+
+for (int ms = 0; ms <= 2200; ms += 100) Cara(ms);
+for (int ms = 2300; ms <= 2600; ms += 100) Cara(ms, vertical: 16);
+Cara(2700);
+Verificar(sesionPostura.Eventos.Single(e => e.Tipo == TipoEventoSesion.Cabeceo).DuracionMilisegundos == 400,
+    "Duración individual de cada cabeceo");
+for (int ms = 2800; ms <= 3700; ms += 100) Cara(ms, horizontal: 26);
+for (int ms = 3800; ms <= 4700; ms += 100) Cara(ms, horizontal: -26);
+var deslizada = Cara(4800);
+Verificar(Math.Abs(deslizada.ProporcionDistraccion.GetValueOrDefault() - 0.625) < 0.001 && postura.ResumenPostura is
+    { TiempoFueraFrenteMs: 2000, DistraccionMaximaMs: 2000 }, "Cambio de giro sin partir la distracción");
+Verificar(sesionPostura.Eventos.Any(e => e.Tipo == TipoEventoSesion.GiroDerecha) &&
+    sesionPostura.Eventos.Any(e => e.Tipo == TipoEventoSesion.GiroIzquierda), "Giros por dirección");
+for (int ms = 4900; ms <= 7000; ms += 100) Cara(ms, vertical: 25, boca: .53, altura: .2, parcial: true);
+Cara(7100);
+Verificar(postura.ResumenPostura is { Bostezos: 1, DistanciaMediaCm: 62 } &&
+    sesionPostura.Eventos.Any(e => e.Tipo == TipoEventoSesion.PosiblePosturaEncorvada) &&
+    sesionPostura.Eventos.Any(e => e.Tipo == TipoEventoSesion.RostroParcial), "Postura, borde, distancia y bostezo");
+postura.Interrumpir(instante.AddMilliseconds(7100), 1.5);
+Cara(13500, boca: .53);
+postura.Interrumpir(instante.AddMilliseconds(14000), 1.5);
+Verificar(postura.ResumenPostura is { TiempoPoseMs: 5500, Bostezos: 1 },
+    "Las pausas no suman cobertura ni completan un bostezo");
+sesionPostura.Postura = postura.ResumenPostura;
+sesionPostura.Calidad = new(100, 100, 7000, 7000, 0, 0, 0, 7000);
+string carpetaPostura = Path.Combine(Path.GetTempPath(), "fatiga-postura-" + Guid.NewGuid().ToString("N"));
+Directory.CreateDirectory(carpetaPostura);
+try
+{
+    var repoPostura = new HistorialSqliteRepository(Path.Combine(carpetaPostura, "historial.sqlite"),
+        Path.Combine(carpetaPostura, "historial.csv"));
+    repoPostura.Guardar(sesionPostura);
+    var guardadas = repoPostura.LeerTodas();
+    Verificar(guardadas.Single().Postura == sesionPostura.Postura &&
+        guardadas.Single().Eventos.Any(e => e.Tipo == TipoEventoSesion.PosibleBostezo),
+        "Métricas y eventos persisten en SQLite");
+    string excelPostura = Path.Combine(carpetaPostura, "postura.xlsx");
+    ExportadorHistorialExcel.Guardar(excelPostura, guardadas);
+    using var libroPostura = new XLWorkbook(excelPostura);
+    Verificar(libroPostura.Worksheet("Sesiones").Cell(2, 39).GetDouble() == 62 &&
+        libroPostura.Worksheet("Sesiones").Cell(2, 40).GetDouble() == 1, "Distancia y bostezos en Excel");
+}
+finally
+{
+    SqliteConnection.ClearAllPools();
+    Directory.Delete(carpetaPostura, recursive: true);
+}
+
+Console.WriteLine($"{comprobaciones} comprobaciones de atención, postura, SQLite y Excel correctas.");
