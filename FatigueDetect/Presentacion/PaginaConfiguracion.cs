@@ -1,6 +1,7 @@
 using System;
 using System.Drawing;
 using System.IO;
+using System.Text.Json;
 using System.Windows.Forms;
 using FatigueDetect.Datos;
 using FatigueDetect.Entidades;
@@ -13,6 +14,8 @@ namespace FatigueDetect.Presentacion
         private readonly Configuracion config;
         private readonly ConfiguracionDeteccionRepository repositorioAjustes;
         private readonly PanelCamaraConfiguracion panelCamara;
+        private readonly ProteccionDatosService proteccionDatos;
+        private readonly PoliticaProteccionRepository politicaRepository;
         private readonly NumericUpDown somnolientoNum = new NumericUpDown();
         private readonly NumericUpDown alarmaNum = new NumericUpDown();
         private readonly CheckBox sonidoCheck = new CheckBox();
@@ -20,12 +23,19 @@ namespace FatigueDetect.Presentacion
         private readonly ComboBox salidaAudio = new() { DropDownStyle = ComboBoxStyle.DropDownList, Dock = DockStyle.Fill };
         private readonly Button probarAudio = Tema.Boton("Probar", Tema.TarjetaClara, Tema.Texto);
         private readonly Label estadoAudio = Tema.Etiqueta("", 9, Tema.TextoSuave, Tema.Tarjeta);
+        private readonly CheckBox retencionAutomatica = new() { Text = "Eliminar automáticamente", Dock = DockStyle.Left };
+        private readonly NumericUpDown diasHistorial = new() { Minimum = 30, Maximum = 3650, Width = 74 };
+        private readonly NumericUpDown diasBiometricos = new() { Minimum = 30, Maximum = 3650, Width = 74 };
+        private readonly Label estadoDatos = Tema.Etiqueta("", 8.5f, Tema.TextoSuave, Tema.Tarjeta);
 
         public PaginaConfiguracion(Configuracion config, PreferenciaCamara preferenciaCamara,
-            ConfiguracionDeteccionRepository repositorioAjustes)
+            ConfiguracionDeteccionRepository repositorioAjustes,
+            ProteccionDatosService proteccionDatos, PoliticaProteccionRepository politicaRepository)
         {
             this.config = config;
             this.repositorioAjustes = repositorioAjustes;
+            this.proteccionDatos = proteccionDatos;
+            this.politicaRepository = politicaRepository;
 
             Dock = DockStyle.Fill;
             BackColor = Tema.Fondo;
@@ -51,7 +61,8 @@ namespace FatigueDetect.Presentacion
             raiz.Controls.Add(encabezado, 0, 0);
 
             var tarjeta = new PanelRedondeado { Dock = DockStyle.Fill, Margin = new Padding(0, 0, 8, 0) };
-            var tabla = Tema.TablaFilas(Tema.Tarjeta, 32, 22, 34, 22, 34, 8, 30, 22, 35, 32, 42);
+            var tabla = Tema.TablaFilas(Tema.Tarjeta, 32, 22, 34, 22, 34, 8, 30, 22, 35, 32, 42,
+                32, 38, 42, 28);
 
             tabla.Controls.Add(Tema.Etiqueta("Sensibilidad de la detección", 12, Tema.Texto, Tema.Tarjeta, FontStyle.Bold), 0, 0);
 
@@ -99,6 +110,33 @@ namespace FatigueDetect.Presentacion
             botones.Controls.Add(guardar);
             botones.Controls.Add(restablecer);
             tabla.Controls.Add(botones, 0, 10);
+
+            tabla.Controls.Add(Tema.Etiqueta("Protección y conservación de datos", 11, Tema.Texto,
+                Tema.Tarjeta, FontStyle.Bold), 0, 11);
+            var retencion = new FlowLayoutPanel { Dock = DockStyle.Fill, BackColor = Tema.Tarjeta,
+                WrapContents = false, FlowDirection = FlowDirection.LeftToRight };
+            retencionAutomatica.ForeColor = Tema.Texto; retencionAutomatica.BackColor = Tema.Tarjeta;
+            retencion.Controls.Add(retencionAutomatica);
+            retencion.Controls.Add(new Label { Text = "Historial (días)", AutoSize = true, ForeColor = Tema.TextoSuave,
+                BackColor = Tema.Tarjeta, Padding = new Padding(8, 6, 0, 0) });
+            retencion.Controls.Add(diasHistorial);
+            retencion.Controls.Add(new Label { Text = "Biometría (días)", AutoSize = true, ForeColor = Tema.TextoSuave,
+                BackColor = Tema.Tarjeta, Padding = new Padding(8, 6, 0, 0) });
+            retencion.Controls.Add(diasBiometricos);
+            tabla.Controls.Add(retencion, 0, 12);
+            var datosBotones = new FlowLayoutPanel { Dock = DockStyle.Fill, BackColor = Tema.Tarjeta,
+                FlowDirection = FlowDirection.LeftToRight, WrapContents = false };
+            var guardarPolitica = Tema.Boton("Guardar política", Tema.TarjetaClara, Tema.Texto);
+            var respaldar = Tema.Boton("Crear respaldo", Tema.AzulOscuro, Color.White);
+            var restaurar = Tema.Boton("Restaurar", Tema.TarjetaClara, Tema.Texto);
+            guardarPolitica.Width = 130; respaldar.Width = 130; restaurar.Width = 100;
+            guardarPolitica.Click += (_, _) => GuardarPolitica();
+            respaldar.Click += (_, _) => CrearRespaldo();
+            restaurar.Click += (_, _) => RestaurarRespaldo();
+            datosBotones.Controls.Add(guardarPolitica); datosBotones.Controls.Add(respaldar);
+            datosBotones.Controls.Add(restaurar); tabla.Controls.Add(datosBotones, 0, 13);
+            tabla.Controls.Add(estadoDatos, 0, 14);
+            CargarPolitica();
 
             tarjeta.Controls.Add(tabla);
             panelCamara = new PanelCamaraConfiguracion(config, preferenciaCamara);
@@ -235,6 +273,62 @@ namespace FatigueDetect.Presentacion
             CargarValores();
             MessageBox.Show(FindForm(), confirmacion, "Configuración",
                 MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+
+        private void CargarPolitica()
+        {
+            try
+            {
+                PoliticaProteccionDatos p = politicaRepository.Leer();
+                retencionAutomatica.Checked = p.EliminacionAutomatica;
+                diasHistorial.Value = p.DiasHistorial;
+                diasBiometricos.Value = p.DiasPerfilesBiometricos;
+            }
+            catch (Exception ex) when (ex is IOException or JsonException or InvalidDataException)
+            { estadoDatos.Text = "No se pudo leer la política: " + ex.Message; }
+        }
+
+        private void GuardarPolitica()
+        {
+            try
+            {
+                var p = new PoliticaProteccionDatos(retencionAutomatica.Checked,
+                    (int)diasHistorial.Value, (int)diasBiometricos.Value);
+                politicaRepository.Guardar(p);
+                var eliminados = proteccionDatos.AplicarRetencion(p, DateTime.Now);
+                estadoDatos.Text = $"Política guardada · sesiones eliminadas: {eliminados.Sesiones} · perfiles: {eliminados.Perfiles}";
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException)
+            { MessageBox.Show(FindForm(), ex.Message, "Protección de datos", MessageBoxButtons.OK, MessageBoxIcon.Error); }
+        }
+
+        private void CrearRespaldo()
+        {
+            using var clave = new VentanaContrasenaRespaldo("Crear respaldo protegido");
+            if (clave.ShowDialog(FindForm()) != DialogResult.OK) return;
+            using var dialogo = new SaveFileDialog { Filter = "Respaldo FatigueDetect (*.fdbak)|*.fdbak",
+                FileName = $"FatigueDetect-{DateTime.Now:yyyyMMdd-HHmm}.fdbak" };
+            if (dialogo.ShowDialog(FindForm()) != DialogResult.OK) return;
+            try { proteccionDatos.CrearRespaldo(dialogo.FileName, clave.Contrasena);
+                estadoDatos.Text = "Respaldo cifrado creado correctamente."; }
+            catch (Exception ex) { MessageBox.Show(FindForm(), ex.Message, "Respaldo", MessageBoxButtons.OK, MessageBoxIcon.Error); }
+        }
+
+        private void RestaurarRespaldo()
+        {
+            using var dialogo = new OpenFileDialog { Filter = "Respaldo FatigueDetect (*.fdbak)|*.fdbak" };
+            if (dialogo.ShowDialog(FindForm()) != DialogResult.OK) return;
+            using var clave = new VentanaContrasenaRespaldo("Restaurar respaldo protegido");
+            if (clave.ShowDialog(FindForm()) != DialogResult.OK) return;
+            if (MessageBox.Show(FindForm(), "La restauración reemplazará los datos actuales. ¿Continuar?",
+                "Restaurar", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes) return;
+            try
+            {
+                proteccionDatos.RestaurarRespaldo(dialogo.FileName, clave.Contrasena);
+                MessageBox.Show(FindForm(), "Respaldo validado y restaurado. Reinicia FatigueDetect antes de continuar.",
+                    "Restauración completa", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            catch (Exception ex) { MessageBox.Show(FindForm(), ex.Message, "Restauración rechazada", MessageBoxButtons.OK, MessageBoxIcon.Error); }
         }
     }
 }

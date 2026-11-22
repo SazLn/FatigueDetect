@@ -12,15 +12,18 @@ namespace FatigueDetect.Datos
     {
         private readonly string rutaCsv;
         private readonly string cadenaConexion;
+        private readonly ProtectorDatosLocal protector;
         private readonly object candado = new object();
         private bool inicializado;
 
         public string RutaArchivo { get; }
 
-        public HistorialSqliteRepository(string rutaArchivo, string rutaCsv)
+        public HistorialSqliteRepository(string rutaArchivo, string rutaCsv, ProtectorDatosLocal? protector = null)
         {
             RutaArchivo = Path.GetFullPath(rutaArchivo);
             this.rutaCsv = rutaCsv;
+            this.protector = protector ?? new ProtectorDatosLocal(
+                Path.Combine(Path.GetDirectoryName(RutaArchivo)!, "clave_datos.bin"));
             cadenaConexion = new SqliteConnectionStringBuilder
             {
                 DataSource = RutaArchivo,
@@ -61,15 +64,33 @@ namespace FatigueDetect.Datos
                     SELECT Contenido FROM PerfilesPersonalizadosContexto
                     WHERE Cedula = $cedula AND CamaraId = $camara AND VehiculoClave = $vehiculo;
                     """;
+                consulta.Parameters.AddWithValue("$camara", protector.ClaveBusqueda(camara));
+                consulta.Parameters.AddWithValue("$vehiculo", protector.ClaveBusqueda(vehiculo));
+            }
+            else
+                consulta.CommandText = "SELECT Contenido FROM PerfilesPersonalizados WHERE Cedula = $cedula;";
+            consulta.Parameters.AddWithValue("$cedula", protector.ClaveBusqueda(clave));
+            object? contenido = consulta.ExecuteScalar();
+            if (contenido is string json)
+                return JsonSerializer.Deserialize<PerfilPersonalConductor>(protector.Descifrar(json));
+
+            // Compatibilidad con claves sin hash de versiones anteriores.
+            consulta.Parameters.Clear();
+            if (camara.Length > 0 || vehiculo.Length > 0)
+            {
+                consulta.CommandText = """
+                    SELECT Contenido FROM PerfilesPersonalizadosContexto
+                    WHERE Cedula = $cedula AND CamaraId = $camara AND VehiculoClave = $vehiculo;
+                    """;
                 consulta.Parameters.AddWithValue("$camara", camara);
                 consulta.Parameters.AddWithValue("$vehiculo", vehiculo);
             }
             else
                 consulta.CommandText = "SELECT Contenido FROM PerfilesPersonalizados WHERE Cedula = $cedula;";
             consulta.Parameters.AddWithValue("$cedula", clave);
-            object? contenido = consulta.ExecuteScalar();
-            if (contenido is string json)
-                return JsonSerializer.Deserialize<PerfilPersonalConductor>(json);
+            contenido = consulta.ExecuteScalar();
+            if (contenido is string anteriorDirecto)
+                return JsonSerializer.Deserialize<PerfilPersonalConductor>(protector.Descifrar(anteriorDirecto));
 
             // Un perfil de versiones anteriores sirve como punto de partida del primer contexto.
             if (camara.Length == 0 && vehiculo.Length == 0)
@@ -79,17 +100,17 @@ namespace FatigueDetect.Datos
                     SELECT Contenido FROM PerfilesPersonalizadosContexto
                     WHERE Cedula = $cedula ORDER BY CamaraId, VehiculoClave LIMIT 1;
                     """;
-                consulta.Parameters.AddWithValue("$cedula", clave);
+                consulta.Parameters.AddWithValue("$cedula", protector.ClaveBusqueda(clave));
                 contenido = consulta.ExecuteScalar();
                 return contenido is string contextual
-                    ? JsonSerializer.Deserialize<PerfilPersonalConductor>(contextual) : null;
+                    ? JsonSerializer.Deserialize<PerfilPersonalConductor>(protector.Descifrar(contextual)) : null;
             }
             consulta.Parameters.Clear();
             consulta.CommandText = "SELECT Contenido FROM PerfilesPersonalizados WHERE Cedula = $cedula;";
             consulta.Parameters.AddWithValue("$cedula", clave);
             contenido = consulta.ExecuteScalar();
             PerfilPersonalConductor? anterior = contenido is string legado
-                ? JsonSerializer.Deserialize<PerfilPersonalConductor>(legado) : null;
+                ? JsonSerializer.Deserialize<PerfilPersonalConductor>(protector.Descifrar(legado)) : null;
             return anterior is null ? null : anterior with { CamaraId = camara, VehiculoClave = vehiculo };
         }
 
@@ -121,9 +142,12 @@ namespace FatigueDetect.Datos
                         Id = Guid.Parse(id),
                         Conductor = new Conductor
                         {
-                            Cedula = lector.GetString(1), Nombre = lector.GetString(2), Apellidos = lector.GetString(3)
+                            Cedula = protector.Descifrar(lector.GetString(1)),
+                            Nombre = protector.Descifrar(lector.GetString(2)),
+                            Apellidos = protector.Descifrar(lector.GetString(3))
                         },
-                        Vehiculo = new Vehiculo { TipoCarro = lector.GetString(4), Placa = lector.GetString(5) },
+                        Vehiculo = new Vehiculo { TipoCarro = protector.Descifrar(lector.GetString(4)),
+                            Placa = protector.Descifrar(lector.GetString(5)) },
                         Inicio = LeerInstante(lector, 6).LocalDateTime,
                         Fin = lector.IsDBNull(7) ? null : LeerInstante(lector, 7).LocalDateTime,
                         CantidadAlarmas = lector.GetInt32(8),
@@ -147,7 +171,7 @@ namespace FatigueDetect.Datos
                 while (lector.Read())
                 {
                     if (sesiones.TryGetValue(lector.GetString(0), out SesionConduccion? sesion))
-                        sesion.Atencion = JsonSerializer.Deserialize<InformeAtencion>(lector.GetString(1));
+                        sesion.Atencion = JsonSerializer.Deserialize<InformeAtencion>(protector.Descifrar(lector.GetString(1)));
                 }
             }
 
@@ -158,7 +182,7 @@ namespace FatigueDetect.Datos
                 while (lector.Read())
                 {
                     if (sesiones.TryGetValue(lector.GetString(0), out SesionConduccion? sesion))
-                        sesion.ComparacionPersonal = JsonSerializer.Deserialize<ComparacionPersonal>(lector.GetString(1));
+                        sesion.ComparacionPersonal = JsonSerializer.Deserialize<ComparacionPersonal>(protector.Descifrar(lector.GetString(1)));
                 }
             }
 
@@ -205,7 +229,7 @@ namespace FatigueDetect.Datos
                     {
                         CodigoTipo = codigo,
                         Confiabilidad = lector.IsDBNull(4) ? null
-                            : JsonSerializer.Deserialize<EvaluacionConfiabilidadEvento>(lector.GetString(4))
+                            : JsonSerializer.Deserialize<EvaluacionConfiabilidadEvento>(protector.Descifrar(lector.GetString(4)))
                     });
                 }
             }
@@ -215,7 +239,7 @@ namespace FatigueDetect.Datos
             {
                 while (lector.Read())
                     if (sesiones.TryGetValue(lector.GetString(0), out SesionConduccion? sesion))
-                        sesion.Postura = System.Text.Json.JsonSerializer.Deserialize<MetricasPostura>(lector.GetString(1));
+                        sesion.Postura = System.Text.Json.JsonSerializer.Deserialize<MetricasPostura>(protector.Descifrar(lector.GetString(1)));
             }
 
             foreach (SesionConduccion sesion in sesiones.Values)
@@ -233,6 +257,24 @@ namespace FatigueDetect.Datos
             using SqliteCommand comando = conexion.CreateCommand();
             comando.CommandText = "DELETE FROM Sesiones; DELETE FROM PerfilesPersonalizados; DELETE FROM PerfilesPersonalizadosContexto;";
             comando.ExecuteNonQuery();
+        }
+
+        public int EliminarAnteriores(DateTime limiteLocal)
+        {
+            using SqliteConnection conexion = Abrir();
+            using SqliteTransaction transaccion = conexion.BeginTransaction();
+            using SqliteCommand comando = CrearComando(conexion, transaccion,
+                "DELETE FROM Sesiones WHERE InicioUtcMs < $limite;");
+            comando.Parameters.AddWithValue("$limite", new DateTimeOffset(limiteLocal).ToUnixTimeMilliseconds());
+            int eliminadas = comando.ExecuteNonQuery();
+            if (eliminadas > 0)
+            {
+                using SqliteCommand perfiles = CrearComando(conexion, transaccion,
+                    "DELETE FROM PerfilesPersonalizados; DELETE FROM PerfilesPersonalizadosContexto;");
+                perfiles.ExecuteNonQuery();
+            }
+            transaccion.Commit();
+            return eliminadas;
         }
 
         private SqliteConnection Abrir()
@@ -345,7 +387,7 @@ namespace FatigueDetect.Datos
             transaccion.Commit();
         }
 
-        private static bool InsertarSesion(SqliteConnection conexion, SqliteTransaction transaccion, SesionConduccion sesion)
+        private bool InsertarSesion(SqliteConnection conexion, SqliteTransaction transaccion, SesionConduccion sesion)
         {
             using SqliteCommand insercion = CrearComando(conexion, transaccion, """
                 INSERT INTO Sesiones (Id, Cedula, Nombre, Apellidos, TipoCarro, Placa, InicioUtcMs, FinUtcMs, CantidadAlarmas)
@@ -353,11 +395,11 @@ namespace FatigueDetect.Datos
                 ON CONFLICT (Id) DO NOTHING;
                 """);
             insercion.Parameters.AddWithValue("$id", sesion.Id.ToString());
-            insercion.Parameters.AddWithValue("$cedula", sesion.Conductor.Cedula);
-            insercion.Parameters.AddWithValue("$nombre", sesion.Conductor.Nombre);
-            insercion.Parameters.AddWithValue("$apellidos", sesion.Conductor.Apellidos);
-            insercion.Parameters.AddWithValue("$tipo", sesion.Vehiculo.TipoCarro);
-            insercion.Parameters.AddWithValue("$placa", sesion.Vehiculo.Placa);
+            insercion.Parameters.AddWithValue("$cedula", protector.Cifrar(sesion.Conductor.Cedula));
+            insercion.Parameters.AddWithValue("$nombre", protector.Cifrar(sesion.Conductor.Nombre));
+            insercion.Parameters.AddWithValue("$apellidos", protector.Cifrar(sesion.Conductor.Apellidos));
+            insercion.Parameters.AddWithValue("$tipo", protector.Cifrar(sesion.Vehiculo.TipoCarro));
+            insercion.Parameters.AddWithValue("$placa", protector.Cifrar(sesion.Vehiculo.Placa));
             insercion.Parameters.AddWithValue("$inicio", new DateTimeOffset(sesion.Inicio).ToUnixTimeMilliseconds());
             insercion.Parameters.AddWithValue("$fin", sesion.Fin is DateTime fin
                 ? new DateTimeOffset(fin).ToUnixTimeMilliseconds() : DBNull.Value);
@@ -370,7 +412,7 @@ namespace FatigueDetect.Datos
                 using SqliteCommand datos = CrearComando(conexion, transaccion,
                     "INSERT INTO PosturaSesiones (SesionId, Datos) VALUES ($id, $datos);");
                 datos.Parameters.AddWithValue("$id", sesion.Id.ToString());
-                datos.Parameters.AddWithValue("$datos", System.Text.Json.JsonSerializer.Serialize(postura));
+                datos.Parameters.AddWithValue("$datos", protector.Cifrar(System.Text.Json.JsonSerializer.Serialize(postura)));
                 datos.ExecuteNonQuery();
             }
 
@@ -445,7 +487,7 @@ namespace FatigueDetect.Datos
                 using SqliteCommand informe = CrearComando(conexion, transaccion,
                     "INSERT INTO AtencionSesiones (SesionId, Contenido) VALUES ($id, $contenido);");
                 informe.Parameters.AddWithValue("$id", sesion.Id.ToString());
-                informe.Parameters.AddWithValue("$contenido", JsonSerializer.Serialize(atencion));
+                informe.Parameters.AddWithValue("$contenido", protector.Cifrar(JsonSerializer.Serialize(atencion)));
                 informe.ExecuteNonQuery();
             }
 
@@ -454,7 +496,7 @@ namespace FatigueDetect.Datos
                 using SqliteCommand informe = CrearComando(conexion, transaccion,
                     "INSERT INTO ComparacionesPersonalizadas (SesionId, Contenido) VALUES ($id, $contenido);");
                 informe.Parameters.AddWithValue("$id", sesion.Id.ToString());
-                informe.Parameters.AddWithValue("$contenido", JsonSerializer.Serialize(comparacion));
+                informe.Parameters.AddWithValue("$contenido", protector.Cifrar(JsonSerializer.Serialize(comparacion)));
                 informe.ExecuteNonQuery();
             }
 
@@ -475,7 +517,7 @@ namespace FatigueDetect.Datos
                 termino.Value = evento.Fin?.ToUnixTimeMilliseconds() is long fecha ? fecha : DBNull.Value;
                 duracion.Value = evento.DuracionMilisegundos is long ms ? ms : DBNull.Value;
                 confiabilidad.Value = evento.Confiabilidad is { } evaluacion
-                    ? JsonSerializer.Serialize(evaluacion) : DBNull.Value;
+                    ? protector.Cifrar(JsonSerializer.Serialize(evaluacion)) : DBNull.Value;
                 eventos.ExecuteNonQuery();
             }
             return true;
@@ -489,7 +531,7 @@ namespace FatigueDetect.Datos
             return comando;
         }
 
-        private static void GuardarPerfil(SqliteConnection conexion, SqliteTransaction transaccion,
+        private void GuardarPerfil(SqliteConnection conexion, SqliteTransaction transaccion,
             PerfilPersonalConductor perfil)
         {
             string camara = NormalizarContexto(perfil.CamaraId);
@@ -501,10 +543,10 @@ namespace FatigueDetect.Datos
                     VALUES ($cedula, $camara, $vehiculo, $contenido)
                     ON CONFLICT (Cedula, CamaraId, VehiculoClave) DO UPDATE SET Contenido = excluded.Contenido;
                     """);
-                contextual.Parameters.AddWithValue("$cedula", NormalizarCedula(perfil.Cedula));
-                contextual.Parameters.AddWithValue("$camara", camara);
-                contextual.Parameters.AddWithValue("$vehiculo", vehiculo);
-                contextual.Parameters.AddWithValue("$contenido", JsonSerializer.Serialize(perfil));
+                contextual.Parameters.AddWithValue("$cedula", protector.ClaveBusqueda(NormalizarCedula(perfil.Cedula)));
+                contextual.Parameters.AddWithValue("$camara", protector.ClaveBusqueda(camara));
+                contextual.Parameters.AddWithValue("$vehiculo", protector.ClaveBusqueda(vehiculo));
+                contextual.Parameters.AddWithValue("$contenido", protector.Cifrar(JsonSerializer.Serialize(perfil)));
                 contextual.ExecuteNonQuery();
                 using SqliteCommand retirarLegado = CrearComando(conexion, transaccion,
                     "DELETE FROM PerfilesPersonalizados WHERE Cedula = $cedula;");
@@ -516,8 +558,8 @@ namespace FatigueDetect.Datos
                 INSERT INTO PerfilesPersonalizados (Cedula, Contenido) VALUES ($cedula, $contenido)
                 ON CONFLICT (Cedula) DO UPDATE SET Contenido = excluded.Contenido;
                 """);
-            comando.Parameters.AddWithValue("$cedula", NormalizarCedula(perfil.Cedula));
-            comando.Parameters.AddWithValue("$contenido", JsonSerializer.Serialize(perfil));
+            comando.Parameters.AddWithValue("$cedula", protector.ClaveBusqueda(NormalizarCedula(perfil.Cedula)));
+            comando.Parameters.AddWithValue("$contenido", protector.Cifrar(JsonSerializer.Serialize(perfil)));
             comando.ExecuteNonQuery();
         }
 
