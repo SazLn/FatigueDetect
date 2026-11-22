@@ -87,6 +87,15 @@ Los perfiles biométricos y el historial usan la protección de datos integrada.
 
 ## Historial y registro de eventos
 
+### Interfaz renovada de Historial
+
+La rama `ui/mejoras-graficas` traslada el prototipo visual de **Historial de sesiones** a WinForms. La
+cabecera, los filtros y las acciones mantienen la jerarquía de la referencia; la tabla conserva anchos de
+columna estables, fija la fecha al desplazarse horizontalmente y ofrece desplazamiento en ambos ejes. El
+panel de detalle mantiene visibles su cabecera y sus botones mientras desplaza de forma independiente las
+métricas reales de calidad, ojos y parpadeos, los resúmenes y los eventos. Las consultas, filtros,
+exportación, borrado y ventanas de detalle siguen usando los datos y servicios existentes.
+
 Al pulsar **Detener monitoreo**, aparece el resumen final de la sesión con su duración,
 el número de alarmas, los episodios sin rostro detectado y los demás eventos destacados
 agrupados por tipo.

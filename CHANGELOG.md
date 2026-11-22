@@ -2,6 +2,14 @@
 
 ## Sin publicar
 
+### Rediseño de Historial en `ui/mejoras-graficas`
+
+- Traslada el prototipo HTML de **Historial de sesiones** a controles WinForms nativos sin sustituir las sesiones ni métricas reales.
+- Reproduce la cabecera compacta, los filtros redondeados, el contador de resultados y las acciones primaria, secundaria y de peligro.
+- Presenta la tabla dentro de una tarjeta con encabezado y primera columna fijos, anchos estables, selección resaltada y desplazamiento horizontal y vertical.
+- Mantiene visibles las acciones de la tabla y la cabecera y el pie del detalle; solo el cuerpo de métricas y eventos se desplaza.
+- Reorganiza el detalle en cuadrículas de dos columnas, secciones de calidad y ojos, y tarjetas para resúmenes y eventos, incluidos los estados sin datos.
+
 ### Rediseño adaptable de Configuración en `ui/mejoras-graficas`
 
 - Adopta una paleta morada compartida y mejora el contraste de los controles principales y del elemento activo del menú.

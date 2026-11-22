@@ -14,16 +14,20 @@ namespace FatigueDetect.Presentacion
 
         public bool Primario { get; }
         public bool Fantasma { get; }
+        public bool Peligro { get; }
 
-        public BotonConfiguracion(string texto, bool primario = false, bool fantasma = false)
+        public BotonConfiguracion(string texto, bool primario = false, bool fantasma = false,
+            bool peligro = false)
         {
             Text = texto;
             Primario = primario;
             Fantasma = fantasma;
+            Peligro = peligro;
             Height = 42;
             Font = Tema.Fuente(9.5f, FontStyle.Bold);
-            ForeColor = primario ? Tema.TextoSobreAcento : Tema.Texto;
-            BackColor = primario ? Tema.Azul : fantasma ? Tema.Tarjeta : Tema.TarjetaClara;
+            ForeColor = primario ? Tema.TextoSobreAcento : peligro ? Color.FromArgb(255, 179, 192) : Tema.Texto;
+            BackColor = primario ? Tema.Azul : peligro ? Color.FromArgb(61, 35, 57)
+                : fantasma ? Tema.Tarjeta : Tema.TarjetaClara;
             Margin = new Padding(0, 0, 10, 0);
             Cursor = Cursors.Hand;
             FlatStyle = FlatStyle.Flat;
@@ -43,12 +47,14 @@ namespace FatigueDetect.Presentacion
             e.Graphics.Clear(Parent?.BackColor ?? Tema.Tarjeta);
             var rectangulo = new Rectangle(0, 0, Width - 1, Height - 1);
             using GraphicsPath ruta = PanelRedondeado.CrearRuta(rectangulo, 10);
-            Color baseColor = Primario ? Tema.Azul : Fantasma ? Tema.Tarjeta : Tema.TarjetaClara;
+            Color baseColor = Primario ? Tema.Azul : Peligro ? Color.FromArgb(61, 35, 57)
+                : Fantasma ? Tema.Tarjeta : Tema.TarjetaClara;
             Color fondo = !Enabled ? Color.FromArgb(55, 50, 70)
                 : presionado ? ControlPaint.Dark(baseColor, .08f)
                 : encima ? ControlPaint.Light(baseColor, .08f) : baseColor;
             using var relleno = new SolidBrush(fondo);
-            using var borde = new Pen(Primario ? Tema.Azul : Tema.Borde);
+            using var borde = new Pen(Primario ? Tema.Azul : Peligro ? Color.FromArgb(160, 75, 96)
+                : Tema.Borde);
             e.Graphics.FillPath(relleno, ruta);
             e.Graphics.DrawPath(borde, ruta);
 
