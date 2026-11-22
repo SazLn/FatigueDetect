@@ -35,6 +35,7 @@
 | Línea temporal extensible | Integrado en `main` | Pistas desplazables para todos los tipos registrados y conservación de códigos de eventos futuros. |
 | Personalización por conductor | Integrado en `main` | Calibra una línea base tras tres sesiones válidas, compara PERCLOS, parpadeos y atención, persiste el perfil y evita aprender de cambios anormales. Integrado mediante el PR #17. |
 | Confiabilidad explicable por evento | Integrado en `main` | Puntúa la evidencia de cada evento y explica las limitaciones de persistencia, cobertura, FPS o captura. Integrado mediante el PR #18 después de la validación manual inicial. |
+| Análisis histórico avanzado | Implementado en rama de descarga | `descarga/analisis-historico-avanzado`: riesgo, tendencia personal, grupos por vehículo/hora/día, mapa de calor, alarmas por hora activa y comparación de sesiones marcadas. Pendiente prueba en Windows y decisión de integración. |
 
 La medición facial fue validada de forma inicial con una cámara Windows. La calibración de umbrales y las pruebas con más cámaras, iluminación y personas siguen pendientes.
 Las métricas oculares avanzadas también fueron validadas manualmente con cámara y están integradas en `main`. Su calibración con más cámaras, condiciones de iluminación y personas sigue pendiente.
@@ -188,10 +189,10 @@ La dificultad de programar una función y la dificultad de hacerla confiable no 
 | Umbrales personalizados | **Media** | Integrado parcialmente en `main` para detectar desviaciones respecto al perfil; no cambia los umbrales físicos de cierre ni alarma. |
 | Comparar sesión actual con el promedio personal | **Media** | Integrado en `main` para PERCLOS, parpadeos y atención. Las nuevas métricas de cabeza y distracción aún no forman parte de la línea base personal. |
 | Detectar cambios anormales | **Media-alta** | Integrado de forma experimental en `main` con mínimos absolutos y variación personal. Pendiente calibración con usuarios reales. |
-| Sesiones más seguras y más riesgosas | **Baja** | Ordenar sesiones por puntaje, alertas o gravedad. |
-| Comparar por vehículo | **Baja-media** | Analizar si la fatiga o las distracciones cambian según el vehículo registrado. |
-| Comparar por hora o franja del día | **Baja** | Identificar si hay más riesgo en la mañana, tarde, noche o madrugada. |
-| Comparar días de la semana | **Baja** | Detectar patrones semanales de uso y fatiga. |
+| Sesiones más seguras y más riesgosas | **Baja** | Propuesta en rama de descarga: orden por índice experimental 100 − atención cuando la calidad es suficiente. |
+| Comparar por vehículo | **Baja-media** | Propuesta en rama de descarga: métricas agregadas por placa. |
+| Comparar por hora o franja del día | **Baja** | Propuesta en rama de descarga: grupos por hora local de inicio. |
+| Comparar días de la semana | **Baja** | Propuesta en rama de descarga: grupos y mapa de calor por día local. |
 
 ## Seguridad biométrica y prueba de vida
 

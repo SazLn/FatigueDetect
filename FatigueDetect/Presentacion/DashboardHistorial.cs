@@ -45,6 +45,7 @@ namespace FatigueDetect.Presentacion
             AgregarCategorias(pestañas, "Alarmas por hora", "Hora local", "Alarmas", resumen.AlertasPorHora(), Tema.Ambar);
             AgregarCategorias(pestañas, "Gravedad", "Gravedad", "Eventos", resumen.PorGravedad(), Tema.Rojo);
             AgregarComparacion(pestañas, sesiones, filtro);
+            AgregarAvanzado(pestañas, filtro.Aplicar(sesiones));
             contenido.Controls.Add(pestañas, 0, 3);
             Controls.Add(contenido);
         }
@@ -95,6 +96,118 @@ namespace FatigueDetect.Presentacion
 
         private static string FormatoTiempo(double? segundos) => segundos.HasValue
             ? Tema.FormatoDuracion(TimeSpan.FromSeconds(segundos.Value)) : "—";
+
+        private static void AgregarAvanzado(TabControl pestañas, IReadOnlyList<SesionConduccion> sesiones)
+        {
+            var riesgos = sesiones.Select(s => (Sesion: s, Riesgo: AnalisisHistoricoAvanzado.Riesgo(s)))
+                .Where(x => x.Riesgo.HasValue).OrderBy(x => x.Riesgo).ToArray();
+            var riesgo = CrearTabla("Fecha", "Conductor", "Vehículo", "Riesgo /100", "Atención /100", "Calidad /100");
+            foreach (var fila in riesgos)
+                riesgo.Rows.Add(fila.Sesion.Inicio.ToString("dd/MM/yyyy HH:mm"), fila.Sesion.Conductor.NombreCompleto,
+                    fila.Sesion.Vehiculo.Placa, fila.Riesgo!.Value.ToString("0.0"),
+                    (100 - fila.Riesgo.Value).ToString("0.0"), fila.Sesion.Calidad?.Puntaje?.ToString("0.0") ?? "—");
+            AgregarTabla(pestañas, "Seguras y riesgosas", riesgo,
+                "Menor riesgo primero. Índice experimental = 100 − atención; exige calidad ≥50. Las sesiones sin puntaje se excluyen.");
+
+            AgregarFilas(pestañas, "Por vehículo", AnalisisHistoricoAvanzado.PorVehiculo(sesiones));
+            AgregarFilas(pestañas, "Por horario", AnalisisHistoricoAvanzado.PorHora(sesiones));
+            AgregarFilas(pestañas, "Por día semanal", AnalisisHistoricoAvanzado.PorDiaSemana(sesiones));
+
+            var mapa = CrearTabla("Día", "00–03", "04–07", "08–11", "12–15", "16–19", "20–23");
+            int[,] datos = AnalisisHistoricoAvanzado.MapaCalor(sesiones);
+            string[] dias = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
+            int mayor = datos.Cast<int>().DefaultIfEmpty(0).Max();
+            for (int dia = 0; dia < 7; dia++)
+            {
+                int fila = mapa.Rows.Add(dias[dia]);
+                for (int bloque = 0; bloque < 6; bloque++)
+                {
+                    int cantidad = Enumerable.Range(bloque * 4, 4).Sum(h => datos[dia, h]);
+                    var celda = mapa.Rows[fila].Cells[bloque + 1];
+                    celda.Value = cantidad;
+                    int intensidad = mayor > 0 ? (int)(180.0 * cantidad / mayor) : 0;
+                    celda.Style.BackColor = Color.FromArgb(235 - intensidad / 3, 245 - intensidad / 2, 250 - intensidad);
+                    celda.Style.ForeColor = Color.Black;
+                }
+            }
+            AgregarTabla(pestañas, "Mapa día y hora", mapa,
+                "Sesiones por día de semana y hora local de inicio. Color más intenso = mayor cantidad.");
+
+            var personal = new TabPage("Tendencia personal") { BackColor = Tema.Tarjeta, Padding = new Padding(12) };
+            var panel = Tema.TablaFilas(Tema.Tarjeta, 40, 28, 0);
+            var selector = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Dock = DockStyle.Fill };
+            string[] conductores = sesiones.Select(s => s.Conductor.Cedula.Trim()).Where(c => c.Length > 0)
+                .Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(c => c).ToArray();
+            selector.Items.AddRange(conductores);
+            panel.Controls.Add(selector, 0, 0);
+            panel.Controls.Add(Tema.Etiqueta("Orden cronológico; cada fila conserva los valores medidos de una sesión.", 9, Tema.TextoSuave, Tema.Tarjeta), 0, 1);
+            var tendencia = CrearTabla("Sesión", "Atención /100", "PERCLOS %", "Parpadeos/min", "Calidad /100", "Alarmas/h");
+            panel.Controls.Add(tendencia, 0, 2);
+            selector.SelectedIndexChanged += (_, _) =>
+            {
+                tendencia.Rows.Clear();
+                foreach (var fila in AnalisisHistoricoAvanzado.TendenciaPersonal(sesiones, selector.Text))
+                    tendencia.Rows.Add(fila.Nombre, Numero(fila.Indicadores.Atencion), Porcentaje(fila.Indicadores.Perclos),
+                        Numero(fila.Indicadores.ParpadeosPorMinuto), Numero(fila.Indicadores.Calidad), Numero(fila.Indicadores.AlarmasPorHora));
+            };
+            if (selector.Items.Count > 0) selector.SelectedIndex = 0;
+            personal.Controls.Add(panel);
+            pestañas.TabPages.Add(personal);
+
+            var comparacion = new TabPage("Comparar sesiones") { BackColor = Tema.Tarjeta, Padding = new Padding(12) };
+            var comparador = Tema.TablaFilas(Tema.Tarjeta, 30, 0, 42, 220);
+            comparador.Controls.Add(Tema.Etiqueta("Marca dos o más sesiones; se comparan únicamente las seleccionadas.", 9, Tema.TextoSuave, Tema.Tarjeta), 0, 0);
+            var opciones = new CheckedListBox { Dock = DockStyle.Fill, CheckOnClick = true };
+            var ordenadas = sesiones.OrderByDescending(s => s.Inicio).ToArray();
+            foreach (var s in ordenadas)
+                opciones.Items.Add($"{s.Inicio:dd/MM/yyyy HH:mm} · {s.Conductor.NombreCompleto} · {s.Vehiculo.Placa} · {s.Id.ToString()[..8]}");
+            comparador.Controls.Add(opciones, 0, 1);
+            var estado = Tema.Etiqueta("Selecciona al menos dos sesiones.", 9, Tema.TextoSuave, Tema.Tarjeta);
+            comparador.Controls.Add(estado, 0, 2);
+            var resultado = CrearTabla("Sesión", "Atención /100", "PERCLOS %", "Alarmas/h", "Calidad /100", "Distracción %");
+            comparador.Controls.Add(resultado, 0, 3);
+            opciones.ItemCheck += (_, _) => opciones.BeginInvoke(new Action(() =>
+            {
+                resultado.Rows.Clear();
+                var elegidas = opciones.CheckedIndices.Cast<int>().Select(i => ordenadas[i]).ToArray();
+                estado.Text = elegidas.Length >= 2 ? $"{elegidas.Length} sesiones seleccionadas" : "Selecciona al menos dos sesiones.";
+                if (elegidas.Length < 2) return;
+                foreach (var s in elegidas)
+                    AgregarComparada(resultado, $"{s.Inicio:dd/MM HH:mm} · {s.Id.ToString()[..8]}", AnalisisHistoricoAvanzado.Calcular([s]));
+                AgregarComparada(resultado, "Conjunto seleccionado", AnalisisHistoricoAvanzado.Calcular(elegidas));
+            }));
+            comparacion.Controls.Add(comparador);
+            pestañas.TabPages.Add(comparacion);
+        }
+
+        private static void AgregarComparada(DataGridView tabla, string nombre, IndicadorHistorico x) =>
+            tabla.Rows.Add(nombre, Numero(x.Atencion), Porcentaje(x.Perclos), Numero(x.AlarmasPorHora),
+                Numero(x.Calidad), Porcentaje(x.Distraccion));
+
+        private static void AgregarFilas(TabControl pestañas, string nombre, IReadOnlyList<FilaHistorica> filas)
+        {
+            var tabla = CrearTabla("Grupo", "Sesiones", "Horas activas", "Alarmas/h", "Atención /100",
+                "PERCLOS %", "Distracción %");
+            foreach (var fila in filas)
+                tabla.Rows.Add(fila.Nombre, fila.Indicadores.Sesiones, Numero(fila.Indicadores.HorasActivas),
+                    Numero(fila.Indicadores.AlarmasPorHora), Numero(fila.Indicadores.Atencion),
+                    Porcentaje(fila.Indicadores.Perclos), Porcentaje(fila.Indicadores.Distraccion));
+            AgregarTabla(pestañas, nombre, tabla,
+                "Agrupado por hora local de inicio cuando corresponde. Alarmas/h usa tiempo activo; — indica datos insuficientes.");
+        }
+
+        private static void AgregarTabla(TabControl pestañas, string nombre, DataGridView tabla, string nota)
+        {
+            var pagina = new TabPage(nombre) { BackColor = Tema.Tarjeta, Padding = new Padding(12) };
+            var contenido = Tema.TablaFilas(Tema.Tarjeta, 45, 0);
+            contenido.Controls.Add(Tema.Etiqueta(nota, 9, Tema.TextoSuave, Tema.Tarjeta), 0, 0);
+            contenido.Controls.Add(tabla, 0, 1);
+            pagina.Controls.Add(contenido);
+            pestañas.TabPages.Add(pagina);
+        }
+
+        private static string Numero(double? valor) => valor?.ToString("0.0") ?? "—";
+        private static string Porcentaje(double? valor) => valor?.ToString("P1") ?? "—";
 
         private static void AgregarPeriodos(TabControl pestañas, string nombre, string periodo,
             IEnumerable<ResumenPeriodo> filas, bool cronologico)
