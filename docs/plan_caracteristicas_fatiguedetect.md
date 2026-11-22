@@ -29,8 +29,9 @@
 | Parpadeos, cierres prolongados y PERCLOS | Integrado en `main` | Conteos, PERCLOS de 60 s en vivo y acumulado por sesión. |
 | Métricas oculares avanzadas | Integrado en `main` | Parpadeos por minuto y por duración, cierres anómalos, microsueños, tiempos cerrados, diferencia entre ojos y evolución de PERCLOS. |
 | Ángulos de cabeza y posibles cabeceos | Integrado en `main` | Tres ángulos en vivo y registro de descenso con retorno a la postura neutra. |
-| Resto de propuestas | Pendiente | Incluye bostezos, mirada, distracción y análisis histórico avanzado más allá de la comparación personal. |
-| Atención y resúmenes avanzados | Integrado en `main` | Puntaje experimental, descuentos, primer síntoma, minuto de menor puntaje, tendencia, respuesta y recuperación tras alarmas, informe y evolución. Pendiente calibración e integración del detector de distracción. |
+| Cabeza, postura, distracción y bostezos | Integrado en `main` | Giros y duración, tiempo fuera del frente, postura y encuadre estimados, distancia aproximada, bostezos y distracción reciente. Integrado mediante el PR #20; pendiente calibración con cámaras reales. |
+| Resto de propuestas | Pendiente | Incluye mirada basada en pupilas, accesorios, seguridad biométrica y análisis histórico avanzado. |
+| Atención y resúmenes avanzados | Integrado en `main` | Puntaje experimental, descuentos, primer síntoma, minuto de menor puntaje, tendencia, respuesta y recuperación tras alarmas, informe, evolución y distracción reciente. Pendiente calibración. |
 | Línea temporal extensible | Integrado en `main` | Pistas desplazables para todos los tipos registrados y conservación de códigos de eventos futuros. |
 | Personalización por conductor | Integrado en `main` | Calibra una línea base tras tres sesiones válidas, compara PERCLOS, parpadeos y atención, persiste el perfil y evita aprender de cambios anormales. Integrado mediante el PR #17. |
 | Confiabilidad explicable por evento | Integrado en `main` | Puntúa la evidencia de cada evento y explica las limitaciones de persistencia, cobertura, FPS o captura. Integrado mediante el PR #18 después de la validación manual inicial. |
@@ -42,9 +43,9 @@ Las mejoras de monitoreo, audio, calidad, historial y exportación del PR #13 fu
 ## Propósito del documento
 
 La atención y los resúmenes avanzados están integrados en `main` y fueron validados manualmente.
-El bloque de cabeza, postura, mirada, bostezos y distracción corresponde al colaborador.
 La fórmula actual combina PERCLOS, cierres prolongados y cabeceos disponibles, condicionada por calidad y cobertura.
-La distracción se incorpora solo cuando el detector proporcione una medición. Véanse
+El PR #20 incorpora la proporción reciente fuera de la zona frontal como distracción; la dirección de mirada
+se aproxima con la cabeza y no mide pupilas. Véanse
 [el contrato y las pruebas](atencion_y_resumenes.md).
 
 Este documento reúne las características propuestas para evolucionar FatigueDetect, tanto las planteadas originalmente como otras que pueden aportar más datos útiles sobre la atención, la fatiga y el uso del sistema.
@@ -136,20 +137,20 @@ La dificultad de programar una función y la dificultad de hacerla confiable no 
 
 | Característica | Dificultad | Descripción sencilla |
 |---|---:|---|
-| Ángulo horizontal de la cabeza | **Media** | Medir cuánto gira el usuario hacia la izquierda o la derecha. |
-| Ángulo vertical de la cabeza | **Media** | Medir cuánto mira hacia arriba o hacia abajo. Es una pieza necesaria para detectar cabeceos. |
-| Inclinación lateral | **Media** | Detectar cuando la cabeza se inclina hacia un hombro. |
-| Número y duración de cabeceos | **Media-alta** | Contar el patrón completo de caída y recuperación de la cabeza, no solamente una posición baja. |
-| Giros de cabeza por dirección | **Media** | Indicar cuántas veces se miró a cada lado y durante cuánto tiempo. |
-| Tiempo mirando fuera de la zona frontal | **Media-alta** | Calcular cuánto tiempo se mantiene la cabeza o la mirada fuera de una zona considerada segura. |
-| Distracción más larga | **Media-alta** | Guardar el episodio continuo de distracción con mayor duración. |
-| Porcentaje de la sesión distraído | **Media-alta** | Dividir el tiempo distraído entre el tiempo total analizado. |
-| Postura encorvada | **Media-alta** | Detectar un descenso o inclinación sostenida de cabeza y hombros. Puede necesitar un modelo de postura corporal. |
-| Distancia aproximada a la cámara | **Baja-media** | Usar el tamaño del rostro como aproximación para avisar si está demasiado cerca o lejos. |
-| Rostro parcialmente fuera del encuadre | **Baja-media** | Avisar cuando la cara toca los bordes o no está completamente visible. |
-| Detectar bostezos | **Media-alta** | Medir la apertura de la boca y su duración mediante puntos faciales. |
-| Contar bostezos por hora | **Media-alta** | Crear una métrica temporal para analizar si aumentan durante la sesión. |
-| Estimar desviación de mirada | **Media-alta** | Aproximar si los ojos miran al frente, abajo o a los lados. No reemplaza un equipo especializado de seguimiento ocular. |
+| Ángulo horizontal de la cabeza | **Media** | Integrado en `main` respecto a la referencia frontal calibrada. |
+| Ángulo vertical de la cabeza | **Media** | Integrado en `main` respecto a la referencia frontal calibrada. |
+| Inclinación lateral | **Media** | Integrada en `main` como tercer ángulo de pose. |
+| Número y duración de cabeceos | **Media-alta** | Integrado en `main` con inicio, fin y duración individual. |
+| Giros de cabeza por dirección | **Media** | Integrado en `main` para izquierda, derecha, arriba y abajo, con duración. |
+| Tiempo mirando fuera de la zona frontal | **Media-alta** | Integrado en `main` como orientación de cabeza fuera del frente. |
+| Distracción más larga | **Media-alta** | Integrada en `main` para episodios continuos fuera del frente. |
+| Porcentaje de la sesión distraído | **Media-alta** | Integrado en `main` respecto al tiempo activo, además de una ventana reciente de 60 s para atención. |
+| Postura encorvada | **Media-alta** | Integrada experimentalmente en `main` mediante inclinación y descenso del rostro; no mide hombros. |
+| Distancia aproximada a la cámara | **Baja-media** | Integrada en `main` con SolvePnP, focal aproximada y escala facial supuesta. |
+| Rostro parcialmente fuera del encuadre | **Baja-media** | Integrado en `main` cuando el rectángulo facial se acerca al borde. |
+| Detectar bostezos | **Media-alta** | Integrado experimentalmente en `main` por apertura y duración de la boca. Hablar puede producir falsos positivos. |
+| Contar bostezos por hora | **Media-alta** | Integrado en `main` sobre el tiempo con boca observable. |
+| Estimar desviación de mirada | **Media-alta** | Integrada parcialmente mediante orientación de cabeza. La medición de pupilas sigue pendiente. |
 
 ## Calidad de detección y confiabilidad de los datos
 
@@ -185,7 +186,7 @@ La dificultad de programar una función y la dificultad de hacerla confiable no 
 | Comparar sesiones del mismo conductor | **Baja-media** | Integrado en `main` para PERCLOS, parpadeos por minuto y atención, con perfil separado por cédula. |
 | Promedio personal de parpadeos | **Media** | Integrado en `main` como promedio ponderado por tiempo ocular válido. |
 | Umbrales personalizados | **Media** | Integrado parcialmente en `main` para detectar desviaciones respecto al perfil; no cambia los umbrales físicos de cierre ni alarma. |
-| Comparar sesión actual con el promedio personal | **Media** | Integrado en `main` para PERCLOS, parpadeos y atención. Cabeza y distracción se incorporarán cuando sus detectores aporten métricas. |
+| Comparar sesión actual con el promedio personal | **Media** | Integrado en `main` para PERCLOS, parpadeos y atención. Las nuevas métricas de cabeza y distracción aún no forman parte de la línea base personal. |
 | Detectar cambios anormales | **Media-alta** | Integrado de forma experimental en `main` con mínimos absolutos y variación personal. Pendiente calibración con usuarios reales. |
 | Sesiones más seguras y más riesgosas | **Baja** | Ordenar sesiones por puntaje, alertas o gravedad. |
 | Comparar por vehículo | **Baja-media** | Analizar si la fatiga o las distracciones cambian según el vehículo registrado. |
@@ -643,13 +644,13 @@ Prioridad alta porque desbloquea los dashboards y evita rehacer el almacenamient
 5. Calcular PERCLOS de 60 s y por sesión. **Integrado en `main`.** Incluye su evolución temporal.
 6. Estimar ángulos de cabeza. **Integrado en `main`.**
 7. Detectar posibles cabeceos. **Integrado en `main`.**
-8. Detectar bostezos.
-9. Estimar distracción y mirada.
+8. Detectar bostezos. **Integrado experimentalmente en `main`** mediante el PR #20.
+9. Estimar distracción y mirada. **Integrado parcialmente en `main`** mediante orientación de cabeza y ventana de distracción de 60 s; las pupilas siguen pendientes.
 
 ## Etapa 4: Puntajes y personalización
 
 1. Crear el puntaje de calidad de detección. **Integrado en `main`** con fotogramas analizables, cobertura facial y estabilidad de FPS.
-2. Crear una primera fórmula de atención. **Integrado en `main`**, pendiente calibración y datos de distracción del colaborador.
+2. Crear una primera fórmula de atención. **Integrado en `main`**, incluida la distracción reciente desde el PR #20; pendiente calibración.
 3. Mostrar las razones del puntaje. **Integrado en `main`** en informe y Excel.
 4. Crear promedios personales. **Integrado en `main`** para parpadeos, PERCLOS y atención mediante el PR #17.
 5. Permitir calibración por conductor. **Integrado en `main`** como línea base automática después de tres sesiones válidas; no modifica los umbrales físicos de alarma.

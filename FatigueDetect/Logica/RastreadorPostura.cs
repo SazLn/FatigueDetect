@@ -37,10 +37,13 @@ namespace FatigueDetect.Logica
                     if (poseAnterior && angulos.HasValue && lapso > 0)
                     {
                         poseMs += lapso;
-                        bool fuera = distraccion.Tipo.HasValue && (ultima - distraccion.Inicio).TotalMilliseconds >= 750;
+                        bool fuera = distraccion.Tipo.HasValue && distraccion.Confirmado;
                         recientes.Enqueue((instante, lapso, fuera));
                         observadoRecienteMs += lapso;
                         if (fuera) fueraRecienteMs += lapso;
+                        if (distraccion.Tipo.HasValue && !distraccion.Confirmado
+                            && (instante - distraccion.Inicio).TotalMilliseconds >= 750)
+                            ConfirmarDistraccionReciente();
                     }
                     if (bocaAnterior && cara?.AperturaBoca is not null) bocaMs += lapso;
                     if (distanciaAnterior is double distancia && cara?.DistanciaCm is not null)
@@ -51,7 +54,7 @@ namespace FatigueDetect.Logica
                 }
             }
 
-            while (recientes.TryPeek(out var muestra) && (instante - muestra.Fin).TotalSeconds >= 10)
+            while (recientes.TryPeek(out var muestra) && (instante - muestra.Fin).TotalSeconds >= 60)
             {
                 recientes.Dequeue();
                 observadoRecienteMs -= muestra.Duracion;
@@ -120,6 +123,22 @@ namespace FatigueDetect.Logica
             return DireccionCabeza.Frente;
         }
 
+        private void ConfirmarDistraccionReciente()
+        {
+            distraccion.Confirmado = true;
+            var actualizadas = recientes.Select(muestra =>
+                (muestra.Fin, muestra.Duracion,
+                    Fuera: muestra.Fuera || muestra.Fin > distraccion.Inicio)).ToArray();
+            recientes.Clear();
+            fueraRecienteMs = 0;
+            foreach (var muestra in actualizadas)
+            {
+                recientes.Enqueue(muestra);
+                if (muestra.Fuera)
+                    fueraRecienteMs += muestra.Duracion;
+            }
+        }
+
         private void Registrar(Episodio episodio, TipoEventoSesion? tipo, DateTimeOffset instante,
             int minimoMs, bool medible, bool completar = true)
         {
@@ -145,6 +164,7 @@ namespace FatigueDetect.Logica
             {
                 episodio.Tipo = tipo;
                 episodio.Inicio = instante;
+                episodio.Confirmado = false;
             }
         }
 
@@ -152,6 +172,7 @@ namespace FatigueDetect.Logica
         {
             public TipoEventoSesion? Tipo { get; set; }
             public DateTimeOffset Inicio { get; set; }
+            public bool Confirmado { get; set; }
         }
     }
 }

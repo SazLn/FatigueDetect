@@ -2,7 +2,13 @@
 
 ## Sin publicar
 
+### Cabeza, postura, distracción y bostezos integrados mediante el PR #20
+
 - Añade orientación de cabeza, episodios con duración, tiempo fuera del frente, indicios de postura encorvada y rostro al borde, distancia aproximada y posibles bostezos.
+- Incorpora la distracción reciente de 60 segundos al puntaje de atención y conserva el tiempo total, el porcentaje de sesión y el episodio más largo.
+- Corrige la ventana reciente para incluir desde el inicio los episodios que superan 750 ms, sin subestimar su efecto en atención.
+- Persiste métricas y eventos en SQLite y los muestra en vivo, resumen, historial, línea temporal y Excel. Incluye 56 comprobaciones automáticas; las estimaciones requieren calibración con cámara real.
+
 ### Confiabilidad explicable por evento integrada en `main` mediante el PR #18
 
 - Añade una evaluación explicable de 0 a 100 para cada evento nuevo, con niveles alto, medio y bajo.
@@ -19,7 +25,7 @@
 - Guarda perfiles y comparaciones en SQLite, los muestra en los resúmenes y exporta la hoja **Comparación personal**. Al borrar el historial también se eliminan los perfiles derivados.
 - Incluye 42 comprobaciones automáticas y compilación Release sin advertencias. La validación manual inicial con cámara fue confirmada antes de integrar el PR #17; aún conviene ampliar las pruebas a más conductores y condiciones.
 
-- Se integraron en `main` el puntaje experimental de atención, los descuentos por factor, el primer síntoma, el minuto de menor puntaje y la tendencia. La calidad y la cobertura condicionan la disponibilidad; distracción sigue pendiente del detector del colaborador.
+- Se integraron en `main` el puntaje experimental de atención, los descuentos por factor, el primer síntoma, el minuto de menor puntaje y la tendencia. La calidad y la cobertura condicionan la disponibilidad; el PR #20 aporta la medición reciente de distracción.
 - El informe final y la consulta histórica incluyen evolución, respuesta ocular y recuperación frontal tras alarmas. Las interrupciones dejan la recuperación sin confirmar.
 - Añade persistencia versionada de atención en SQLite y hojas de atención, evolución y respuesta a alarmas en Excel. Las sesiones anteriores mantienen atención sin medición.
 - La línea temporal admite pistas desplazables y conserva códigos de eventos nuevos que esta versión aún no conoce.

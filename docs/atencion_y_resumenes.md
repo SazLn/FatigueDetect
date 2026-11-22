@@ -1,7 +1,7 @@
 # Atención y resúmenes
 
 Integrado en `main` mediante el PR #15 después de la validación manual.
-El bloque de cabeza, postura y distracción pertenece al colaborador.
+La medición de cabeza, postura y distracción se incorpora mediante el PR #20.
 
 ## Comportamiento disponible
 
@@ -59,13 +59,13 @@ El tiempo representado excluye separaciones mayores de 250 ms y mediciones invá
 - Pausa, pérdida de imagen, final de sesión o nueva alarma sin recuperación dejan la anterior como
   no confirmada, conservando la respuesta ocular si se alcanzó. No se rellenan huecos con valores sanos.
 
-## Integración con el colaborador
+## Integración de distracción
 
 `FatigaEnVivo.ProporcionDistraccion` es una entrada opcional: `null` significa no medido; un valor
-entre 0 y 1 indica la proporción reciente distraída. El detector deberá asignarla al resultado de
-`RastreadorFatiga.Observar`, antes de llamar a `RastreadorAtencion.Observar` en DetectionController.
-Debe basarse en intervalos válidos y su propia ventana documentada de 60 s. Cuando no exista medición,
-debe enviar null, no cero. Por ahora la aplicación siempre envía null y el informe lo identifica.
+entre 0 y 1 indica la proporción reciente distraída. El PR #20 la calcula con intervalos válidos de pose
+en una ventana móvil de 60 s y la asigna antes de `RastreadorAtencion.Observar`. Solo confirma una salida
+frontal después de 750 ms y, al confirmarla, incluye el episodio desde su inicio. Cuando no hay pose
+medible envía null, no cero.
 
 Los detectores de nuevos eventos pueden llamar a `SesionConduccion.RegistrarEvento` con tipo, inicio
 y fin. La línea temporal genera sus pistas automáticamente y permite desplazamiento vertical.
@@ -73,7 +73,7 @@ Para códigos que aún no pertenecen al enum, usar `TipoEventoSesion.EventoExter
 el repositorio conserva también los códigos desconocidos leídos de una base de una versión posterior.
 El detalle, la línea temporal y la hoja Eventos muestran el código original. Los resúmenes por gravedad
 tratan tipos externos como gravedad baja hasta que se añada su clasificación específica.
-No se generan eventos de distracción, bostezos o postura en esta entrega.
+El PR #20 añade eventos de giros, salida frontal, postura y encuadre estimados y posibles bostezos.
 
 ## Verificación reproducible
 
@@ -87,8 +87,8 @@ compatibilidad con una base sin AtencionSesiones, persistencia, códigos futuros
 y exportación con sesiones nuevas, antiguas y selección vacía. El exportador se ejecuta sin interfaz
 mediante un adaptador de nombres de eventos; la app completa se compila para Windows.
 
-Pendiente después de integrar: calibración de fórmula y umbrales, integración real de distracción
-y validación ampliada con distintas personas, gafas, cámaras e iluminación.
+Pendiente después de integrar: calibración de fórmula, pesos y umbrales y validación ampliada con
+distintas personas, gafas, cámaras e iluminación.
 
 ## Prueba manual con cámara Windows
 

@@ -258,7 +258,7 @@ Verificar(sesionPostura.Eventos.Single(e => e.Tipo == TipoEventoSesion.Cabeceo).
 for (int ms = 2800; ms <= 3700; ms += 100) Cara(ms, horizontal: 26);
 for (int ms = 3800; ms <= 4700; ms += 100) Cara(ms, horizontal: -26);
 var deslizada = Cara(4800);
-Verificar(deslizada.ProporcionDistraccion > 0 && postura.ResumenPostura is
+Verificar(Math.Abs(deslizada.ProporcionDistraccion.GetValueOrDefault() - 0.625) < 0.001 && postura.ResumenPostura is
     { TiempoFueraFrenteMs: 2000, DistraccionMaximaMs: 2000 }, "Cambio de giro sin partir la distracción");
 Verificar(sesionPostura.Eventos.Any(e => e.Tipo == TipoEventoSesion.GiroDerecha) &&
     sesionPostura.Eventos.Any(e => e.Tipo == TipoEventoSesion.GiroIzquierda), "Giros por dirección");

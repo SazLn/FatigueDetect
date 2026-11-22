@@ -137,8 +137,8 @@ El informe también se consulta desde **Historial → Atención y resumen** y a�
 
 La calidad de detección condiciona la disponibilidad del puntaje; se exige al menos 50/100 de calidad
 y 50 % de cobertura ocular. Una pausa o pérdida de medición interrumpe la recuperación y deja huecos
-en la evolución. Los registros antiguos indican «sin medición». La distracción tiene un contrato de
-entrada opcional y seguirá sin medirse hasta integrar el detector del colaborador.
+en la evolución. Los registros antiguos indican «sin medición». La distracción reciente se estima en
+una ventana de 60 segundos a partir del tiempo con la cabeza fuera de la zona frontal; no mide pupilas.
 
 La validación manual confirmó el funcionamiento básico con cámara e interfaz en Windows. La fórmula
 y sus umbrales aún requieren calibración con más personas y condiciones. Los límites, la integración y las pruebas se explican en
