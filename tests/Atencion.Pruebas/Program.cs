@@ -297,4 +297,31 @@ finally
     Directory.Delete(carpetaPostura, recursive: true);
 }
 
-Console.WriteLine($"{comprobaciones} comprobaciones de atención, postura, SQLite y Excel correctas.");
+var historia = new[]
+{
+    new SesionConduccion { Inicio = new DateTime(2026, 11, 16, 8, 0, 0), Fin = new DateTime(2026, 11, 16, 9, 0, 0),
+        Conductor = new Conductor { Cedula = "1" }, Vehiculo = new Vehiculo { Placa = "ABC123" },
+        CantidadAlarmas = 2, Calidad = new CalidadSesion(100, 100, 3_600_000, 3_600_000, 0, 0, 0, 3_600_000),
+        MetricasFatiga = new MetricasFatiga(10, 0, 0, 60_000, 6_000) },
+    new SesionConduccion { Inicio = new DateTime(2026, 11, 17, 8, 0, 0), Fin = new DateTime(2026, 11, 17, 8, 30, 0),
+        Conductor = new Conductor { Cedula = "1" }, Vehiculo = new Vehiculo { Placa = "XYZ789" },
+        Calidad = new CalidadSesion(100, 100, 1_800_000, 1_800_000, 0, 0, 0, 1_800_000),
+        MetricasFatiga = new MetricasFatiga(20, 0, 0, 120_000, 24_000) }
+};
+var conjunto = AnalisisHistoricoAvanzado.Calcular(historia);
+Verificar(conjunto.Sesiones == 2 && Math.Abs(conjunto.AlarmasPorHora!.Value - 4.0 / 3) < .001,
+    "Alarmas normalizadas por horas activas");
+Verificar(Math.Abs(conjunto.Perclos!.Value - .1666666667) < .001 &&
+    Math.Abs(conjunto.ParpadeosPorMinuto!.Value - 10) < .001,
+    "PERCLOS y frecuencia ponderados por observación ocular");
+Verificar(AnalisisHistoricoAvanzado.PorVehiculo(historia).Count == 2 &&
+    AnalisisHistoricoAvanzado.PorHora(historia).Single().Indicadores.Sesiones == 2 &&
+    AnalisisHistoricoAvanzado.PorDiaSemana(historia).Count == 2,
+    "Comparaciones por vehículo, hora y día");
+Verificar(AnalisisHistoricoAvanzado.MapaCalor(historia)[0, 8] == 1 &&
+    AnalisisHistoricoAvanzado.MapaCalor(historia)[1, 8] == 1,
+    "Mapa de calor en hora local de inicio");
+Verificar(AnalisisHistoricoAvanzado.TendenciaPersonal(historia, "1").Count == 2 &&
+    AnalisisHistoricoAvanzado.Riesgo(historia[0]) is null,
+    "Tendencia personal conserva ausencias de atención sin inventar riesgo");
+Console.WriteLine($"{comprobaciones} comprobaciones de atención, postura, historial, SQLite y Excel correctas.");

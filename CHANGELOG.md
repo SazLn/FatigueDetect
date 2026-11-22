@@ -2,6 +2,12 @@
 
 ## Sin publicar
 
+### Propuesta en `descarga/analisis-historico-avanzado`
+
+- Añade en Estadísticas vistas de sesiones seguras y riesgosas, tendencia personal, comparaciones por vehículo, hora y día, mapa de calor día/hora y selección manual de varias sesiones.
+- Normaliza alarmas por tiempo activo y pondera métricas por tiempo medible. Conserva como desconocidos los indicadores ausentes en sesiones antiguas.
+- Incluye pruebas de agrupación, ponderación y cobertura. Pendiente validación de la interfaz en Windows antes de integrarla en `main`.
+
 ### Cabeza, postura, distracción y bostezos integrados mediante el PR #20
 
 - Añade orientación de cabeza, episodios con duración, tiempo fuera del frente, indicios de postura encorvada y rostro al borde, distancia aproximada y posibles bostezos.
