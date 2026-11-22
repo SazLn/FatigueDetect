@@ -2,6 +2,13 @@
 
 ## Sin publicar
 
+### Correcciones de redimensionado en `ui/mejoras-graficas`
+
+- Evita restos de bordes, textos duplicados y fotogramas parciales al maximizar, restaurar o cambiar de pantalla.
+- Limita el tamaño restaurado de la ventana principal al área útil de Windows para que la barra de tareas no cubra contenido.
+- Ajusta la vista biométrica a una relación 16:10 y conserva la imagen real con `Zoom`; los botones se reparten según el ancho disponible.
+- Habilita desplazamiento vertical seguro en Registro cuando el escalado DPI reduce la altura disponible.
+
 ### Rediseño de Historial en `ui/mejoras-graficas`
 
 - Traslada el prototipo HTML de **Historial de sesiones** a controles WinForms nativos sin sustituir las sesiones ni métricas reales.

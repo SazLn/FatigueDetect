@@ -32,6 +32,14 @@ namespace FatigueDetect.Presentacion
             Padding = new Padding(14);
         }
 
+        protected override void OnResize(System.EventArgs eventargs)
+        {
+            base.OnResize(eventargs);
+            // Repinta también los hijos: al ampliar una ventana no deben conservarse
+            // bordes correspondientes al tamaño anterior de la tarjeta.
+            Invalidate(true);
+        }
+
         protected override void OnPaint(PaintEventArgs e)
         {
             base.OnPaint(e);
@@ -56,6 +64,23 @@ namespace FatigueDetect.Presentacion
             ruta.AddArc(r.X, r.Bottom - d, d, d, 90, 90);
             ruta.CloseFigure();
             return ruta;
+        }
+    }
+
+    /// <summary>Panel con repintado amortiguado para cambios de página y tamaño.</summary>
+    internal sealed class PanelDobleBuffer : Panel
+    {
+        public PanelDobleBuffer()
+        {
+            SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer |
+                ControlStyles.ResizeRedraw, true);
+            UpdateStyles();
+        }
+
+        protected override void OnResize(System.EventArgs eventargs)
+        {
+            base.OnResize(eventargs);
+            Invalidate(true);
         }
     }
 }

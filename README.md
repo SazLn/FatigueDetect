@@ -87,6 +87,11 @@ Los perfiles biométricos y el historial usan la protección de datos integrada.
 
 ## Historial y registro de eventos
 
+La ventana principal limita su tamaño restaurado al área útil de Windows y repinta de forma atómica los
+cambios de pantalla y tamaño. En **Registro / Persona**, el contenido puede desplazarse verticalmente cuando
+el escalado reduce la altura disponible, y la vista biométrica mantiene una relación 16:10 sin deformar los
+fotogramas reales de la cámara.
+
 ### Interfaz renovada de Historial
 
 La rama `ui/mejoras-graficas` traslada el prototipo visual de **Historial de sesiones** a WinForms. La

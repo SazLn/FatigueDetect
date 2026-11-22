@@ -25,6 +25,7 @@ namespace FatigueDetect.Presentacion
         private readonly PanelCamara panelCamara = new PanelCamara();
         private readonly EtiquetaEstado estadoCamara = new EtiquetaEstado();
         private readonly Label estadoBiometrico = new Label();
+        private TableLayoutPanel tablaBiometria = null!;
         private Button btnIdentificar = null!;
         private Button btnRegistrarRostro = null!;
         private Button btnCancelarCaptura = null!;
@@ -42,7 +43,10 @@ namespace FatigueDetect.Presentacion
 
             Dock = DockStyle.Fill;
             BackColor = Tema.Fondo;
-            Padding = new Padding(30, 26, 22, 24);
+            Padding = new Padding(22);
+            AutoScaleMode = AutoScaleMode.Dpi;
+            AutoScroll = true;
+            AutoScrollMinSize = new Size(0, LogicalToDeviceUnits(650));
 
             ConfigurarEntradas();
 
@@ -175,6 +179,7 @@ namespace FatigueDetect.Presentacion
         {
             var tarjeta = new PanelRedondeado { Dock = DockStyle.Fill, Margin = new Padding(20, 0, 0, 0) };
             var tabla = Tema.TablaFilas(Tema.Tarjeta, 32, 46, 0, 24, 54, 30, 104);
+            tablaBiometria = tabla;
 
             var cabecera = new TableLayoutPanel
             {
@@ -226,7 +231,6 @@ namespace FatigueDetect.Presentacion
             btnCancelarCaptura = new BotonAccion("Cancelar", fantasma: true) { Width = 100 };
             btnCancelarCaptura.Enabled = false;
             btnCancelarCaptura.Click += (remitente, evento) => capturaCts?.Cancel();
-
             acciones.Controls.Add(btnIdentificar);
             acciones.Controls.Add(btnRegistrarRostro);
             acciones.Controls.Add(btnCancelarCaptura);
@@ -248,9 +252,24 @@ namespace FatigueDetect.Presentacion
             tabla.Controls.Add(enlaceEliminar, 0, 5);
 
             tabla.Controls.Add(ConstruirPrivacidad(), 0, 6);
-
+            tabla.SizeChanged += (_, _) => AjustarRelacionVistaCamara();
             tarjeta.Controls.Add(tabla);
+            tarjeta.SizeChanged += (_, _) => tarjeta.Invalidate(true);
+            AjustarRelacionVistaCamara();
             return tarjeta;
+        }
+
+        private void AjustarRelacionVistaCamara()
+        {
+            if (tablaBiometria is null || tablaBiometria.ClientSize.Width <= 0)
+                return;
+
+            // El marco conserva 16:10 al cambiar entre ventana restaurada y maximizada.
+            int alto = tablaBiometria.ClientSize.Width * 10 / 16;
+            alto = Math.Clamp(alto, LogicalToDeviceUnits(210), LogicalToDeviceUnits(300));
+            tablaBiometria.RowStyles[2].SizeType = SizeType.Absolute;
+            tablaBiometria.RowStyles[2].Height = alto;
+            panelCamara.Invalidate();
         }
 
         private static Control ConstruirPrivacidad()
