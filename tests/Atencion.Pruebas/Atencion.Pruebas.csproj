@@ -11,6 +11,7 @@
     <Compile Include="../../FatigueDetect/Logica/AnalisisHistoricoAvanzado.cs" Link="AnalisisHistoricoAvanzado.cs" />
     <Compile Include="../../FatigueDetect/Logica/AnalisisConfiabilidadEvento.cs" Link="AnalisisConfiabilidadEvento.cs" />
     <Compile Include="../../FatigueDetect/Logica/PersonalizacionConductor.cs" Link="PersonalizacionConductor.cs" />
+    <Compile Include="../../FatigueDetect/Logica/CalibradorGuiado.cs" Link="CalibradorGuiado.cs" />
     <Compile Include="../../FatigueDetect/Logica/RastreadorPostura.cs" Link="RastreadorPostura.cs" />
     <Compile Include="../../FatigueDetect/Logica/RastreadorFatiga.cs" Link="RastreadorFatiga.cs" />
     <Compile Include="../../FatigueDetect/Logica/RastreadorAtencion.cs" Link="RastreadorAtencion.cs" />

@@ -161,10 +161,11 @@ namespace FatigueDetect.Presentacion
                 "Atención actual /100", "Atención base /100", "Diferencia atención",
                 "Umbral parpadeos/min", "Umbral PERCLOS", "Umbral atención",
                 "Cambio de parpadeos anormal", "PERCLOS anormal", "Atención anormal",
-                "Incorporada al perfil", "Estado");
+                "Incorporada al perfil", "Estado", "Cámara del perfil", "Vehículo del perfil",
+                "Somnolencia aplicada (s)", "Alarma aplicada (s)");
             personal.Columns(9, 11).Style.NumberFormat.Format = "0.00%";
             personal.Column(16).Style.NumberFormat.Format = "0.00%";
-            FormatoDecimal(personal, 6, 7, 8, 12, 13, 14, 15, 17);
+            FormatoDecimal(personal, 6, 7, 8, 12, 13, 14, 15, 17, 25, 26);
             int filaPersonal = 2;
             foreach (SesionConduccion s in sesiones)
             {
@@ -180,7 +181,8 @@ namespace FatigueDetect.Presentacion
                     c is null ? "Sin medición" : c.PerclosAnormal ? "Sí" : "No",
                     c is null ? "Sin medición" : c.AtencionAnormal ? "Sí" : "No",
                     c is null ? "Sin medición" : c.IncorporadaAlPerfil ? "Sí" : "No",
-                    c?.Estado ?? "Sin comparación personal");
+                    c?.Estado ?? "Sin comparación personal", c?.CamaraId, c?.VehiculoClave,
+                    c?.UmbralSomnoliento, c?.UmbralAlarma);
             }
 
             foreach (IXLWorksheet hoja in libro.Worksheets)

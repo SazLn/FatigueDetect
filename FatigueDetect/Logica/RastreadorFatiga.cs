@@ -2,7 +2,7 @@ using FatigueDetect.Entidades;
 
 namespace FatigueDetect.Logica
 {
-    internal sealed class RastreadorFatiga(SesionConduccion sesion)
+    internal sealed class RastreadorFatiga
     {
         private const long MaxSeparacionMs = 250;
         private const long VentanaMs = 60_000;
@@ -10,7 +10,8 @@ namespace FatigueDetect.Logica
         private const long ParpadeoCortoMaximoMs = 200;
         private const long ParpadeoMaximoMs = 400;
         private const long IntervaloMuestraPerclosMs = 10_000;
-        private readonly RastreadorPostura postura = new(sesion);
+        private readonly SesionConduccion sesion;
+        private readonly RastreadorPostura postura;
         public MetricasPostura ResumenPostura => postura.Resumen;
 
         private readonly Queue<IntervaloOcular> ventana = new();
@@ -26,6 +27,17 @@ namespace FatigueDetect.Logica
         private long parpadeoMaxMs, cierreMasLargoMs, microsuenoMasLargoMs;
         private int parpadeos, parpadeosCortos, parpadeosProlongados, cierresAnomalos, cierres, cabeceos;
         private double diferenciaAperturaAnterior, diferenciaAperturaAcumuladaMs;
+
+        public RastreadorFatiga(SesionConduccion sesion, CalibracionGuiada? calibracion = null)
+        {
+            this.sesion = sesion;
+            postura = new RastreadorPostura(sesion);
+            if (calibracion is not null)
+            {
+                referencia = (calibracion.EarIzquierdoAbierto, calibracion.EarDerechoAbierto);
+                posturaNeutra = calibracion.PosturaFrontal;
+            }
+        }
 
         public MetricasFatiga Resumen => CrearResumen(incluirEvolucion: true);
 

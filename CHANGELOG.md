@@ -2,6 +2,13 @@
 
 ## Sin publicar
 
+### Propuesta en `descarga/calibracion-personalizada`
+
+- Añade una calibración guiada previa al monitoreo: referencia frontal, ojos abiertos y dos parpadeos confirmados.
+- Separa las líneas base por conductor, cámara y placa, conservando compatibilidad con perfiles anteriores.
+- Calcula umbrales contextuales acotados que pueden anticipar hasta 0,30 s la somnolencia y la alarma, pero nunca retrasarlas respecto a la configuración del usuario.
+- Muestra los umbrales efectivos en el monitoreo e incluye pruebas de calibración, persistencia contextual y límites seguros.
+
 ### Análisis histórico avanzado integrado mediante el PR #22
 
 - Añade en Estadísticas vistas de sesiones seguras y riesgosas, tendencia personal, comparaciones por vehículo, hora y día, mapa de calor día/hora y selección manual de varias sesiones.

@@ -23,6 +23,9 @@ namespace FatigueDetect.Entidades
         public InformeAtencion? Atencion { get; set; }
         public ComparacionPersonal? ComparacionPersonal { get; set; }
         public MetricasPostura? Postura { get; set; }
+        public string CamaraId { get; set; } = "AUTOMATICA";
+        public CalibracionGuiada? Calibracion { get; set; }
+        public UmbralesPersonalizados? UmbralesAplicados { get; set; }
 
         public double? OjosAbiertosObservados => MetricasFatiga?.Perclos is double perclos
             ? Math.Clamp(1 - perclos, 0, 1) : null;
