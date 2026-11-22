@@ -324,4 +324,46 @@ Verificar(AnalisisHistoricoAvanzado.MapaCalor(historia)[0, 8] == 1 &&
 Verificar(AnalisisHistoricoAvanzado.TendenciaPersonal(historia, "1").Count == 2 &&
     AnalisisHistoricoAvanzado.Riesgo(historia[0]) is null,
     "Tendencia personal conserva ausencias de atención sin inventar riesgo");
+
+var sesionAlertas = new SesionConduccion { Inicio = instante.LocalDateTime };
+var gestorAlertas = new GestorAlertasProgresivas(sesionAlertas);
+var calidadAlertas = new CalidadSesion(100, 100, 10_000, 10_000, 0, 0, 0, 10_000);
+FatigaEnVivo LecturaAlerta(double apertura = 1, double? perclos = 0, double? distraccion = 0) =>
+    new FatigaEnVivo(apertura, apertura, 0, perclos, apertura >= .55 ? 0 : 2000,
+        new AngulosCabeza(0, 0, 0), new MetricasFatiga(0, 0, 0, 10_000, 0))
+        { ProporcionDistraccion = distraccion };
+MuestraAtencion AtencionAlerta(int segundo, double puntaje) => new(instante.AddSeconds(segundo),
+    segundo * 1000, 1000, puntaje, 100, true, Array.Empty<FactorAtencion>());
+
+EstadoAlertaProgresiva preventiva = gestorAlertas.Observar(instante, EyeState.DESPIERTO,
+    LecturaAlerta(perclos: .16), AtencionAlerta(0, 70), calidadAlertas);
+Verificar(preventiva is { Nivel: NivelAlertaProgresiva.Preventiva, EmitirSonido: true },
+    "Riesgo temprano activa alerta preventiva");
+Verificar(!gestorAlertas.Observar(instante.AddSeconds(1), EyeState.DESPIERTO,
+    LecturaAlerta(perclos: .16), AtencionAlerta(1, 70), calidadAlertas).EmitirSonido,
+    "Enfriamiento evita repetir inmediatamente el aviso preventivo");
+Verificar(gestorAlertas.Observar(instante.AddSeconds(2), EyeState.SOMNOLIENTO,
+    LecturaAlerta(.3), AtencionAlerta(2, 45), calidadAlertas).Nivel == NivelAlertaProgresiva.Alta,
+    "Somnolencia escala inmediatamente a alerta alta");
+Verificar(gestorAlertas.Observar(instante.AddSeconds(3), EyeState.ALARMA_ACTIVADA,
+    LecturaAlerta(0), AtencionAlerta(3, 20), calidadAlertas).Nivel == NivelAlertaProgresiva.Critica,
+    "Cierre crítico escala inmediatamente");
+var invalida = LecturaAlerta() with { AperturaIzquierda = null, AperturaDerecha = null, Angulos = null };
+Verificar(gestorAlertas.Observar(instante.AddSeconds(10), EyeState.DESPIERTO, invalida,
+    AtencionAlerta(10, 90), calidadAlertas).Nivel == NivelAlertaProgresiva.Critica,
+    "Pérdida de medición no confirma recuperación");
+gestorAlertas.Observar(instante.AddSeconds(11), EyeState.DESPIERTO, LecturaAlerta(), AtencionAlerta(11, 90), calidadAlertas);
+EstadoAlertaProgresiva trasCritica = gestorAlertas.Observar(instante.AddSeconds(14), EyeState.DESPIERTO,
+    LecturaAlerta(), AtencionAlerta(14, 90), calidadAlertas);
+EstadoAlertaProgresiva trasAlta = gestorAlertas.Observar(instante.AddSeconds(19), EyeState.DESPIERTO,
+    LecturaAlerta(), AtencionAlerta(19, 90), calidadAlertas);
+EstadoAlertaProgresiva recuperada = gestorAlertas.Observar(instante.AddSeconds(27), EyeState.DESPIERTO,
+    LecturaAlerta(), AtencionAlerta(27, 90), calidadAlertas);
+Verificar(trasCritica.Nivel == NivelAlertaProgresiva.Alta &&
+    trasAlta.Nivel == NivelAlertaProgresiva.Preventiva && recuperada.Nivel == NivelAlertaProgresiva.Normal,
+    "La alerta baja por etapas tras 3, 5 y 8 segundos de recuperación estable");
+Verificar(sesionAlertas.Eventos.Select(e => e.Tipo).SequenceEqual(new[]
+    { TipoEventoSesion.AlertaPreventiva, TipoEventoSesion.AlertaAlta, TipoEventoSesion.AlertaCritica,
+      TipoEventoSesion.AlertaAlta, TipoEventoSesion.AlertaPreventiva }),
+    "La línea temporal conserva cada nivel de alerta");
 Console.WriteLine($"{comprobaciones} comprobaciones de atención, postura, historial, SQLite y Excel correctas.");

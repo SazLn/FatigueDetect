@@ -54,11 +54,11 @@ namespace FatigueDetect.Logica
 
         public static GravedadEvento Gravedad(TipoEventoSesion tipo) => tipo switch
         {
-            TipoEventoSesion.Alarma => GravedadEvento.Alta,
+            TipoEventoSesion.Alarma or TipoEventoSesion.AlertaCritica => GravedadEvento.Alta,
             TipoEventoSesion.CierreOcularProlongado or TipoEventoSesion.CamaraTapada
                 or TipoEventoSesion.CamaraDesenfocada or TipoEventoSesion.CamaraCongelada
                 or TipoEventoSesion.Cabeceo or TipoEventoSesion.CierreOcularAnomalo
-                or TipoEventoSesion.FueraZonaFrontal => GravedadEvento.Media,
+                or TipoEventoSesion.FueraZonaFrontal or TipoEventoSesion.AlertaAlta => GravedadEvento.Media,
             _ => GravedadEvento.Baja
         };
 

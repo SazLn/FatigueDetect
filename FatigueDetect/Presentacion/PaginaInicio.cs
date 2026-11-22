@@ -22,6 +22,9 @@ namespace FatigueDetect.Presentacion
         private int alarmasMostradas = -1;
         private EyeState? estadoMostrado;
         private TipoEventoSesion? rostroMostrado;
+        private NivelAlertaProgresiva? nivelAlertaMostrado;
+        private string explicacionAlertaMostrada = "";
+        private long? recuperacionAlertaMostrada;
 
         public event Action? DetenerSolicitado;
         public event Action<bool>? PausaSolicitada;
@@ -283,6 +286,9 @@ namespace FatigueDetect.Presentacion
             alarmasMostradas = -1;
             estadoMostrado = null;
             rostroMostrado = null;
+            nivelAlertaMostrado = null;
+            explicacionAlertaMostrada = "";
+            recuperacionAlertaMostrada = null;
 
             lblConductor.Text = "Conductor: " + nueva.Conductor.NombreCompleto;
             lblCedula.Text = "C.C. " + nueva.Conductor.Cedula;
@@ -345,7 +351,7 @@ namespace FatigueDetect.Presentacion
         public void UpdateImage(Bitmap? image, EyeState estado, long tiempoMs,
             EstadoIluminacion? avisoIluminacion, TipoEventoSesion? avisoRostro,
             TipoEventoSesion? avisoCalidad = null, FatigaEnVivo? fatiga = null, double? fpsRecientes = null,
-            MuestraAtencion? atencion = null)
+            MuestraAtencion? atencion = null, EstadoAlertaProgresiva? alerta = null)
         {
             // Si la pantalla sigue ocupada con el cuadro anterior, se descarta este.
             if (IsDisposed || !IsHandleCreated || Interlocked.CompareExchange(ref actualizando, 1, 0) != 0)
@@ -356,7 +362,8 @@ namespace FatigueDetect.Presentacion
 
             try
             {
-                BeginInvoke(new Action(() => Actualizar(image, estado, tiempoMs, avisoIluminacion, avisoRostro, avisoCalidad, fatiga, fpsRecientes, atencion)));
+                BeginInvoke(new Action(() => Actualizar(image, estado, tiempoMs, avisoIluminacion,
+                    avisoRostro, avisoCalidad, fatiga, fpsRecientes, atencion, alerta)));
             }
             catch (Exception)
             {
@@ -377,7 +384,8 @@ namespace FatigueDetect.Presentacion
 
         private void Actualizar(Bitmap? imagen, EyeState estado, long tiempoMs,
             EstadoIluminacion? avisoIluminacion, TipoEventoSesion? avisoRostro,
-            TipoEventoSesion? avisoCalidad, FatigaEnVivo? fatiga, double? fpsRecientes, MuestraAtencion? atencion)
+            TipoEventoSesion? avisoCalidad, FatigaEnVivo? fatiga, double? fpsRecientes,
+            MuestraAtencion? atencion, EstadoAlertaProgresiva? alerta)
         {
             try
             {
@@ -442,7 +450,7 @@ namespace FatigueDetect.Presentacion
                     return;
                 }
 
-                AplicarEstado(estado, avisoRostro);
+                AplicarEstado(estado, avisoRostro, alerta);
 
                 double segundos = tiempoMs / 1000.0;
                 alertaTiempo.Text = segundos.ToString("0.0") + " s";
@@ -523,21 +531,44 @@ namespace FatigueDetect.Presentacion
                 : "Sin medición suficiente de atención";
         }
 
-        private void AplicarEstado(EyeState estado, TipoEventoSesion? avisoRostro = null)
+        private void AplicarEstado(EyeState estado, TipoEventoSesion? avisoRostro = null,
+            EstadoAlertaProgresiva? alerta = null)
         {
-            if (estadoMostrado == estado && rostroMostrado == avisoRostro)
+            string explicacion = alerta?.Explicacion ?? "";
+            if (estadoMostrado == estado && rostroMostrado == avisoRostro &&
+                nivelAlertaMostrado == alerta?.Nivel && explicacionAlertaMostrada == explicacion &&
+                recuperacionAlertaMostrada == alerta?.RecuperacionRestanteMs)
             {
                 return;
             }
             estadoMostrado = estado;
             rostroMostrado = avisoRostro;
+            nivelAlertaMostrado = alerta?.Nivel;
+            explicacionAlertaMostrada = explicacion;
+            recuperacionAlertaMostrada = alerta?.RecuperacionRestanteMs;
 
             Color fondo;
             Color acento;
             string titulo;
             string mensaje;
 
-            if (estado != EyeState.ALARMA_ACTIVADA &&
+            if (alerta is { Nivel: not NivelAlertaProgresiva.Normal } progresiva)
+            {
+                (fondo, acento, titulo, mensaje) = progresiva.Nivel switch
+                {
+                    NivelAlertaProgresiva.Critica => (Color.FromArgb(72, 20, 28), Tema.Rojo,
+                        "ALERTA CRÍTICA", "Detente en un lugar seguro cuando sea posible."),
+                    NivelAlertaProgresiva.Alta => (Color.FromArgb(69, 35, 16), Color.FromArgb(249, 115, 22),
+                        "ALERTA ALTA", "Recupera la atención y considera realizar una pausa."),
+                    _ => (Color.FromArgb(62, 46, 12), Tema.Ambar,
+                        "ALERTA PREVENTIVA", "Se observan señales tempranas. Mantén la atención.")
+                };
+                mensaje += "\n" + progresiva.Explicacion;
+                if (progresiva.RecuperacionPendiente)
+                    mensaje += $"\nRecuperación pendiente" +
+                        (progresiva.RecuperacionRestanteMs is long restante ? $": {restante / 1000.0:0.0} s estables" : ".");
+            }
+            else if (estado != EyeState.ALARMA_ACTIVADA &&
                 avisoRostro is (TipoEventoSesion.RostroNoDetectado or TipoEventoSesion.VariosRostros))
             {
                 fondo = Color.FromArgb(62, 46, 12);
@@ -578,6 +609,9 @@ namespace FatigueDetect.Presentacion
         {
             estadoMostrado = null;
             rostroMostrado = null;
+            nivelAlertaMostrado = null;
+            explicacionAlertaMostrada = "";
+            recuperacionAlertaMostrada = null;
             PintarTarjetaAlerta(Tema.Tarjeta, Tema.TextoSuave, "SIN SESIÓN",
                 "Inicia una sesión desde \"Registro / Persona\".");
         }
@@ -587,6 +621,9 @@ namespace FatigueDetect.Presentacion
         {
             estadoMostrado = null;
             rostroMostrado = null;
+            nivelAlertaMostrado = null;
+            explicacionAlertaMostrada = "";
+            recuperacionAlertaMostrada = null;
             alertaTiempo.Text = "—";
             barra.Valor = 0;
             medidor.Actualizar(0, Tema.TextoSuave, "—");

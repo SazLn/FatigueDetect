@@ -176,6 +176,21 @@ calidad de los datos disponibles; no es la probabilidad médica de que exista fa
 
 En **Configuración → Salida de audio de la alarma**, elige una salida de Windows, como parlantes, audífonos o Bluetooth. **Probar** reproduce la alarma durante dos segundos en la salida elegida. **Actualizar** vuelve a consultar los dispositivos y **Guardar cambios** conserva la selección. Si la salida guardada falla durante el monitoreo, el programa intenta reproducir el sonido en la salida predeterminada de Windows.
 
+## Alertas progresivas
+
+La rama `descarga/alertas-progresivas` incorpora tres niveles experimentales: **preventivo**, **alto** y
+**crítico**. Combina el estado ocular con el puntaje de atención y, cuando están disponibles, PERCLOS y
+distracción. La interfaz cambia el color, el título, la recomendación y las causas observadas. El sonido
+usa aproximadamente 35 %, 65 % y 100 % de volumen; los avisos pueden repetirse como máximo cada 30, 15
+y 5 segundos, respectivamente.
+
+El nivel sube inmediatamente, pero no baja por una sola lectura favorable. Exige ojos abiertos, cabeza
+frontal, calidad mínima 50/100 y atención mínima 70/100 durante 3 segundos para salir del nivel crítico,
+5 segundos para bajar del alto y 8 segundos para abandonar el preventivo. Una pausa o pérdida de medición
+interrumpe esa confirmación. Cada intervalo se registra en la línea temporal y Excel. La alarma ocular
+tradicional sigue contando por separado. Consulta [la guía de prueba](docs/alertas_progresivas.md).
+Esta rama aún no está integrada en `main`.
+
 ## Calidad de sesión, estadísticas y Excel
 
 El detalle de una sesión nueva muestra:

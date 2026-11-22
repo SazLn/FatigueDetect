@@ -36,6 +36,7 @@
 | Personalización por conductor | Integrado en `main` | Calibra una línea base tras tres sesiones válidas, compara PERCLOS, parpadeos y atención, persiste el perfil y evita aprender de cambios anormales. Integrado mediante el PR #17. |
 | Confiabilidad explicable por evento | Integrado en `main` | Puntúa la evidencia de cada evento y explica las limitaciones de persistencia, cobertura, FPS o captura. Integrado mediante el PR #18 después de la validación manual inicial. |
 | Análisis histórico avanzado | Integrado en `main` | Riesgo, tendencia personal, grupos por vehículo/hora/día, mapa de calor, alarmas por hora activa y comparación de sesiones marcadas. Integrado mediante el PR #22. |
+| Alertas progresivas | Implementado en rama de descarga | `descarga/alertas-progresivas`: niveles preventivo/alto/crítico, sonido escalonado, enfriamiento y reducción tras recuperación estable. Pendiente prueba en Windows. |
 
 La medición facial fue validada de forma inicial con una cámara Windows. La calibración de umbrales y las pruebas con más cámaras, iluminación y personas siguen pendientes.
 Las métricas oculares avanzadas también fueron validadas manualmente con cámara y están integradas en `main`. Su calibración con más cámaras, condiciones de iluminación y personas sigue pendiente.
@@ -176,6 +177,7 @@ La dificultad de programar una función y la dificultad de hacerla confiable no 
 | Tiempo entre alertas | **Baja** | Mostrar la frecuencia con la que se repiten los episodios. |
 | Tiempo de recuperación después de una alarma | **Media** | Integrado en `main`: 2 s continuos de ojos abiertos y cabeza frontal, con calidad suficiente. No confirma recuperación clínica. |
 | Respuesta a las alertas | **Media** | Integrada en `main`: tiempo desde inicio de alarma hasta reapertura ocular observada; no implica causalidad. |
+| Alertas progresivas y enfriamiento | **Media** | Implementadas en `descarga/alertas-progresivas` con tres niveles, repetición sonora limitada y recuperación obligatoria de 3/5/8 s. |
 | Resumen automático de la sesión | **Baja-media** | Integrado en `main` con puntaje, factores, primer síntoma, minuto de menor puntaje, tendencia y respuesta a alarmas. |
 | Eventos por gravedad | **Baja** | Clasificar eventos como informativos, leves, moderados o graves. |
 | Línea temporal completa | **Baja-media** | Integrada en `main` con pistas desplazables y nombres de eventos nuevos preservados. Los futuros detectores deberán registrar sus eventos. |
