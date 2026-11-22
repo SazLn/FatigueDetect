@@ -295,12 +295,16 @@ namespace FatigueDetect.Presentacion
             lblVehiculo.Text = nueva.Vehiculo.TipoCarro + "  ·  Placa " + nueva.Vehiculo.Placa;
             lblAlarmas.Text = "Alarmas en esta sesión: 0";
             lblDuracion.Text = "Duración: 00:00:00";
-            capAlarma.Text = "Alarma a los " + config.Deteccion.SegundosAlarma.ToString("0.0") + " s";
+            capAlarma.Text = "Alarma a los " +
+                (nueva.UmbralesAplicados?.SegundosAlarma ?? config.Deteccion.SegundosAlarma).ToString("0.0") + " s";
 
             sinSenal.Text = "Iniciando cámara...";
             sinSenal.Visible = true;
             avisoCamara.Text = "";
-            metricasFaciales.Text = "Mira al frente con los ojos abiertos para calibrar.";
+            metricasFaciales.Text = nueva.UmbralesAplicados is { } umbrales
+                ? $"Calibración guiada aplicada · Somnolencia {umbrales.SegundosSomnoliento:0.00} s · " +
+                  $"Alarma {umbrales.SegundosAlarma:0.00} s\n{umbrales.Explicacion}"
+                : "Mira al frente con los ojos abiertos para calibrar.";
 
             AplicarEstado(EyeState.DESPIERTO);
             medidor.Actualizar(0, Tema.TextoSuave, "—");
@@ -454,12 +458,15 @@ namespace FatigueDetect.Presentacion
 
                 double segundos = tiempoMs / 1000.0;
                 alertaTiempo.Text = segundos.ToString("0.0") + " s";
-                AjustesDeteccion ajustes = config.Deteccion;
-                barra.Valor = segundos / Math.Max(0.1, ajustes.SegundosAlarma);
-                capAlarma.Text = "Alarma a los " + ajustes.SegundosAlarma.ToString("0.0") + " s";
+                double umbralSomnolencia = actual.UmbralesAplicados?.SegundosSomnoliento
+                    ?? config.Deteccion.SegundosSomnoliento;
+                double umbralAlarma = actual.UmbralesAplicados?.SegundosAlarma
+                    ?? config.Deteccion.SegundosAlarma;
+                barra.Valor = segundos / Math.Max(0.1, umbralAlarma);
+                capAlarma.Text = "Alarma a los " + umbralAlarma.ToString("0.0") + " s";
 
-                grafica.UmbralSomnoliento = ajustes.SegundosSomnoliento;
-                grafica.UmbralAlarma = ajustes.SegundosAlarma;
+                grafica.UmbralSomnoliento = umbralSomnolencia;
+                grafica.UmbralAlarma = umbralAlarma;
                 if ((DateTime.Now - ultimoMuestreo).TotalMilliseconds >= MuestreoMs)
                 {
                     grafica.AgregarValor(segundos);

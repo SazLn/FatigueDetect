@@ -44,16 +44,53 @@ namespace FatigueDetect.Datos
         }
 
         public PerfilPersonalConductor? LeerPerfilPersonal(string cedula)
+            => LeerPerfilPersonal(cedula, "", "");
+
+        public PerfilPersonalConductor? LeerPerfilPersonal(string cedula, string? camaraId, string? vehiculoClave)
         {
             string clave = NormalizarCedula(cedula);
             if (clave.Length == 0)
                 return null;
             using SqliteConnection conexion = Abrir();
             using SqliteCommand consulta = conexion.CreateCommand();
-            consulta.CommandText = "SELECT Contenido FROM PerfilesPersonalizados WHERE Cedula = $cedula;";
+            string camara = NormalizarContexto(camaraId);
+            string vehiculo = NormalizarContexto(vehiculoClave);
+            if (camara.Length > 0 || vehiculo.Length > 0)
+            {
+                consulta.CommandText = """
+                    SELECT Contenido FROM PerfilesPersonalizadosContexto
+                    WHERE Cedula = $cedula AND CamaraId = $camara AND VehiculoClave = $vehiculo;
+                    """;
+                consulta.Parameters.AddWithValue("$camara", camara);
+                consulta.Parameters.AddWithValue("$vehiculo", vehiculo);
+            }
+            else
+                consulta.CommandText = "SELECT Contenido FROM PerfilesPersonalizados WHERE Cedula = $cedula;";
             consulta.Parameters.AddWithValue("$cedula", clave);
             object? contenido = consulta.ExecuteScalar();
-            return contenido is string json ? JsonSerializer.Deserialize<PerfilPersonalConductor>(json) : null;
+            if (contenido is string json)
+                return JsonSerializer.Deserialize<PerfilPersonalConductor>(json);
+
+            // Un perfil de versiones anteriores sirve como punto de partida del primer contexto.
+            if (camara.Length == 0 && vehiculo.Length == 0)
+            {
+                consulta.Parameters.Clear();
+                consulta.CommandText = """
+                    SELECT Contenido FROM PerfilesPersonalizadosContexto
+                    WHERE Cedula = $cedula ORDER BY CamaraId, VehiculoClave LIMIT 1;
+                    """;
+                consulta.Parameters.AddWithValue("$cedula", clave);
+                contenido = consulta.ExecuteScalar();
+                return contenido is string contextual
+                    ? JsonSerializer.Deserialize<PerfilPersonalConductor>(contextual) : null;
+            }
+            consulta.Parameters.Clear();
+            consulta.CommandText = "SELECT Contenido FROM PerfilesPersonalizados WHERE Cedula = $cedula;";
+            consulta.Parameters.AddWithValue("$cedula", clave);
+            contenido = consulta.ExecuteScalar();
+            PerfilPersonalConductor? anterior = contenido is string legado
+                ? JsonSerializer.Deserialize<PerfilPersonalConductor>(legado) : null;
+            return anterior is null ? null : anterior with { CamaraId = camara, VehiculoClave = vehiculo };
         }
 
         public List<SesionConduccion> LeerTodas()
@@ -194,7 +231,7 @@ namespace FatigueDetect.Datos
         {
             using SqliteConnection conexion = Abrir();
             using SqliteCommand comando = conexion.CreateCommand();
-            comando.CommandText = "DELETE FROM Sesiones; DELETE FROM PerfilesPersonalizados;";
+            comando.CommandText = "DELETE FROM Sesiones; DELETE FROM PerfilesPersonalizados; DELETE FROM PerfilesPersonalizadosContexto;";
             comando.ExecuteNonQuery();
         }
 
@@ -283,6 +320,13 @@ namespace FatigueDetect.Datos
                 CREATE TABLE IF NOT EXISTS PerfilesPersonalizados (
                     Cedula TEXT PRIMARY KEY NOT NULL,
                     Contenido TEXT NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS PerfilesPersonalizadosContexto (
+                    Cedula TEXT NOT NULL,
+                    CamaraId TEXT NOT NULL,
+                    VehiculoClave TEXT NOT NULL,
+                    Contenido TEXT NOT NULL,
+                    PRIMARY KEY (Cedula, CamaraId, VehiculoClave)
                 );
                 """);
             esquema.ExecuteNonQuery();
@@ -448,6 +492,26 @@ namespace FatigueDetect.Datos
         private static void GuardarPerfil(SqliteConnection conexion, SqliteTransaction transaccion,
             PerfilPersonalConductor perfil)
         {
+            string camara = NormalizarContexto(perfil.CamaraId);
+            string vehiculo = NormalizarContexto(perfil.VehiculoClave);
+            if (camara.Length > 0 || vehiculo.Length > 0)
+            {
+                using SqliteCommand contextual = CrearComando(conexion, transaccion, """
+                    INSERT INTO PerfilesPersonalizadosContexto (Cedula, CamaraId, VehiculoClave, Contenido)
+                    VALUES ($cedula, $camara, $vehiculo, $contenido)
+                    ON CONFLICT (Cedula, CamaraId, VehiculoClave) DO UPDATE SET Contenido = excluded.Contenido;
+                    """);
+                contextual.Parameters.AddWithValue("$cedula", NormalizarCedula(perfil.Cedula));
+                contextual.Parameters.AddWithValue("$camara", camara);
+                contextual.Parameters.AddWithValue("$vehiculo", vehiculo);
+                contextual.Parameters.AddWithValue("$contenido", JsonSerializer.Serialize(perfil));
+                contextual.ExecuteNonQuery();
+                using SqliteCommand retirarLegado = CrearComando(conexion, transaccion,
+                    "DELETE FROM PerfilesPersonalizados WHERE Cedula = $cedula;");
+                retirarLegado.Parameters.AddWithValue("$cedula", NormalizarCedula(perfil.Cedula));
+                retirarLegado.ExecuteNonQuery();
+                return;
+            }
             using SqliteCommand comando = CrearComando(conexion, transaccion, """
                 INSERT INTO PerfilesPersonalizados (Cedula, Contenido) VALUES ($cedula, $contenido)
                 ON CONFLICT (Cedula) DO UPDATE SET Contenido = excluded.Contenido;
@@ -458,6 +522,7 @@ namespace FatigueDetect.Datos
         }
 
         private static string NormalizarCedula(string? cedula) => (cedula ?? string.Empty).Trim().ToUpperInvariant();
+        private static string NormalizarContexto(string? valor) => (valor ?? string.Empty).Trim().ToUpperInvariant();
 
         private static void AsegurarColumnasMetricasFatiga(SqliteConnection conexion, SqliteTransaction transaccion)
         {

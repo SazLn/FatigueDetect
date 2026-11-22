@@ -146,6 +146,17 @@ y sus umbrales aún requieren calibración con más personas y condiciones. Los 
 
 ## Personalización por conductor
 
+Desde el PR #24, la aplicación amplía esta función con un asistente antes del monitoreo.
+Permite reutilizar la calibración del mismo conductor, cámara y placa, o crear una nueva mirando al
+frente y realizando dos parpadeos. La referencia obtenida se aplica a la apertura ocular y a la postura
+frontal durante esa sesión. Cada combinación de cámara y vehículo conserva una línea base independiente.
+
+Cuando una línea base contextual ya reúne tres sesiones válidas, el programa puede anticipar de forma
+limitada los umbrales de somnolencia y alarma según su PERCLOS y atención habituales. Nunca aumenta los
+tiempos configurados: la reducción máxima es de 0,30 segundos y respeta los mínimos de seguridad. La
+pantalla de monitoreo muestra los tiempos efectivos y su explicación. La ampliación fue validada manualmente
+e integrada en `main`; aún conviene repetir la prueba con más cámaras y personas.
+
 La aplicación mantiene una línea base local e independiente por cédula.
 Después de tres sesiones válidas de al menos 60 segundos de medición ocular, compara los parpadeos
 por minuto, PERCLOS y atención de cada sesión con el comportamiento personal. El resumen final,
@@ -154,10 +165,11 @@ anormales. El perfil sobrevive al reinicio de la aplicación y se elimina al bor
 
 Para evitar aprender de datos poco confiables, solo actualiza la línea base con calidad mínima 70/100,
 cobertura ocular mínima del 60 % y sin alarmas, microsueños ni cierres anómalos. Una vez calibrado,
-un cambio anormal se muestra pero no modifica el perfil. Esta comparación no cambia los umbrales físicos
-de cierre ocular ni la alarma y no es un diagnóstico médico. Todavía requiere validación manual con varias
+un cambio anormal se muestra pero no modifica el perfil. Los umbrales adaptativos nunca retrasan los tiempos
+configurados y no constituyen un diagnóstico médico. Todavía requiere validación manual con varias
 personas, cámaras e iluminación. Consulta [Personalización por conductor](docs/personalizacion_conductor.md)
-para conocer las reglas y las pruebas recomendadas. La función está integrada en `main` mediante el PR #17.
+para conocer las reglas y las pruebas recomendadas. La base se integró mediante el PR #17 y la ampliación
+contextual mediante el PR #24.
 
 ## Confiabilidad explicable de los eventos
 

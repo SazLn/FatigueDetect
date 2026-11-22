@@ -9,6 +9,13 @@
 - Evita avisos repetitivos mediante enfriamiento y exige ojos abiertos, cabeza frontal, calidad suficiente y atención recuperada para bajar por etapas.
 - Registra cada nivel con inicio y fin en historial, línea temporal y Excel. Incluye pruebas de escalamiento, enfriamiento, interrupción y recuperación.
 
+### Calibración personalizada integrada mediante el PR #24
+
+- Añade una calibración guiada previa al monitoreo: referencia frontal, ojos abiertos y dos parpadeos confirmados.
+- Separa las líneas base por conductor, cámara y placa, conservando compatibilidad con perfiles anteriores.
+- Calcula umbrales contextuales acotados que pueden anticipar hasta 0,30 s la somnolencia y la alarma, pero nunca retrasarlas respecto a la configuración del usuario.
+- Muestra los umbrales efectivos en el monitoreo e incluye pruebas de calibración, persistencia contextual y límites seguros.
+
 ### Análisis histórico avanzado integrado mediante el PR #22
 
 - Añade en Estadísticas vistas de sesiones seguras y riesgosas, tendencia personal, comparaciones por vehículo, hora y día, mapa de calor día/hora y selección manual de varias sesiones.

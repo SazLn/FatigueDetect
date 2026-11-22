@@ -181,10 +181,19 @@ namespace FatigueDetect.Presentacion
                 detectorRostros ??= new FaceDetector(Path.Combine(rutaCascadas, "haarcascade_frontalface_default.xml"));
                 string modeloFacial = Path.Combine(AppContext.BaseDirectory, "Resources", "modelos", "face-landmark.onnx");
 
-                SesionConduccion sesion = sesionService.Iniciar(cedula, nombre, apellidos, tipo, placa);
+                string placaNormalizada = ValidadorRegistro.NormalizarPlaca(placa);
+                PerfilPersonalConductor? perfil = sesionService.ObtenerPerfil(cedula, config.CamaraId, placaNormalizada);
+                using var calibracion = new VentanaCalibracionGuiada(config, placaNormalizada, perfil);
+                if (calibracion.ShowDialog(this) != DialogResult.OK || calibracion.Resultado is null)
+                    return;
+
+                UmbralesPersonalizados umbrales = PersonalizacionConductor.CalcularUmbrales(perfil, config.Deteccion);
+                SesionConduccion sesion = sesionService.Iniciar(cedula, nombre, apellidos, tipo, placa,
+                    config.CamaraId, calibracion.Resultado, umbrales);
                 preparando = new DetectionController(
                     paginaInicio, detectorRostros, modeloFacial,
-                    new DrowsinessLogic(config), new AlarmService(config), sesion);
+                    new DrowsinessLogic(config, umbrales), new AlarmService(config), sesion,
+                    calibracion.Resultado);
                 await preparando.IniciarAsync(config.CamaraId, cancelacion.Token, config.FormatoCamara);
                 cancelacion.Token.ThrowIfCancellationRequested();
 

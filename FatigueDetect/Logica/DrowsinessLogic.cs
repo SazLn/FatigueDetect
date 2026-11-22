@@ -2,16 +2,19 @@ using FatigueDetect.Entidades;
 
 namespace FatigueDetect.Logica
 {
-    public sealed class DrowsinessLogic(Configuracion config)
+    public sealed class DrowsinessLogic(Configuracion config, UmbralesPersonalizados? personalizados = null)
     {
-        public double UmbralCierreProlongado => config.Deteccion.SegundosSomnoliento;
+        public double UmbralCierreProlongado => personalizados?.SegundosSomnoliento
+            ?? config.Deteccion.SegundosSomnoliento;
+
+        public double UmbralAlarma => personalizados?.SegundosAlarma
+            ?? config.Deteccion.SegundosAlarma;
 
         public EyeState Evaluar(long cierreMs)
         {
-            AjustesDeteccion ajustes = config.Deteccion;
-            if (cierreMs >= ajustes.SegundosAlarma * 1000)
+            if (cierreMs >= UmbralAlarma * 1000)
                 return EyeState.ALARMA_ACTIVADA;
-            if (cierreMs >= ajustes.SegundosSomnoliento * 1000)
+            if (cierreMs >= UmbralCierreProlongado * 1000)
                 return EyeState.SOMNOLIENTO;
             return EyeState.DESPIERTO;
         }

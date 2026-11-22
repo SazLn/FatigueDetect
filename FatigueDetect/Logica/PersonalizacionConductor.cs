@@ -4,7 +4,7 @@ namespace FatigueDetect.Logica
 {
     public static class PersonalizacionConductor
     {
-        public const int VersionActual = 1;
+        public const int VersionActual = 2;
         private const long MinimoComparacionMs = 30_000;
         private const long MinimoReferenciaMs = 60_000;
 
@@ -13,6 +13,12 @@ namespace FatigueDetect.Logica
         {
             string cedula = NormalizarCedula(sesion.Conductor.Cedula);
             if (perfil is not null && !string.Equals(perfil.Cedula, cedula, StringComparison.OrdinalIgnoreCase))
+                perfil = null;
+            string camara = NormalizarContexto(sesion.CamaraId, "AUTOMATICA");
+            string vehiculo = NormalizarContexto(sesion.Vehiculo.Placa, "SIN-VEHICULO");
+            if (perfil is not null && perfil.CamaraId.Length > 0 &&
+                (!string.Equals(perfil.CamaraId, camara, StringComparison.OrdinalIgnoreCase) ||
+                 !string.Equals(perfil.VehiculoClave, vehiculo, StringComparison.OrdinalIgnoreCase)))
                 perfil = null;
 
             MetricasFatiga? fatiga = sesion.MetricasFatiga;
@@ -43,9 +49,11 @@ namespace FatigueDetect.Logica
             string exclusion = MotivoExclusion(sesion, cedula);
             bool referencia = exclusion.Length == 0;
             bool incorporar = referencia && !(calibradoAntes && anormal);
-            PerfilPersonalConductor? actualizado = perfil;
+            PerfilPersonalConductor? actualizado = ActualizarCalibracion(perfil, cedula, camara, vehiculo,
+                sesion.Calibracion, ahora);
             if (incorporar && fatiga is not null && parpadeos.HasValue && perclos.HasValue)
-                actualizado = Incorporar(perfil, cedula, ahora, fatiga, parpadeos.Value, atencion);
+                actualizado = Incorporar(actualizado, cedula, camara, vehiculo, ahora,
+                    fatiga, parpadeos.Value, atencion);
 
             string estado = datosComparables
                 ? calibradoAntes
@@ -62,8 +70,34 @@ namespace FatigueDetect.Logica
                 diferenciaParpadeos, datosComparables ? perclos : null, basePerclos, diferenciaPerclos,
                 datosComparables ? atencion : null, baseAtencion, diferenciaAtencion,
                 umbralParpadeos, umbralPerclos, umbralAtencion, cambioParpadeos, cambioPerclos,
-                cambioAtencion, incorporar, estado);
+                cambioAtencion, incorporar, estado, camara, vehiculo,
+                sesion.UmbralesAplicados?.SegundosSomnoliento,
+                sesion.UmbralesAplicados?.SegundosAlarma);
             return (comparacion, actualizado);
+        }
+
+        public static UmbralesPersonalizados CalcularUmbrales(PerfilPersonalConductor? perfil,
+            AjustesDeteccion configurados)
+        {
+            if (perfil?.Calibrado != true)
+                return new(configurados.SegundosSomnoliento, configurados.SegundosAlarma, false,
+                    "Se usan los umbrales configurados mientras se completa la línea base contextual.");
+
+            double reduccionPerclos = perfil.Perclos is double perclos
+                ? Math.Clamp((perclos - .10) * 2.0, 0, .30) : 0;
+            double reduccionAtencion = perfil.SesionesAtencion > 0
+                ? Math.Clamp((80 - perfil.MediaAtencion) / 100.0, 0, .20) : 0;
+            double reduccion = Math.Max(reduccionPerclos, reduccionAtencion);
+            if (reduccion < .05)
+                return new(configurados.SegundosSomnoliento, configurados.SegundosAlarma, true,
+                    "La línea base es estable; se conservan los umbrales configurados.");
+
+            double alarma = Math.Max(AjustesDeteccion.MinimoAlarma,
+                configurados.SegundosAlarma - reduccion);
+            double somnolencia = Math.Max(AjustesDeteccion.MinimoSomnolencia,
+                Math.Min(configurados.SegundosSomnoliento - reduccion, alarma - .25));
+            return new(somnolencia, alarma, true,
+                $"La línea base contextual anticipa las alertas {reduccion:0.00} s; nunca las retrasa.");
         }
 
         public static string Resumir(ComparacionPersonal? comparacion)
@@ -73,8 +107,13 @@ namespace FatigueDetect.Logica
             string progreso = comparacion.PerfilCalibradoDespues
                 ? $"Perfil calibrado con {comparacion.SesionesBaseDespues} sesiones válidas."
                 : $"Calibración: {comparacion.SesionesBaseDespues}/3 sesiones válidas.";
+            string contexto = comparacion.CamaraId.Length > 0
+                ? $" Contexto: cámara {comparacion.CamaraId}, vehículo {comparacion.VehiculoClave}." : "";
+            string umbrales = comparacion.UmbralSomnoliento.HasValue && comparacion.UmbralAlarma.HasValue
+                ? $" Umbrales aplicados: somnolencia {comparacion.UmbralSomnoliento:0.00} s, alarma {comparacion.UmbralAlarma:0.00} s."
+                : "";
             if (!comparacion.PerfilCalibradoAntes)
-                return $"Comparación personal: aún sin línea base. {progreso}\n{comparacion.Estado}";
+                return $"Comparación personal: aún sin línea base. {progreso}{contexto}{umbrales}\n{comparacion.Estado}";
 
             string ocular = $"Parpadeos/min: {Valor(comparacion.ParpadeosActual)} frente a {Valor(comparacion.ParpadeosBase)} " +
                 $"({Delta(comparacion.DiferenciaParpadeos)}). PERCLOS: {Porcentaje(comparacion.PerclosActual)} frente a " +
@@ -82,11 +121,12 @@ namespace FatigueDetect.Logica
             string atencion = comparacion.AtencionActual.HasValue && comparacion.AtencionBase.HasValue
                 ? $" Atención: {Valor(comparacion.AtencionActual)}/100 frente a {Valor(comparacion.AtencionBase)}/100 ({Delta(comparacion.DiferenciaAtencion)} puntos)."
                 : " Atención personal: sin datos suficientes.";
-            return $"Comparación personal experimental. {progreso}\n{ocular}{atencion}\n{comparacion.Estado}";
+            return $"Comparación personal experimental. {progreso}{contexto}{umbrales}\n{ocular}{atencion}\n{comparacion.Estado}";
         }
 
         private static PerfilPersonalConductor Incorporar(PerfilPersonalConductor? perfil, string cedula,
-            DateTimeOffset ahora, MetricasFatiga fatiga, double parpadeos, double? atencion)
+            string camara, string vehiculo, DateTimeOffset ahora, MetricasFatiga fatiga,
+            double parpadeos, double? atencion)
         {
             perfil ??= new PerfilPersonalConductor(VersionActual, cedula, ahora, 0, 0, 0, 0,
                 0, 0, 0, 0, 0, 0, 0);
@@ -123,7 +163,28 @@ namespace FatigueDetect.Logica
                 M2PerclosSesion = m2Perclos,
                 SesionesAtencion = nAtencion,
                 MediaAtencion = mediaAtencion,
-                M2Atencion = m2Atencion
+                M2Atencion = m2Atencion,
+                CamaraId = camara,
+                VehiculoClave = vehiculo
+            };
+        }
+
+        private static PerfilPersonalConductor? ActualizarCalibracion(PerfilPersonalConductor? perfil,
+            string cedula, string camara, string vehiculo, CalibracionGuiada? calibracion,
+            DateTimeOffset ahora)
+        {
+            if (calibracion is null)
+                return perfil;
+            perfil ??= new PerfilPersonalConductor(VersionActual, cedula, ahora, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, camara, vehiculo, calibracion);
+            return perfil with
+            {
+                Version = VersionActual,
+                Cedula = cedula,
+                Actualizado = ahora,
+                CamaraId = camara,
+                VehiculoClave = vehiculo,
+                Calibracion = calibracion
             };
         }
 
@@ -144,6 +205,8 @@ namespace FatigueDetect.Logica
         }
 
         private static string NormalizarCedula(string? cedula) => (cedula ?? string.Empty).Trim().ToUpperInvariant();
+        public static string NormalizarContexto(string? valor, string respaldo) =>
+            string.IsNullOrWhiteSpace(valor) ? respaldo : valor.Trim().ToUpperInvariant();
         private static string Valor(double? valor) => valor?.ToString("0.0") ?? "sin medición";
         private static string Porcentaje(double? valor) => valor.HasValue ? $"{valor:P1}" : "sin medición";
         private static string Delta(double? valor) => valor.HasValue ? valor.Value.ToString("+0.0;-0.0;0.0") : "sin diferencia";
