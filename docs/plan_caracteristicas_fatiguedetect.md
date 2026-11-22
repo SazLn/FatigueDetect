@@ -34,9 +34,10 @@
 | Atención y resúmenes avanzados | Integrado en `main` | Puntaje experimental, descuentos, primer síntoma, minuto de menor puntaje, tendencia, respuesta y recuperación tras alarmas, informe, evolución y distracción reciente. Pendiente calibración. |
 | Línea temporal extensible | Integrado en `main` | Pistas desplazables para todos los tipos registrados y conservación de códigos de eventos futuros. |
 | Personalización por conductor | Integrado en `main` | Calibra una línea base tras tres sesiones válidas, compara PERCLOS, parpadeos y atención, persiste el perfil y evita aprender de cambios anormales. Integrado mediante el PR #17. |
-| Calibración contextual y umbrales adaptativos | Implementado en rama de descarga | `descarga/calibracion-personalizada`: asistente frontal con dos parpadeos, perfiles por conductor/cámara/placa y anticipación acotada de umbrales. Pendiente prueba en Windows. |
+| Calibración contextual y umbrales adaptativos | Integrado en `main` | Asistente frontal con dos parpadeos, perfiles por conductor/cámara/placa y anticipación acotada de umbrales. Validado manualmente e integrado mediante el PR #24. |
 | Confiabilidad explicable por evento | Integrado en `main` | Puntúa la evidencia de cada evento y explica las limitaciones de persistencia, cobertura, FPS o captura. Integrado mediante el PR #18 después de la validación manual inicial. |
 | Análisis histórico avanzado | Integrado en `main` | Riesgo, tendencia personal, grupos por vehículo/hora/día, mapa de calor, alarmas por hora activa y comparación de sesiones marcadas. Integrado mediante el PR #22. |
+| Alertas progresivas | Implementado en rama de descarga | `descarga/alertas-progresivas`: niveles preventivo/alto/crítico, sonido escalonado, enfriamiento y reducción tras recuperación estable. Pendiente prueba en Windows. |
 
 La medición facial fue validada de forma inicial con una cámara Windows. La calibración de umbrales y las pruebas con más cámaras, iluminación y personas siguen pendientes.
 Las métricas oculares avanzadas también fueron validadas manualmente con cámara y están integradas en `main`. Su calibración con más cámaras, condiciones de iluminación y personas sigue pendiente.
@@ -177,6 +178,7 @@ La dificultad de programar una función y la dificultad de hacerla confiable no 
 | Tiempo entre alertas | **Baja** | Mostrar la frecuencia con la que se repiten los episodios. |
 | Tiempo de recuperación después de una alarma | **Media** | Integrado en `main`: 2 s continuos de ojos abiertos y cabeza frontal, con calidad suficiente. No confirma recuperación clínica. |
 | Respuesta a las alertas | **Media** | Integrada en `main`: tiempo desde inicio de alarma hasta reapertura ocular observada; no implica causalidad. |
+| Alertas progresivas y enfriamiento | **Media** | Implementadas en `descarga/alertas-progresivas` con tres niveles, repetición sonora limitada y recuperación obligatoria de 3/5/8 s. |
 | Resumen automático de la sesión | **Baja-media** | Integrado en `main` con puntaje, factores, primer síntoma, minuto de menor puntaje, tendencia y respuesta a alarmas. |
 | Eventos por gravedad | **Baja** | Clasificar eventos como informativos, leves, moderados o graves. |
 | Línea temporal completa | **Baja-media** | Integrada en `main` con pistas desplazables y nombres de eventos nuevos preservados. Los futuros detectores deberán registrar sus eventos. |
@@ -187,7 +189,7 @@ La dificultad de programar una función y la dificultad de hacerla confiable no 
 |---|---:|---|
 | Comparar sesiones del mismo conductor | **Baja-media** | Integrado en `main` para PERCLOS, parpadeos por minuto y atención, con perfil separado por cédula. |
 | Promedio personal de parpadeos | **Media** | Integrado en `main` como promedio ponderado por tiempo ocular válido. |
-| Umbrales personalizados | **Media** | Ampliados en `descarga/calibracion-personalizada`: pueden anticipar hasta 0,30 s los tiempos configurados cuando existe una línea base contextual; nunca los retrasan. |
+| Umbrales personalizados | **Media** | Integrados en `main` mediante el PR #24: pueden anticipar hasta 0,30 s los tiempos configurados cuando existe una línea base contextual; nunca los retrasan. |
 | Comparar sesión actual con el promedio personal | **Media** | Integrado en `main` para PERCLOS, parpadeos y atención. Las nuevas métricas de cabeza y distracción aún no forman parte de la línea base personal. |
 | Detectar cambios anormales | **Media-alta** | Integrado de forma experimental en `main` con mínimos absolutos y variación personal. Pendiente calibración con usuarios reales. |
 | Sesiones más seguras y más riesgosas | **Baja** | Integrado en `main`: orden por índice experimental 100 − atención cuando la calidad es suficiente. |
@@ -655,7 +657,7 @@ Prioridad alta porque desbloquea los dashboards y evita rehacer el almacenamient
 2. Crear una primera fórmula de atención. **Integrado en `main`**, incluida la distracción reciente desde el PR #20; pendiente calibración.
 3. Mostrar las razones del puntaje. **Integrado en `main`** en informe y Excel.
 4. Crear promedios personales. **Integrado en `main`** para parpadeos, PERCLOS y atención mediante el PR #17.
-5. Permitir calibración por conductor. **Integrado en `main`** como línea base automática. La rama `descarga/calibracion-personalizada` añade asistente previo, perfiles por cámara/vehículo y umbrales acotados; pendiente validación en Windows.
+5. Permitir calibración por conductor. **Integrado en `main`** como línea base automática, asistente previo, perfiles por cámara/vehículo y umbrales acotados mediante el PR #24.
 6. Comparar sesiones y detectar tendencias. **Integrado en `main`** mediante períodos equivalentes, comparación de sesiones seleccionadas, tendencia cronológica por conductor y comparación contra el promedio personal.
 7. Explicar la confiabilidad de cada evento. **Integrado en `main`** mediante el PR #18 después de la validación manual inicial.
 

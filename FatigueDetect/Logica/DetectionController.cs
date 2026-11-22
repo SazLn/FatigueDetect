@@ -22,6 +22,7 @@ namespace FatigueDetect.Logica
         private readonly MedicionCalidadSesion calidad = new();
         private readonly RastreadorFatiga fatiga;
         private readonly RastreadorAtencion atencion = new();
+        private readonly GestorAlertasProgresivas alertas;
         private readonly SesionConduccion sesion;
         private readonly object candadoEstado = new object();
         private readonly DateTimeOffset origenUtc = DateTimeOffset.UtcNow;
@@ -46,6 +47,7 @@ namespace FatigueDetect.Logica
             this.sesion = sesion;
             registro = new RegistroEventosSesion(sesion);
             fatiga = new RastreadorFatiga(sesion, calibracion);
+            alertas = new GestorAlertasProgresivas(sesion);
         }
 
         public Task IniciarAsync(string? camaraId, CancellationToken cancelacion, FormatoCamara? formato = null)
@@ -160,6 +162,7 @@ namespace FatigueDetect.Logica
                 FatigaEnVivo lectura;
                 double? fpsRecientes;
                 MuestraAtencion? muestraAtencion;
+                EstadoAlertaProgresiva? alerta;
                 EstadoIluminacion? avisoIluminacion;
                 TipoEventoSesion? avisoRostro;
                 lock (candadoEstado)
@@ -178,19 +181,18 @@ namespace FatigueDetect.Logica
                     atencion.Observar(instante, lectura, estado, calidad.Resumen(), sesion,
                         drowsinessLogic.UmbralCierreProlongado);
                     muestraAtencion = atencion.Actual;
+                    alerta = alertas.Observar(instante, estado, lectura, muestraAtencion, calidad.Resumen());
                     (avisoIluminacion, avisoRostro) = registro.Observar(
                         instante, rostros.Length, estado, iluminacion, analisisDisponible);
 
-                    if (estado == EyeState.ALARMA_ACTIVADA)
-                        alarmService.Activar();
-                    else
-                        alarmService.Detener();
+                    alarmService.Actualizar(alerta.Nivel, alerta.EmitirSonido);
                 }
 
                 var image = ImageUtils.MatToBitmap(frame);
                 try
                 {
-                    view.UpdateImage(image, estado, lectura.CierreMs, avisoIluminacion, avisoRostro, avisoCalidad, lectura, fpsRecientes, muestraAtencion);
+                    view.UpdateImage(image, estado, lectura.CierreMs, avisoIluminacion, avisoRostro,
+                        avisoCalidad, lectura, fpsRecientes, muestraAtencion, alerta);
                 }
                 catch (Exception) when (!running)
                 {
@@ -259,6 +261,7 @@ namespace FatigueDetect.Logica
             registro.Interrumpir(instante);
             fatiga.Interrumpir(instante, drowsinessLogic.UmbralCierreProlongado);
             atencion.Interrumpir(instante);
+            alertas.Interrumpir(instante);
             alarmService.Detener();
         }
     }

@@ -18,6 +18,8 @@ namespace FatigueDetect.Datos
         private Reproduccion? reproductor;
         private string? salidaActual;
         private DateTimeOffset siguienteIntento;
+        private DateTimeOffset finReproduccion;
+        private NivelAlertaProgresiva nivelActual;
 
         public static IReadOnlyList<SalidaAudio> ListarSalidas()
         {
@@ -39,7 +41,9 @@ namespace FatigueDetect.Datos
                 throw new InvalidOperationException("La reproducción se interrumpió antes de terminar la prueba.");
         }
 
-        public void Activar()
+        public void Activar() => Actualizar(NivelAlertaProgresiva.Critica, emitir: true);
+
+        public void Actualizar(NivelAlertaProgresiva nivel, bool emitir)
         {
             AjustesDeteccion ajustes = configuracion.Deteccion;
             if (!ajustes.SonidoActivado)
@@ -54,14 +58,42 @@ namespace FatigueDetect.Datos
                 Detener();
                 salidaActual = id;
             }
-            if (IsPlaying() || DateTimeOffset.UtcNow < siguienteIntento)
+            DateTimeOffset ahora = DateTimeOffset.UtcNow;
+            if (nivel == NivelAlertaProgresiva.Normal)
+            {
+                Detener();
+                return;
+            }
+            if (IsPlaying() && nivel != nivelActual)
+            {
+                bool escalando = nivel > nivelActual;
+                Detener();
+                if (escalando)
+                    siguienteIntento = DateTimeOffset.MinValue;
+            }
+            if (IsPlaying() && ahora >= finReproduccion)
+                Detener();
+            if (!emitir || IsPlaying() || ahora < siguienteIntento)
                 return;
 
             Detener();
-            siguienteIntento = DateTimeOffset.UtcNow.AddSeconds(2);
+            nivelActual = nivel;
+            double volumen = nivel switch
+            {
+                NivelAlertaProgresiva.Preventiva => .35,
+                NivelAlertaProgresiva.Alta => .65,
+                _ => 1
+            };
+            finReproduccion = ahora.AddMilliseconds(nivel switch
+            {
+                NivelAlertaProgresiva.Preventiva => 700,
+                NivelAlertaProgresiva.Alta => 1500,
+                _ => 4000
+            });
+            siguienteIntento = ahora.AddSeconds(2);
             try
             {
-                reproductor = new Reproduccion(id);
+                reproductor = new Reproduccion(id, volumen);
             }
             catch (Exception ex) when (EsErrorDeAudio(ex))
             {
@@ -70,7 +102,7 @@ namespace FatigueDetect.Datos
                     return;
                 try
                 {
-                    reproductor = new Reproduccion(null);
+                    reproductor = new Reproduccion(null, volumen);
                 }
                 catch (Exception error) when (EsErrorDeAudio(error))
                 {
@@ -86,6 +118,7 @@ namespace FatigueDetect.Datos
         {
             reproductor?.Dispose();
             reproductor = null;
+            nivelActual = NivelAlertaProgresiva.Normal;
         }
 
         public bool IsPlaying() => reproductor?.Salida.PlaybackState == PlaybackState.Playing;
@@ -96,7 +129,7 @@ namespace FatigueDetect.Datos
             private readonly WaveFileReader archivo;
             public WasapiOut Salida { get; }
 
-            public Reproduccion(string? id)
+            public Reproduccion(string? id, double volumen = 1)
             {
                 using var catalogo = new MMDeviceEnumerator();
                 dispositivo = id is null
@@ -110,7 +143,10 @@ namespace FatigueDetect.Datos
                         Salida = new WasapiOut(dispositivo, AudioClientShareMode.Shared, false, 100);
                         try
                         {
-                            Salida.Init(new BucleWav(archivo));
+                            Salida.Init(new VolumeWaveProvider16(new BucleWav(archivo))
+                            {
+                                Volume = (float)Math.Clamp(volumen, 0, 1)
+                            });
                             Salida.Play();
                         }
                         catch

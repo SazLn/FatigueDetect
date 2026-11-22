@@ -2,7 +2,14 @@
 
 ## Sin publicar
 
-### Propuesta en `descarga/calibracion-personalizada`
+### Propuesta en `descarga/alertas-progresivas`
+
+- Añade niveles preventivo, alto y crítico a partir de cierre ocular, atención, PERCLOS y distracción disponibles.
+- Escala inmediatamente la tarjeta visual y el sonido: 35 %, 65 % y 100 % de volumen, con repeticiones máximas cada 30, 15 y 5 segundos.
+- Evita avisos repetitivos mediante enfriamiento y exige ojos abiertos, cabeza frontal, calidad suficiente y atención recuperada para bajar por etapas.
+- Registra cada nivel con inicio y fin en historial, línea temporal y Excel. Incluye pruebas de escalamiento, enfriamiento, interrupción y recuperación.
+
+### Calibración personalizada integrada mediante el PR #24
 
 - Añade una calibración guiada previa al monitoreo: referencia frontal, ojos abiertos y dos parpadeos confirmados.
 - Separa las líneas base por conductor, cámara y placa, conservando compatibilidad con perfiles anteriores.

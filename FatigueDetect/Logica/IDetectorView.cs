@@ -10,7 +10,7 @@ namespace FatigueDetect.Logica
         void UpdateImage(Bitmap? image, EyeState estado, long tiempoMs,
             EstadoIluminacion? avisoIluminacion, TipoEventoSesion? avisoRostro,
             TipoEventoSesion? avisoCalidad = null, FatigaEnVivo? fatiga = null, double? fpsRecientes = null,
-            MuestraAtencion? atencion = null);
+            MuestraAtencion? atencion = null, EstadoAlertaProgresiva? alerta = null);
 
         // Método que toda vista debe implementar para indicar
         // si está pausada o no

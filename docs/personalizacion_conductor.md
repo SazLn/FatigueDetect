@@ -1,7 +1,7 @@
 # Personalización por conductor
 
-Estado base: integrada en `main` mediante el PR #17. Ampliación contextual disponible en
-`descarga/calibracion-personalizada`, pendiente de prueba manual y decisión de integración.
+Estado: base integrada mediante el PR #17 y ampliación contextual validada manualmente e integrada en
+`main` mediante el PR #24.
 
 ## Alcance
 

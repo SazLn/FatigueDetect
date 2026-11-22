@@ -523,6 +523,9 @@ namespace FatigueDetect.Presentacion
             TipoEventoSesion.RostroParcial => "Rostro parcialmente fuera del encuadre",
             TipoEventoSesion.PosibleBostezo => "Posible bostezo",
             TipoEventoSesion.CierreOcularAnomalo => "Cierre ocular anómalo",
+            TipoEventoSesion.AlertaPreventiva => "Alerta preventiva",
+            TipoEventoSesion.AlertaAlta => "Alerta alta",
+            TipoEventoSesion.AlertaCritica => "Alerta crítica",
             _ => tipo.ToString()
         };
 

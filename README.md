@@ -146,7 +146,7 @@ y sus umbrales aún requieren calibración con más personas y condiciones. Los 
 
 ## Personalización por conductor
 
-La rama `descarga/calibracion-personalizada` amplía esta función con un asistente antes del monitoreo.
+Desde el PR #24, la aplicación amplía esta función con un asistente antes del monitoreo.
 Permite reutilizar la calibración del mismo conductor, cámara y placa, o crear una nueva mirando al
 frente y realizando dos parpadeos. La referencia obtenida se aplica a la apertura ocular y a la postura
 frontal durante esa sesión. Cada combinación de cámara y vehículo conserva una línea base independiente.
@@ -154,8 +154,8 @@ frontal durante esa sesión. Cada combinación de cámara y vehículo conserva u
 Cuando una línea base contextual ya reúne tres sesiones válidas, el programa puede anticipar de forma
 limitada los umbrales de somnolencia y alarma según su PERCLOS y atención habituales. Nunca aumenta los
 tiempos configurados: la reducción máxima es de 0,30 segundos y respeta los mínimos de seguridad. La
-pantalla de monitoreo muestra los tiempos efectivos y su explicación. Esta ampliación aún no está integrada
-en `main` y debe probarse con cámaras reales antes de decidir su integración.
+pantalla de monitoreo muestra los tiempos efectivos y su explicación. La ampliación fue validada manualmente
+e integrada en `main`; aún conviene repetir la prueba con más cámaras y personas.
 
 La aplicación mantiene una línea base local e independiente por cédula.
 Después de tres sesiones válidas de al menos 60 segundos de medición ocular, compara los parpadeos
@@ -165,10 +165,11 @@ anormales. El perfil sobrevive al reinicio de la aplicación y se elimina al bor
 
 Para evitar aprender de datos poco confiables, solo actualiza la línea base con calidad mínima 70/100,
 cobertura ocular mínima del 60 % y sin alarmas, microsueños ni cierres anómalos. Una vez calibrado,
-un cambio anormal se muestra pero no modifica el perfil. En `main`, esta comparación no cambia los umbrales físicos
-de cierre ocular ni la alarma y no es un diagnóstico médico. Todavía requiere validación manual con varias
+un cambio anormal se muestra pero no modifica el perfil. Los umbrales adaptativos nunca retrasan los tiempos
+configurados y no constituyen un diagnóstico médico. Todavía requiere validación manual con varias
 personas, cámaras e iluminación. Consulta [Personalización por conductor](docs/personalizacion_conductor.md)
-para conocer las reglas y las pruebas recomendadas. La función está integrada en `main` mediante el PR #17.
+para conocer las reglas y las pruebas recomendadas. La base se integró mediante el PR #17 y la ampliación
+contextual mediante el PR #24.
 
 ## Confiabilidad explicable de los eventos
 
@@ -186,6 +187,21 @@ calidad de los datos disponibles; no es la probabilidad médica de que exista fa
 ## Salida de audio de la alarma
 
 En **Configuración → Salida de audio de la alarma**, elige una salida de Windows, como parlantes, audífonos o Bluetooth. **Probar** reproduce la alarma durante dos segundos en la salida elegida. **Actualizar** vuelve a consultar los dispositivos y **Guardar cambios** conserva la selección. Si la salida guardada falla durante el monitoreo, el programa intenta reproducir el sonido en la salida predeterminada de Windows.
+
+## Alertas progresivas
+
+La rama `descarga/alertas-progresivas` incorpora tres niveles experimentales: **preventivo**, **alto** y
+**crítico**. Combina el estado ocular con el puntaje de atención y, cuando están disponibles, PERCLOS y
+distracción. La interfaz cambia el color, el título, la recomendación y las causas observadas. El sonido
+usa aproximadamente 35 %, 65 % y 100 % de volumen; los avisos pueden repetirse como máximo cada 30, 15
+y 5 segundos, respectivamente.
+
+El nivel sube inmediatamente, pero no baja por una sola lectura favorable. Exige ojos abiertos, cabeza
+frontal, calidad mínima 50/100 y atención mínima 70/100 durante 3 segundos para salir del nivel crítico,
+5 segundos para bajar del alto y 8 segundos para abandonar el preventivo. Una pausa o pérdida de medición
+interrumpe esa confirmación. Cada intervalo se registra en la línea temporal y Excel. La alarma ocular
+tradicional sigue contando por separado. Consulta [la guía de prueba](docs/alertas_progresivas.md).
+Esta rama aún no está integrada en `main`.
 
 ## Calidad de sesión, estadísticas y Excel
 
