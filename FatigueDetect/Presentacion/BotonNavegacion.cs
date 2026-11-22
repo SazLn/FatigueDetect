@@ -45,11 +45,19 @@ namespace FatigueDetect.Presentacion
             Color fondo = activo ? Tema.Azul
                 : presionado ? Tema.Borde
                 : encima ? Tema.Tarjeta : Tema.Lateral;
-            if (fondo.ToArgb() != Tema.Lateral.ToArgb())
+            using (GraphicsPath ruta = PanelRedondeado.CrearRuta(rectangulo, 12))
             {
-                using GraphicsPath ruta = PanelRedondeado.CrearRuta(rectangulo, 12);
-                using var relleno = new SolidBrush(fondo);
-                e.Graphics.FillPath(relleno, ruta);
+                if (activo)
+                {
+                    using var degradado = new LinearGradientBrush(
+                        rectangulo, Tema.AzulOscuro, Tema.Lila, LinearGradientMode.Horizontal);
+                    e.Graphics.FillPath(degradado, ruta);
+                }
+                else if (fondo.ToArgb() != Tema.Lateral.ToArgb())
+                {
+                    using var relleno = new SolidBrush(fondo);
+                    e.Graphics.FillPath(relleno, ruta);
+                }
             }
 
             var texto = new Rectangle(Padding.Left, 0,
