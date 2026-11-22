@@ -21,8 +21,11 @@
     <Compile Include="../../FatigueDetect/Presentacion/ExportadorHistorialExcel.cs" Link="ExportadorHistorialExcel.cs" />
     <Compile Include="../../FatigueDetect/Presentacion/GraficoExcel.cs" Link="GraficoExcel.cs" />
     <Compile Include="../../FatigueDetect/Datos/HistorialSqliteRepository.cs" Link="HistorialSqliteRepository.cs" />
+    <Compile Include="../../FatigueDetect/Datos/PerfilBiometricoRepository.cs" Link="PerfilBiometricoRepository.cs" />
+    <Compile Include="../../FatigueDetect/Datos/ProtectorDatosLocal.cs" Link="ProtectorDatosLocal.cs" />
     <Compile Include="../../FatigueDetect/Datos/ImportadorHistorialCsv.cs" Link="ImportadorHistorialCsv.cs" />
     <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.28" />
     <PackageReference Include="ClosedXML" Version="0.105.0" />
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="8.0.0" />
   </ItemGroup>
 </Project>

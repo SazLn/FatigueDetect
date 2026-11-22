@@ -2,6 +2,10 @@
 
 Estado: disponible en `descarga/deteccion-accesorios`, pendiente de validación en Windows y decisión de integración.
 
+La rama reconoce perfiles biométricos `FDENC1:` creados por `descarga/proteccion-datos` siempre que
+`clave_datos.bin` permanezca en la misma carpeta y se ejecute con el mismo usuario de Windows. Conserva
+el cifrado al guardar; un perfil JSON normal permanece normal para no activar protección de forma implícita.
+
 ## Alcance
 
 El detector compara brillo y variación local en las regiones aproximadas de ojos, boca y frente dentro del

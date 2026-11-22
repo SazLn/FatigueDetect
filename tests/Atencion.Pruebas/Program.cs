@@ -382,6 +382,33 @@ Verificar(sesionAccesorios.Eventos.Select(e => e.Tipo).Order().SequenceEqual(new
     { TipoEventoSesion.PosiblesGafasOscuras, TipoEventoSesion.MedicionFacialNoConfiable }.Order()),
     "Obstrucción y falta de confiabilidad quedan en la línea temporal");
 
+string carpetaPerfilCifrado = Path.Combine(Path.GetTempPath(), "fatiga-perfil-cifrado-" + Guid.NewGuid().ToString("N"));
+Directory.CreateDirectory(carpetaPerfilCifrado);
+try
+{
+    string rutaPerfil = Path.Combine(carpetaPerfilCifrado, "perfiles_biometricos.json");
+    var protectorPerfil = new ProtectorDatosLocal(Path.Combine(carpetaPerfilCifrado, "clave_datos.bin"));
+    string perfilJson = System.Text.Json.JsonSerializer.Serialize(new List<PerfilBiometrico>
+        { new() { Cedula = "123", Nombre = "Perfil protegido", DescriptorFacial = [1, 2, 3] } });
+    File.WriteAllText(rutaPerfil, protectorPerfil.Cifrar(perfilJson));
+    var repositorioCompatible = new PerfilBiometricoRepository(rutaPerfil);
+    Verificar(repositorioCompatible.LeerTodos().Single().Cedula == "123",
+        "Accesorios abre perfiles cifrados por protección de datos");
+    repositorioCompatible.Guardar(new PerfilBiometrico
+        { Cedula = "456", Nombre = "Segundo", DescriptorFacial = [3, 2, 1] });
+    Verificar(File.ReadAllText(rutaPerfil).StartsWith("FDENC1:") && repositorioCompatible.Existe("456"),
+        "Accesorios conserva cifrado al actualizar perfiles protegidos");
+    string rutaPlana = Path.Combine(carpetaPerfilCifrado, "perfil_plano.json");
+    new PerfilBiometricoRepository(rutaPlana).Guardar(new PerfilBiometrico
+        { Cedula = "789", Nombre = "Sin migrar", DescriptorFacial = [1] });
+    Verificar(File.ReadAllText(rutaPlana).TrimStart().StartsWith("["),
+        "Accesorios no activa cifrado sobre perfiles normales");
+}
+finally
+{
+    Directory.Delete(carpetaPerfilCifrado, true);
+}
+
 var guia = new CalibradorGuiado("cam-1", "abc123");
 for (int ms = 0; ms <= 2000; ms += 100)
     guia.Observar(instante.AddMilliseconds(ms), new MedicionFacial(.30, .29, new AngulosCabeza(1, 2, 0)));
