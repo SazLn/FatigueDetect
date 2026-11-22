@@ -12,7 +12,8 @@ Estado: disponible en `descarga/proteccion-datos`, pendiente de validación en W
 - La retención automática elimina sesiones y perfiles biométricos anteriores al plazo configurado. Si elimina
   sesiones, reinicia las líneas base personales para evitar perfiles derivados de datos ya borrados.
 - El respaldo `.fdbak` usa PBKDF2-SHA256 con 200 000 iteraciones y AES-GCM. Incluye una clave portátil solo
-  dentro del contenedor cifrado. Antes de restaurar se validan autenticidad, nombres de archivo e integridad SQLite.
+  dentro del contenedor cifrado. La base se incorpora mediante una instantánea consistente aunque existan
+  conexiones internas abiertas. Antes de restaurar se validan autenticidad, nombres de archivo e integridad SQLite.
 
 La contraseña del respaldo no puede recuperarse. No borres `clave_datos.bin` ni reemplaces archivos de datos
 manualmente. La aplicación no cifra `historial.csv` legado porque se conserva como archivo externo de versiones

@@ -397,9 +397,13 @@ try
         "Historial cifrado se descifra transparentemente");
     var servicioSeguro = new ProteccionDatosService(carpetaProtegida, protector, repoSeguro, perfilesSeguros);
     string respaldo = Path.Combine(carpetaProtegida, "respaldo.fdbak");
-    servicioSeguro.CrearRespaldo(respaldo, "clave-segura-123");
+    using (var conexionAbierta = new SqliteConnection($"Data Source={repoSeguro.RutaArchivo}"))
+    {
+        conexionAbierta.Open();
+        servicioSeguro.CrearRespaldo(respaldo, "clave-segura-123");
+    }
     Verificar(File.ReadAllBytes(respaldo).AsSpan(0, 9).SequenceEqual("FDBACKUP1"u8),
-        "Respaldo protegido con formato autenticado");
+        "Respaldo protegido usa instantánea aunque SQLite esté abierto");
     bool rechazada = false;
     try { servicioSeguro.RestaurarRespaldo(respaldo, "clave-erronea-123"); }
     catch (InvalidDataException) { rechazada = true; }

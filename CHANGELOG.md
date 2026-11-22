@@ -8,6 +8,7 @@
 - Migra perfiles biométricos legados al leerlos y mantiene lectura compatible del historial anterior sin cifrar.
 - Añade retención automática configurable para sesiones y perfiles biométricos inactivos.
 - Crea y restaura respaldos `.fdbak` cifrados y autenticados con contraseña; valida formato e integridad SQLite antes de reemplazar datos.
+- Corrige la creación del respaldo cuando SQLite permanece abierto: usa la API de instantáneas de SQLite y libera conexiones en caché antes de restaurar.
 
 ### Alertas progresivas integradas mediante el PR #25
 

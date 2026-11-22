@@ -54,14 +54,17 @@ namespace FatigueDetect.Datos
         public void CrearRespaldo(string ruta, string contrasena)
         {
             ValidarContrasena(contrasena);
+            string? instantaneaSqlite = CrearInstantaneaSqlite();
             byte[] zip;
-            using (var memoria = new MemoryStream())
+            try
             {
+                using var memoria = new MemoryStream();
                 using (var archivo = new ZipArchive(memoria, ZipArchiveMode.Create, leaveOpen: true))
                 {
                     foreach (string nombre in Archivos)
                     {
-                        string origen = Path.Combine(carpeta, nombre);
+                        string origen = nombre == "historial.sqlite" && instantaneaSqlite is not null
+                            ? instantaneaSqlite : Path.Combine(carpeta, nombre);
                         if (File.Exists(origen)) archivo.CreateEntryFromFile(origen, nombre, CompressionLevel.Optimal);
                     }
                     ZipArchiveEntry clave = archivo.CreateEntry("clave_portable.bin");
@@ -69,6 +72,11 @@ namespace FatigueDetect.Datos
                     destino.Write(protector.ExportarClaveParaRespaldo());
                 }
                 zip = memoria.ToArray();
+            }
+            finally
+            {
+                if (instantaneaSqlite is not null)
+                    File.Delete(instantaneaSqlite);
             }
             byte[] salt = RandomNumberGenerator.GetBytes(16), nonce = RandomNumberGenerator.GetBytes(12);
             byte[] claveRespaldo = Rfc2898DeriveBytes.Pbkdf2(contrasena, salt, 200_000,
@@ -124,6 +132,7 @@ namespace FatigueDetect.Datos
                 ValidarSqlite(Path.Combine(temporal, "historial.sqlite"));
                 string rollback = Path.Combine(temporal, "rollback");
                 Directory.CreateDirectory(rollback);
+                SqliteConnection.ClearAllPools();
                 foreach (string nombre in Archivos.Append(Path.GetFileName(protector.RutaClave)))
                 {
                     string actual = Path.Combine(carpeta, nombre);
@@ -150,6 +159,40 @@ namespace FatigueDetect.Datos
                 }
             }
             finally { Directory.Delete(temporal, true); }
+        }
+
+        private string? CrearInstantaneaSqlite()
+        {
+            if (!File.Exists(historial.RutaArchivo))
+                return null;
+            string instantanea = Path.Combine(Path.GetTempPath(),
+                "fatiguedetect-backup-" + Guid.NewGuid().ToString("N") + ".sqlite");
+            var origenConfig = new SqliteConnectionStringBuilder
+            {
+                DataSource = historial.RutaArchivo,
+                Mode = SqliteOpenMode.ReadOnly,
+                Pooling = false
+            };
+            var destinoConfig = new SqliteConnectionStringBuilder
+            {
+                DataSource = instantanea,
+                Mode = SqliteOpenMode.ReadWriteCreate,
+                Pooling = false
+            };
+            try
+            {
+                using var origen = new SqliteConnection(origenConfig.ToString());
+                using var destino = new SqliteConnection(destinoConfig.ToString());
+                origen.Open();
+                destino.Open();
+                origen.BackupDatabase(destino);
+                return instantanea;
+            }
+            catch
+            {
+                File.Delete(instantanea);
+                throw;
+            }
         }
 
         private static void ValidarSqlite(string ruta)
