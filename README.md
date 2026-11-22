@@ -60,6 +60,9 @@ columnas nuevas de la hoja **Sesiones**. El puntaje global usa los indicadores d
 anteriores conservan su cálculo y muestran las métricas nuevas como «sin medición». Los umbrales son
 heurísticos y todavía deben validarse con cámaras, resoluciones, iluminación y tonos de piel diversos.
 Consulta [calidad de imagen ampliada](docs/calidad_imagen_ampliada.md) para conocer la fórmula y la prueba manual.
+Si el perfil biométrico fue cifrado previamente por `descarga/proteccion-datos`, esta rama lo abre con
+`clave_datos.bin` del mismo usuario de Windows y conserva el cifrado al actualizarlo. Los perfiles JSON
+normales permanecen sin cifrar para no activar protección de forma implícita.
 
 ## Historial y registro de eventos
 

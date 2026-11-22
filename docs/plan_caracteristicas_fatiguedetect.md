@@ -16,7 +16,7 @@
 | Resumen de eventos en el historial | Integrado en `main` | Agrupa por tipo y muestra cantidad, duración total, máxima y eventos sin duración. |
 | Resumen al finalizar el monitoreo | Integrado en `main` | Muestra duración, alarmas, eventos, calidad de detección, cobertura facial, estabilidad de FPS e indicadores oculares. |
 | Configuración persistente de detección y sonido | Integrado en `main` | Guarda y restablece los umbrales de somnolencia y alarma y el estado del sonido. |
-| Métricas de calidad de sesión | Integrado en `main`; ampliación en rama de descarga | `main` incluye FPS, analizabilidad y cobertura. `descarga/calidad-imagen-ampliada` añade brillo, contraste, nitidez, posición y separación cámara/entorno frente a colocación; pendiente de validación y autorización para integrar. |
+| Métricas de calidad de sesión | Integrado en `main`; ampliación en rama de descarga | `main` incluye FPS, analizabilidad y cobertura. `descarga/calidad-imagen-ampliada` añade brillo, contraste, nitidez, posición y separación cámara/entorno frente a colocación. Ya abre perfiles `FDENC1:` creados al probar protección; pendiente repetir la validación. |
 | Dashboard histórico básico | Integrado en `main` | Sesiones por día, semana y mes, duración promedio y franjas de mayor uso. |
 | Exportación a Excel | Integrado en `main` | Sesiones, eventos y resúmenes. |
 | Filtros y análisis histórico | Integrado en `main` | Fecha, conductor, vehículo, alarmas y calidad. Incluye comparaciones entre períodos de igual duración. |
