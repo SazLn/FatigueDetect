@@ -1,6 +1,6 @@
 # Alertas progresivas
 
-Estado: disponible en `descarga/alertas-progresivas`, pendiente de validación en Windows y decisión de integración.
+Estado: validada manualmente e integrada en `main` mediante el PR #25.
 
 ## Funcionamiento
 

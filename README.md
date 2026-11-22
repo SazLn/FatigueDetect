@@ -190,7 +190,7 @@ En **Configuración → Salida de audio de la alarma**, elige una salida de Wind
 
 ## Alertas progresivas
 
-La rama `descarga/alertas-progresivas` incorpora tres niveles experimentales: **preventivo**, **alto** y
+Desde el PR #25, la aplicación incorpora tres niveles experimentales: **preventivo**, **alto** y
 **crítico**. Combina el estado ocular con el puntaje de atención y, cuando están disponibles, PERCLOS y
 distracción. La interfaz cambia el color, el título, la recomendación y las causas observadas. El sonido
 usa aproximadamente 35 %, 65 % y 100 % de volumen; los avisos pueden repetirse como máximo cada 30, 15
@@ -201,7 +201,7 @@ frontal, calidad mínima 50/100 y atención mínima 70/100 durante 3 segundos pa
 5 segundos para bajar del alto y 8 segundos para abandonar el preventivo. Una pausa o pérdida de medición
 interrumpe esa confirmación. Cada intervalo se registra en la línea temporal y Excel. La alarma ocular
 tradicional sigue contando por separado. Consulta [la guía de prueba](docs/alertas_progresivas.md).
-Esta rama aún no está integrada en `main`.
+La función fue validada manualmente e integrada en `main`; sus umbrales siguen siendo experimentales.
 
 ## Calidad de sesión, estadísticas y Excel
 

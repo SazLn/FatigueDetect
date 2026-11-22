@@ -2,7 +2,7 @@
 
 ## Sin publicar
 
-### Propuesta en `descarga/alertas-progresivas`
+### Alertas progresivas integradas mediante el PR #25
 
 - Añade niveles preventivo, alto y crítico a partir de cierre ocular, atención, PERCLOS y distracción disponibles.
 - Escala inmediatamente la tarjeta visual y el sonido: 35 %, 65 % y 100 % de volumen, con repeticiones máximas cada 30, 15 y 5 segundos.
