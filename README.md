@@ -92,9 +92,14 @@ cambios de pantalla y tamaño. En **Registro / Persona**, el contenido puede des
 el escalado reduce la altura disponible, y la vista biométrica mantiene una relación 16:10 sin deformar los
 fotogramas reales de la cámara.
 
+**Registro / Persona** reproduce la referencia visual con campos y acciones redondeados, estado diferenciado
+de la cámara y un bloque de privacidad legible. **Estadísticas del historial** usa KPI, pestañas navegables,
+tablas y gráficos coherentes con el mismo tema; cuando las pestañas no caben se muestran ambas flechas de
+navegación.
+
 ### Interfaz renovada de Historial
 
-La rama `ui/mejoras-graficas` traslada el prototipo visual de **Historial de sesiones** a WinForms. La
+La interfaz integrada en `main` traslada el prototipo visual de **Historial de sesiones** a WinForms. La
 cabecera, los filtros y las acciones mantienen la jerarquía de la referencia; la tabla conserva anchos de
 columna estables, fija la fecha al desplazarse horizontalmente y ofrece desplazamiento en ambos ejes. El
 panel de detalle mantiene visibles su cabecera y sus botones mientras desplaza de forma independiente las

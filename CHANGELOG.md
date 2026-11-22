@@ -2,14 +2,17 @@
 
 ## Sin publicar
 
-### Correcciones de redimensionado en `ui/mejoras-graficas`
+### Réplicas visuales y correcciones de interfaz integradas en `main`
 
 - Evita restos de bordes, textos duplicados y fotogramas parciales al maximizar, restaurar o cambiar de pantalla.
 - Limita el tamaño restaurado de la ventana principal al área útil de Windows para que la barra de tareas no cubra contenido.
 - Ajusta la vista biométrica a una relación 16:10 y conserva la imagen real con `Zoom`; los botones se reparten según el ancho disponible.
 - Habilita desplazamiento vertical seguro en Registro cuando el escalado DPI reduce la altura disponible.
+- Replica la referencia visual de **Registro / Persona** con campos, botones, estados de cámara y bloque de privacidad nativos.
+- Replica la referencia visual de **Estadísticas del historial** con KPI, pestañas, navegación, tablas y gráficos adaptados al tema.
+- Corrige la navegación por pestañas para mostrar las dos flechas cuando el contenido no cabe.
 
-### Rediseño de Historial en `ui/mejoras-graficas`
+### Rediseño de Historial integrado en `main`
 
 - Traslada el prototipo HTML de **Historial de sesiones** a controles WinForms nativos sin sustituir las sesiones ni métricas reales.
 - Reproduce la cabecera compacta, los filtros redondeados, el contador de resultados y las acciones primaria, secundaria y de peligro.
@@ -18,7 +21,7 @@
 - Reorganiza el detalle en cuadrículas de dos columnas, secciones de calidad y ojos, y tarjetas para resúmenes y eventos, incluidos los estados sin datos.
 - Corrige la alineación vertical de «Limpiar filtros» y evita que notas, duraciones y encabezados de eventos se superpongan al escalar la interfaz.
 
-### Rediseño adaptable de Configuración en `ui/mejoras-graficas`
+### Rediseño adaptable de Configuración integrado en `main`
 
 - Adopta una paleta morada compartida y mejora el contraste de los controles principales y del elemento activo del menú.
 - Separa sensibilidad, protección de datos y cámara en tarjetas con una jerarquía visual consistente.
