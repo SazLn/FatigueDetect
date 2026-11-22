@@ -80,14 +80,27 @@ namespace FatigueDetect.Presentacion
             contenedor.RowStyles.Add(new RowStyle(SizeType.Absolute, 42));
             contenedor.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
-            var barra = new Panel { Dock = DockStyle.Fill, BackColor = Tema.Fondo };
+            var barra = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 3,
+                RowCount = 1,
+                BackColor = Tema.Fondo,
+                Margin = Padding.Empty
+            };
+            barra.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 30));
+            barra.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+            barra.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 30));
+            barra.RowStyles.Add(new RowStyle(SizeType.Absolute, 42));
+            barra.MaximumSize = new Size(0, 42);
+
             var flujo = new FlowLayoutPanel
             {
                 AutoSize = true,
                 WrapContents = false,
                 FlowDirection = FlowDirection.LeftToRight,
                 BackColor = Tema.Fondo,
-                Location = new Point(34, 2)
+                Location = new Point(4, 2)
             };
 
             var botones = new List<BotonPestana>();
@@ -119,22 +132,25 @@ namespace FatigueDetect.Presentacion
                 botones.Add(boton);
             }
 
+            var zona = new Panel { Dock = DockStyle.Fill, BackColor = Tema.Fondo };
+            zona.Controls.Add(flujo);
+
             void Mover(int delta)
             {
-                int minimo = Math.Min(0, barra.Width - flujo.Width);
+                int minimo = Math.Min(0, zona.Width - flujo.Width);
                 flujo.Left = Math.Clamp(flujo.Left + delta, minimo, 0);
             }
 
             var izquierda = new Button
             {
                 Text = "‹",
-                Dock = DockStyle.Left,
-                Width = 30,
+                Dock = DockStyle.Fill,
                 FlatStyle = FlatStyle.Flat,
                 BackColor = Tema.TarjetaClara,
                 ForeColor = Tema.Texto,
                 Font = Tema.Fuente(12),
-                TabStop = false
+                TabStop = false,
+                MaximumSize = new Size(0, 42)
             };
             izquierda.FlatAppearance.BorderSize = 0;
             izquierda.Click += (_, _) => Mover(220);
@@ -142,20 +158,20 @@ namespace FatigueDetect.Presentacion
             var derecha = new Button
             {
                 Text = "›",
-                Dock = DockStyle.Right,
-                Width = 30,
+                Dock = DockStyle.Fill,
                 FlatStyle = FlatStyle.Flat,
                 BackColor = Tema.TarjetaClara,
                 ForeColor = Tema.Texto,
                 Font = Tema.Fuente(12),
-                TabStop = false
+                TabStop = false,
+                MaximumSize = new Size(0, 42)
             };
             derecha.FlatAppearance.BorderSize = 0;
             derecha.Click += (_, _) => Mover(-220);
 
-            barra.Controls.Add(flujo);
-            barra.Controls.Add(derecha);
-            barra.Controls.Add(izquierda);
+            barra.Controls.Add(izquierda, 0, 0);
+            barra.Controls.Add(zona, 1, 0);
+            barra.Controls.Add(derecha, 2, 0);
 
             contenedor.Controls.Add(barra, 0, 0);
             contenedor.Controls.Add(contenido, 0, 1);
