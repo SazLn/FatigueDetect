@@ -28,9 +28,9 @@ namespace FatigueDetect.Presentacion
 
         private void ActualizarEstilo()
         {
-            BackColor = activo ? Tema.AzulOscuro : Tema.Lateral;
-            ForeColor = activo ? Color.White : Tema.TextoSuave;
-            FlatAppearance.MouseOverBackColor = activo ? Tema.AzulOscuro : Tema.TarjetaClara;
+            BackColor = activo ? Tema.Azul : Tema.Lateral;
+            ForeColor = activo ? Tema.TextoSobreAcento : Tema.TextoSuave;
+            FlatAppearance.MouseOverBackColor = activo ? Tema.Azul : Tema.TarjetaClara;
             FlatAppearance.MouseDownBackColor = Tema.AzulOscuro;
         }
     }

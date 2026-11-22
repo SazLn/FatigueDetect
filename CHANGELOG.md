@@ -2,6 +2,15 @@
 
 ## Sin publicar
 
+### Rediseño adaptable de Configuración en `ui/mejoras-graficas`
+
+- Adopta una paleta morada compartida y mejora el contraste de los controles principales y del elemento activo del menú.
+- Separa sensibilidad, protección de datos y cámara en tarjetas con una jerarquía visual consistente.
+- Cambia automáticamente entre dos columnas y una columna, y añade desplazamiento vertical cuando el contenido no cabe.
+- Añade interruptores accesibles con foco visible, validación junto a los umbrales y desactivación coherente de los campos dependientes.
+- Mantiene la relación de aspecto de la cámara y diferencia los estados vacío, abriendo, activo, detenido y error de la vista previa.
+- Conserva los límites, datos reales, persistencia y comportamiento de detección existentes. La compilación Release finaliza con 0 errores y 0 advertencias y pasan 87 comprobaciones automáticas; queda pendiente la validación visual en Windows.
+
 ### Protección de datos integrada en `main`
 
 - Cifra con AES-GCM los perfiles biométricos, identificadores del historial y cargas JSON sensibles; la clave se protege con DPAPI para el usuario actual de Windows.

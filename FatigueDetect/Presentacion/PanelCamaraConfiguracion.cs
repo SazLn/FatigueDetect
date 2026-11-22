@@ -21,6 +21,7 @@ namespace FatigueDetect.Presentacion
         private readonly Button actualizar = Tema.Boton("Actualizar lista", Tema.TarjetaClara, Tema.Texto);
         private readonly Button previsualizar = Tema.Boton("Ver vista previa", Tema.Azul, Color.White);
         private readonly PictureBox vista = new PictureBox();
+        private readonly Label marcadorVista = new Label();
         private readonly Label estado = Tema.Etiqueta("", 10, Tema.TextoSuave, Tema.Tarjeta);
         private readonly System.Windows.Forms.Timer reloj = new System.Windows.Forms.Timer { Interval = 80 };
         private CancellationTokenSource? captura;
@@ -32,12 +33,21 @@ namespace FatigueDetect.Presentacion
             this.config = config;
             this.preferencia = preferencia;
             Dock = DockStyle.Fill;
-            Margin = new Padding(8, 0, 0, 0);
+            Margin = Padding.Empty;
             BackColor = Tema.Fondo;
+            AutoScaleMode = AutoScaleMode.Dpi;
 
-            var tarjeta = new PanelRedondeado { Dock = DockStyle.Fill };
-            var tabla = Tema.TablaFilas(Tema.Tarjeta, 36, 34, 56, 0, 54, 49);
+            var tarjeta = new PanelRedondeado
+            {
+                Dock = DockStyle.Fill,
+                Padding = new Padding(LogicalToDeviceUnits(22)),
+                Radio = LogicalToDeviceUnits(16)
+            };
+            var tabla = Tema.TablaFilas(Tema.Tarjeta, 30, 28, 22, 42, 66, 0, 60, 54);
             tabla.Controls.Add(Tema.Etiqueta("Cámara", 12, Tema.Texto, Tema.Tarjeta, FontStyle.Bold), 0, 0);
+            tabla.Controls.Add(Tema.Etiqueta("Elige el dispositivo y la calidad de captura.", 9,
+                Tema.TextoSuave, Tema.Tarjeta), 0, 1);
+            tabla.Controls.Add(Tema.Etiqueta("Dispositivo", 9, Tema.TextoSuave, Tema.Tarjeta), 0, 2);
 
             selector.DropDownStyle = ComboBoxStyle.DropDownList;
             selector.FlatStyle = FlatStyle.Flat;
@@ -48,15 +58,33 @@ namespace FatigueDetect.Presentacion
             selector.Margin = new Padding(0);
             selector.AccessibleName = "Seleccionar cámara";
             selector.SelectionChangeCommitted += GuardarSeleccion;
-            tabla.Controls.Add(selector, 0, 1);
+            tabla.Controls.Add(selector, 0, 3);
 
-            tabla.Controls.Add(ConstruirFormato(), 0, 2);
+            foreach (ComboBox control in new[] { resolucion, fps })
+            {
+                control.FlatStyle = FlatStyle.Flat;
+                control.Font = Tema.Fuente(10);
+                control.BackColor = Tema.TarjetaClara;
+                control.ForeColor = Tema.Texto;
+                control.Margin = Padding.Empty;
+            }
+
+            tabla.Controls.Add(ConstruirFormato(), 0, 4);
             vista.Dock = DockStyle.Fill;
             vista.SizeMode = PictureBoxSizeMode.Zoom;
-            vista.BackColor = Tema.Fondo;
-            vista.Margin = new Padding(0, 2, 0, 2);
-            tabla.Controls.Add(vista, 0, 3);
-            tabla.Controls.Add(estado, 0, 4);
+            vista.BackColor = Tema.Lateral;
+            vista.BorderStyle = BorderStyle.FixedSingle;
+            vista.Margin = new Padding(0, 4, 0, 12);
+            marcadorVista.Dock = DockStyle.Fill;
+            marcadorVista.Text = "▣\r\n\r\nLa vista previa aparecerá aquí.";
+            marcadorVista.TextAlign = ContentAlignment.MiddleCenter;
+            marcadorVista.Font = Tema.Fuente(10);
+            marcadorVista.ForeColor = Tema.TextoSuave;
+            marcadorVista.BackColor = Tema.Lateral;
+            marcadorVista.AccessibleName = "Estado de la vista previa de cámara";
+            vista.Controls.Add(marcadorVista);
+            tabla.Controls.Add(vista, 0, 5);
+            tabla.Controls.Add(estado, 0, 6);
 
             var botones = new TableLayoutPanel
             {
@@ -65,13 +93,14 @@ namespace FatigueDetect.Presentacion
             botones.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
             botones.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
             actualizar.Dock = DockStyle.Fill;
+            actualizar.Margin = new Padding(0, 0, 6, 0);
             actualizar.Click += (_, _) => Recargar();
             previsualizar.Dock = DockStyle.Fill;
-            previsualizar.Margin = new Padding(0);
+            previsualizar.Margin = new Padding(6, 0, 0, 0);
             previsualizar.Click += VistaPrevia_Click;
             botones.Controls.Add(actualizar, 0, 0);
             botones.Controls.Add(previsualizar, 1, 0);
-            tabla.Controls.Add(botones, 0, 5);
+            tabla.Controls.Add(botones, 0, 7);
 
             tarjeta.Controls.Add(tabla);
             Controls.Add(tarjeta);
@@ -105,11 +134,21 @@ namespace FatigueDetect.Presentacion
             resolucion.SelectionChangeCommitted += GuardarSeleccion;
             fps.SelectionChangeCommitted += GuardarSeleccion;
 
-            var fila = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2 };
-            fila.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 56));
-            fila.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 44));
-            fila.Controls.Add(Campo("Resolución", resolucion), 0, 0);
-            fila.Controls.Add(Campo("FPS solicitados", fps), 1, 0);
+            var fila = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 2,
+                Margin = Padding.Empty,
+                BackColor = Tema.Tarjeta
+            };
+            fila.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+            fila.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+            Control campoResolucion = Campo("Resolución", resolucion);
+            campoResolucion.Margin = new Padding(0, 0, 6, 0);
+            Control campoFps = Campo("FPS solicitados", fps);
+            campoFps.Margin = new Padding(6, 0, 0, 0);
+            fila.Controls.Add(campoResolucion, 0, 0);
+            fila.Controls.Add(campoFps, 1, 0);
             return fila;
         }
 
@@ -213,6 +252,7 @@ namespace FatigueDetect.Presentacion
             captura?.Cancel();
             reloj.Stop();
             LimpiarVista();
+            marcadorVista.Text = "▣\r\n\r\nLa vista previa aparecerá aquí.";
             ActualizarBotones();
         }
 
@@ -232,7 +272,10 @@ namespace FatigueDetect.Presentacion
             captura = cancelacion;
             ActualizarBotones();
             MostrarEstado("Abriendo la cámara…");
+            marcadorVista.Text = "Abriendo la cámara…";
+            marcadorVista.Visible = true;
             reloj.Start();
+            bool fallo = false;
 
             try
             {
@@ -248,8 +291,12 @@ namespace FatigueDetect.Presentacion
             }
             catch (Exception ex)
             {
+                fallo = true;
                 if (!IsDisposed && disponible)
+                {
                     MostrarEstado(ex.Message, aviso: true);
+                    marcadorVista.Text = "No se pudo acceder a la cámara.\r\nRevisa la conexión y los permisos de Windows.";
+                }
             }
             finally
             {
@@ -259,6 +306,8 @@ namespace FatigueDetect.Presentacion
                 {
                     reloj.Stop();
                     LimpiarVista();
+                    if (!fallo)
+                        marcadorVista.Text = "▣\r\n\r\nLa vista previa aparecerá aquí.";
                     ActualizarBotones();
                 }
             }
@@ -318,6 +367,7 @@ namespace FatigueDetect.Presentacion
 
             Image? anterior = vista.Image;
             vista.Image = cuadro.Imagen;
+            marcadorVista.Visible = false;
             anterior?.Dispose();
             string formato = $"{cuadro.Imagen.Width} × {cuadro.Imagen.Height}";
             if (cuadro.FpsReportados > 0 && double.IsFinite(cuadro.FpsReportados))
@@ -335,6 +385,7 @@ namespace FatigueDetect.Presentacion
             Interlocked.Exchange(ref pendiente, null)?.Imagen.Dispose();
             Image? imagen = vista.Image;
             vista.Image = null;
+            marcadorVista.Visible = true;
             imagen?.Dispose();
         }
 
