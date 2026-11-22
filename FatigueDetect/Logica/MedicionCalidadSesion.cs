@@ -18,6 +18,12 @@ namespace FatigueDetect.Logica
         private long tiempoEvaluado;
         private long tiempoFpsBajo;
         private long caidas;
+        private double brilloTotal;
+        private double contrasteTotal;
+        private double nitidezTotal;
+        private double posicionTotal;
+        private long muestrasImagen;
+        private long muestrasPosicion;
         public double? FpsRecientes { get; private set; }
         public bool FpsBajos => FpsRecientes < CalidadSesion.UmbralFps;
 
@@ -43,7 +49,8 @@ namespace FatigueDetect.Logica
             EvaluarVentana(reloj.ElapsedMilliseconds);
         }
 
-        public void RegistrarFotograma(bool rostroValido, bool analizable)
+        public void RegistrarFotograma(bool rostroValido, bool analizable,
+            EvaluacionCalidadImagen? evaluacion = null)
         {
             long instante = reloj.ElapsedMilliseconds;
             EvaluarVentana(instante);
@@ -51,6 +58,18 @@ namespace FatigueDetect.Logica
             fotogramasVentana++;
             if (analizable)
                 analizables++;
+            if (evaluacion is { } imagen)
+            {
+                brilloTotal += imagen.Brillo;
+                contrasteTotal += imagen.Contraste;
+                nitidezTotal += imagen.Nitidez;
+                muestrasImagen++;
+                if (imagen.PosicionFacial is double posicion)
+                {
+                    posicionTotal += posicion;
+                    muestrasPosicion++;
+                }
+            }
 
             lecturaFallida = false;
             if (rostroValido && ultimoRostroValido is long anterior && instante - anterior <= 250)
@@ -81,6 +100,11 @@ namespace FatigueDetect.Logica
 
         public CalidadSesion Resumen() => new(fotogramas, analizables, reloj.ElapsedMilliseconds,
             tiempoRostroMs, fallos, tiempoEvaluado > 0 ? caidas : null,
-            tiempoEvaluado > 0 ? tiempoFpsBajo : null, tiempoEvaluado > 0 ? tiempoEvaluado : null);
+            tiempoEvaluado > 0 ? tiempoFpsBajo : null, tiempoEvaluado > 0 ? tiempoEvaluado : null,
+            muestrasImagen > 0 ? brilloTotal / muestrasImagen : null,
+            muestrasImagen > 0 ? contrasteTotal / muestrasImagen : null,
+            muestrasImagen > 0 ? nitidezTotal / muestrasImagen : null,
+            muestrasPosicion > 0 ? posicionTotal / muestrasPosicion : null,
+            muestrasImagen, muestrasPosicion);
     }
 }

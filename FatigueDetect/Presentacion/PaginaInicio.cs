@@ -356,7 +356,7 @@ namespace FatigueDetect.Presentacion
             EstadoIluminacion? avisoIluminacion, TipoEventoSesion? avisoRostro,
             TipoEventoSesion? avisoCalidad = null, FatigaEnVivo? fatiga = null, double? fpsRecientes = null,
             MuestraAtencion? atencion = null, EstadoAlertaProgresiva? alerta = null,
-            EvaluacionAccesorios? accesorios = null)
+            EvaluacionAccesorios? accesorios = null, EvaluacionCalidadImagen? calidadImagen = null)
         {
             // Si la pantalla sigue ocupada con el cuadro anterior, se descarta este.
             if (IsDisposed || !IsHandleCreated || Interlocked.CompareExchange(ref actualizando, 1, 0) != 0)
@@ -368,7 +368,8 @@ namespace FatigueDetect.Presentacion
             try
             {
                 BeginInvoke(new Action(() => Actualizar(image, estado, tiempoMs, avisoIluminacion,
-                    avisoRostro, avisoCalidad, fatiga, fpsRecientes, atencion, alerta, accesorios)));
+                    avisoRostro, avisoCalidad, fatiga, fpsRecientes, atencion, alerta,
+                    accesorios, calidadImagen)));
             }
             catch (Exception)
             {
@@ -390,7 +391,8 @@ namespace FatigueDetect.Presentacion
         private void Actualizar(Bitmap? imagen, EyeState estado, long tiempoMs,
             EstadoIluminacion? avisoIluminacion, TipoEventoSesion? avisoRostro,
             TipoEventoSesion? avisoCalidad, FatigaEnVivo? fatiga, double? fpsRecientes,
-            MuestraAtencion? atencion, EstadoAlertaProgresiva? alerta, EvaluacionAccesorios? accesorios)
+            MuestraAtencion? atencion, EstadoAlertaProgresiva? alerta,
+            EvaluacionAccesorios? accesorios, EvaluacionCalidadImagen? calidadImagen)
         {
             try
             {
@@ -424,14 +426,18 @@ namespace FatigueDetect.Presentacion
                     ? AvisosIluminacion.Mensaje(luz) : "";
                 string avisoAccesorios = accesorios is { Confiable: false } a
                     ? "Medición facial no confiable: " + a.Explicacion : "";
+                string avisoCalidadImagen = calidadImagen?.Advertencia ?? "";
                 string avisos = avisoCalidad is TipoEventoSesion problema ? AvisosIluminacion.Mensaje(problema) : string.Join(Environment.NewLine,
-                    new[] { avisoRostroTexto, avisoLuzTexto, avisoAccesorios }.Where(texto => texto.Length > 0));
+                    new[] { avisoRostroTexto, avisoLuzTexto, avisoAccesorios, avisoCalidadImagen }
+                        .Where(texto => texto.Length > 0));
                 if (avisoCamara.Text != avisos)
                     avisoCamara.Text = avisos;
                 MostrarMetricasFaciales(fatiga, accesorios);
                 bool fpsBajos = fpsRecientes < CalidadSesion.UmbralFps;
                 string estadoVideo = imagen is null ? "Cámara sin señal"
-                    : fpsRecientes is double fps ? $"{fps:0.0} FPS {(fpsBajos ? "· Fluidez baja" : "· Cámara activa")}"
+                    : fpsRecientes is double fps ? $"{fps:0.0} FPS {(fpsBajos ? "· Fluidez baja" : "· Cámara activa")}" +
+                      (calidadImagen is null ? "" : $" · Cámara/entorno {calidadImagen.PuntajeCamaraEntorno:0}" +
+                       (calidadImagen.PuntajeColocacion is double posicion ? $" · Colocación {posicion:0}" : ""))
                     : "Cámara activa · Midiendo FPS…";
                 if (estadoCaptura.Text != estadoVideo)
                 {

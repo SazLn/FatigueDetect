@@ -16,7 +16,7 @@
 | Resumen de eventos en el historial | Integrado en `main` | Agrupa por tipo y muestra cantidad, duración total, máxima y eventos sin duración. |
 | Resumen al finalizar el monitoreo | Integrado en `main` | Muestra duración, alarmas, eventos, calidad de detección, cobertura facial, estabilidad de FPS e indicadores oculares. |
 | Configuración persistente de detección y sonido | Integrado en `main` | Guarda y restablece los umbrales de somnolencia y alarma y el estado del sonido. |
-| Métricas de calidad de sesión | Integrado en `main` | FPS medios y recientes, fotogramas analizables, cobertura facial, caídas de FPS, fallos de cámara y puntaje de calidad de 0 a 100. |
+| Métricas de calidad de sesión | Integrado en `main` | Incluye FPS, analizabilidad, cobertura, brillo, contraste, nitidez, posición y separación cámara/entorno frente a colocación. Validado manualmente antes de integrar. |
 | Dashboard histórico básico | Integrado en `main` | Sesiones por día, semana y mes, duración promedio y franjas de mayor uso. |
 | Exportación a Excel | Integrado en `main` | Sesiones, eventos y resúmenes. |
 | Filtros y análisis histórico | Integrado en `main` | Fecha, conductor, vehículo, alarmas y calidad. Incluye comparaciones entre períodos de igual duración. |
@@ -30,7 +30,7 @@
 | Métricas oculares avanzadas | Integrado en `main` | Parpadeos por minuto y por duración, cierres anómalos, microsueños, tiempos cerrados, diferencia entre ojos y evolución de PERCLOS. |
 | Ángulos de cabeza y posibles cabeceos | Integrado en `main` | Tres ángulos en vivo y registro de descenso con retorno a la postura neutra. |
 | Cabeza, postura, distracción y bostezos | Integrado en `main` | Giros y duración, tiempo fuera del frente, postura y encuadre estimados, distancia aproximada, bostezos y distracción reciente. Integrado mediante el PR #20; pendiente calibración con cámaras reales. |
-| Resto de propuestas | Pendiente | Incluye mirada basada en pupilas, accesorios y seguridad biométrica. |
+| Resto de propuestas | Pendiente | Incluye mirada basada en pupilas, prueba de vida y antisuplantación avanzada. |
 | Atención y resúmenes avanzados | Integrado en `main` | Puntaje experimental, descuentos, primer síntoma, minuto de menor puntaje, tendencia, respuesta y recuperación tras alarmas, informe, evolución y distracción reciente. Pendiente calibración. |
 | Línea temporal extensible | Integrado en `main` | Pistas desplazables para todos los tipos registrados y conservación de códigos de eventos futuros. |
 | Personalización por conductor | Integrado en `main` | Calibra una línea base tras tres sesiones válidas, compara PERCLOS, parpadeos y atención, persiste el perfil y evita aprender de cambios anormales. Integrado mediante el PR #17. |
@@ -161,7 +161,7 @@ La dificultad de programar una función y la dificultad de hacerla confiable no 
 
 | Característica | Dificultad | Descripción sencilla |
 |---|---:|---|
-| Puntaje de calidad de la imagen | **Baja-media** | Integrado parcialmente en `main` como puntaje de calidad de detección basado en fotogramas analizables, cobertura facial y estabilidad de FPS. Queda pendiente incorporar brillo, contraste, nitidez y posición. |
+| Puntaje de calidad de la imagen | **Baja-media** | Integrado en `main`: incorpora analizabilidad, cobertura, FPS, brillo, contraste, nitidez y posición, y separa cámara/entorno de colocación. |
 | Porcentaje de fotogramas analizables | **Baja** | Medir en qué proporción de la sesión el rostro y los ojos estuvieron disponibles para el análisis. |
 | Confianza de cada evento | **Media** | Integrada en `main` como confiabilidad de los datos, con puntaje, factores y advertencias. No se presenta como probabilidad médica. |
 | Separar “atención” de “calidad de datos” | **Baja-media** | Evitar castigar al usuario por una cámara oscura o mal colocada. Un puntaje mide la atención y otro la confiabilidad de la medición. |
@@ -209,7 +209,7 @@ La dificultad de programar una función y la dificultad de hacerla confiable no 
 | Detectar una fotografía o pantalla | **Alta** | Usar un modelo antisuplantación que analice textura, reflejos y profundidad aparente. |
 | Detectar reproducción de video | **Alta** | Requiere una prueba de vida más robusta; los movimientos básicos no son suficientes. |
 | Cifrar perfiles biométricos | **Media** | Integrado en `main` con AES-GCM y clave local protegida por DPAPI. |
-| Política de eliminación y conservación | **Baja-media** | Implementada en la rama de descarga para sesiones y perfiles biométricos, entre 30 y 3650 días. |
+| Política de eliminación y conservación | **Baja-media** | Integrada en `main` para sesiones y perfiles biométricos, entre 30 y 3650 días. |
 
 ---
 
@@ -224,7 +224,7 @@ Las siguientes funciones ofrecen mucho valor y no dependen todavía de un modelo
 5. Analizar si la imagen está oscura o sobreexpuesta y mostrar avisos en la vista previa y durante el monitoreo.
 6. Permitir seleccionar la cámara, guardar la preferencia y reutilizarla en biometría y monitoreo.
 7. Mostrar alertas visuales en vivo para las condiciones que todavía no se muestran. **Ausencia y varios rostros integrados en `main`; las alertas de futuros detectores siguen pendientes.**
-8. Registrar calidad de imagen, FPS y porcentaje de fotogramas analizables.
+8. Registrar calidad de imagen, FPS y porcentaje de fotogramas analizables. **Integrado en `main`, incluida la ampliación de brillo, contraste, nitidez y posición.**
 9. Crear estadísticas de sesiones por día, semana, mes, hora y día de la semana.
 10. Crear un dashboard histórico inicial.
 11. Exportar tablas y resúmenes básicos a Excel.

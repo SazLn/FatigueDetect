@@ -40,7 +40,7 @@ la alarma; solo adapta la comparación histórica a la variación normal observa
 
 ## Ampliación contextual y calibración guiada
 
-La rama de descarga separa el perfil mediante la combinación de cédula, cámara y placa. Al iniciar una
+La personalización integrada separa el perfil mediante la combinación de cédula, cámara y placa. Al iniciar una
 sesión se abre un asistente que permite reutilizar una referencia guardada para ese contexto o crear otra.
 Una calibración nueva exige una postura frontal estable, al menos 15 muestras válidas durante dos segundos
 y dos parpadeos completos. La cámara se libera antes de abrir el monitoreo.
@@ -61,7 +61,7 @@ los perfiles, porque se derivan de esas sesiones.
 
 ## Prueba manual con cámara
 
-1. Descarga `descarga/calibracion-personalizada`, compila y abre la aplicación en Windows.
+1. Compila `main` y abre la aplicación en Windows.
 2. Registra una sesión. En el asistente elige **Calibrar ahora**, mira al frente y completa dos parpadeos.
    **Continuar** solo debe habilitarse al terminar y la cámara debe pasar al monitoreo sin quedar bloqueada.
 3. Detén la sesión y vuelve a usar la misma cédula, cámara y placa. Comprueba que aparece

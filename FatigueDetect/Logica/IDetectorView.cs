@@ -11,7 +11,7 @@ namespace FatigueDetect.Logica
             EstadoIluminacion? avisoIluminacion, TipoEventoSesion? avisoRostro,
             TipoEventoSesion? avisoCalidad = null, FatigaEnVivo? fatiga = null, double? fpsRecientes = null,
             MuestraAtencion? atencion = null, EstadoAlertaProgresiva? alerta = null,
-            EvaluacionAccesorios? accesorios = null);
+            EvaluacionAccesorios? accesorios = null, EvaluacionCalidadImagen? calidadImagen = null);
 
         // Método que toda vista debe implementar para indicar
         // si está pausada o no

@@ -127,7 +127,9 @@ namespace FatigueDetect.Datos
                        VersionOcular, ParpadeosCortos, ParpadeosProlongados, CierresAnomalos,
                        DuracionParpadeosTotalMs, DuracionParpadeoMinMs, DuracionParpadeoMaxMs,
                        CierreMasLargoMs, MicrosuenoMasLargoMs, DiferenciaAperturaPromedio,
-                       CaidasFps, TiempoFpsBajoMs, TiempoEvaluadoFpsMs
+                       CaidasFps, TiempoFpsBajoMs, TiempoEvaluadoFpsMs,
+                       BrilloPromedio, ContrastePromedio, NitidezPromedio, PosicionFacialPromedio,
+                       MuestrasImagen, MuestrasPosicion
                 FROM Sesiones LEFT JOIN CalidadSesiones ON CalidadSesiones.SesionId = Sesiones.Id
                 LEFT JOIN MetricasFatigaSesiones ON MetricasFatigaSesiones.SesionId = Sesiones.Id
                 ORDER BY InicioUtcMs DESC, Id;
@@ -153,7 +155,10 @@ namespace FatigueDetect.Datos
                         CantidadAlarmas = lector.GetInt32(8),
                         Calidad = lector.IsDBNull(9) ? null : new CalidadSesion(lector.GetInt64(9),
                             lector.GetInt64(10), lector.GetInt64(11), lector.GetInt64(12), lector.GetInt64(13),
-                            LeerEnteroOpcional(lector, 29), LeerEnteroOpcional(lector, 30), LeerEnteroOpcional(lector, 31)),
+                            LeerEnteroOpcional(lector, 29), LeerEnteroOpcional(lector, 30), LeerEnteroOpcional(lector, 31),
+                            LeerRealOpcional(lector, 32), LeerRealOpcional(lector, 33), LeerRealOpcional(lector, 34),
+                            LeerRealOpcional(lector, 35), lector.IsDBNull(36) ? 0 : lector.GetInt64(36),
+                            lector.IsDBNull(37) ? 0 : lector.GetInt64(37)),
                         MetricasFatiga = lector.IsDBNull(14) ? null : new MetricasFatiga(lector.GetInt32(14),
                             lector.GetInt32(15), lector.GetInt32(16), lector.GetInt64(17), lector.GetInt64(18),
                             lector.GetInt32(19), lector.GetInt32(20), lector.GetInt32(21), lector.GetInt32(22),
@@ -374,7 +379,9 @@ namespace FatigueDetect.Datos
             esquema.ExecuteNonQuery();
             AsegurarColumnasMetricasFatiga(conexion, transaccion);
             AsegurarColumnas(conexion, transaccion, "CalidadSesiones",
-                [("CaidasFps", "INTEGER"), ("TiempoFpsBajoMs", "INTEGER"), ("TiempoEvaluadoFpsMs", "INTEGER")]);
+                [("CaidasFps", "INTEGER"), ("TiempoFpsBajoMs", "INTEGER"), ("TiempoEvaluadoFpsMs", "INTEGER"),
+                 ("BrilloPromedio", "REAL"), ("ContrastePromedio", "REAL"), ("NitidezPromedio", "REAL"),
+                 ("PosicionFacialPromedio", "REAL"), ("MuestrasImagen", "INTEGER"), ("MuestrasPosicion", "INTEGER")]);
             AsegurarColumnas(conexion, transaccion, "Eventos", [("Confiabilidad", "TEXT")]);
 
             using SqliteCommand marca = CrearComando(conexion, transaccion,
@@ -421,8 +428,10 @@ namespace FatigueDetect.Datos
                 using SqliteCommand mediciones = CrearComando(conexion, transaccion, """
                     INSERT INTO CalidadSesiones
                         (SesionId, Fotogramas, Analizables, TiempoActivoMs, TiempoRostroValidoMs, FallosCamara,
-                         CaidasFps, TiempoFpsBajoMs, TiempoEvaluadoFpsMs)
-                    VALUES ($id, $fotogramas, $analizables, $activo, $rostro, $fallos, $caidas, $fpsBajo, $fpsEvaluado);
+                         CaidasFps, TiempoFpsBajoMs, TiempoEvaluadoFpsMs, BrilloPromedio, ContrastePromedio,
+                         NitidezPromedio, PosicionFacialPromedio, MuestrasImagen, MuestrasPosicion)
+                    VALUES ($id, $fotogramas, $analizables, $activo, $rostro, $fallos, $caidas, $fpsBajo, $fpsEvaluado,
+                            $brillo, $contraste, $nitidez, $posicion, $muestrasImagen, $muestrasPosicion);
                     """);
                 mediciones.Parameters.AddWithValue("$id", sesion.Id.ToString());
                 mediciones.Parameters.AddWithValue("$fotogramas", calidad.Fotogramas);
@@ -433,6 +442,12 @@ namespace FatigueDetect.Datos
                 mediciones.Parameters.AddWithValue("$caidas", (object?)calidad.CaidasFps ?? DBNull.Value);
                 mediciones.Parameters.AddWithValue("$fpsBajo", (object?)calidad.TiempoFpsBajoMs ?? DBNull.Value);
                 mediciones.Parameters.AddWithValue("$fpsEvaluado", (object?)calidad.TiempoEvaluadoFpsMs ?? DBNull.Value);
+                mediciones.Parameters.AddWithValue("$brillo", (object?)calidad.BrilloPromedio ?? DBNull.Value);
+                mediciones.Parameters.AddWithValue("$contraste", (object?)calidad.ContrastePromedio ?? DBNull.Value);
+                mediciones.Parameters.AddWithValue("$nitidez", (object?)calidad.NitidezPromedio ?? DBNull.Value);
+                mediciones.Parameters.AddWithValue("$posicion", (object?)calidad.PosicionFacialPromedio ?? DBNull.Value);
+                mediciones.Parameters.AddWithValue("$muestrasImagen", calidad.MuestrasImagen);
+                mediciones.Parameters.AddWithValue("$muestrasPosicion", calidad.MuestrasPosicion);
                 mediciones.ExecuteNonQuery();
             }
 
@@ -607,6 +622,9 @@ namespace FatigueDetect.Datos
 
         private static long? LeerEnteroOpcional(SqliteDataReader lector, int columna) =>
             lector.IsDBNull(columna) ? null : lector.GetInt64(columna);
+
+        private static double? LeerRealOpcional(SqliteDataReader lector, int columna) =>
+            lector.IsDBNull(columna) ? null : lector.GetDouble(columna);
 
         private static DateTimeOffset LeerInstante(SqliteDataReader lector, int columna) =>
             DateTimeOffset.FromUnixTimeMilliseconds(lector.GetInt64(columna));
