@@ -30,12 +30,12 @@
 | Métricas oculares avanzadas | Integrado en `main` | Parpadeos por minuto y por duración, cierres anómalos, microsueños, tiempos cerrados, diferencia entre ojos y evolución de PERCLOS. |
 | Ángulos de cabeza y posibles cabeceos | Integrado en `main` | Tres ángulos en vivo y registro de descenso con retorno a la postura neutra. |
 | Cabeza, postura, distracción y bostezos | Integrado en `main` | Giros y duración, tiempo fuera del frente, postura y encuadre estimados, distancia aproximada, bostezos y distracción reciente. Integrado mediante el PR #20; pendiente calibración con cámaras reales. |
-| Resto de propuestas | Pendiente | Incluye mirada basada en pupilas, accesorios, seguridad biométrica y análisis histórico avanzado. |
+| Resto de propuestas | Pendiente | Incluye mirada basada en pupilas, accesorios y seguridad biométrica. |
 | Atención y resúmenes avanzados | Integrado en `main` | Puntaje experimental, descuentos, primer síntoma, minuto de menor puntaje, tendencia, respuesta y recuperación tras alarmas, informe, evolución y distracción reciente. Pendiente calibración. |
 | Línea temporal extensible | Integrado en `main` | Pistas desplazables para todos los tipos registrados y conservación de códigos de eventos futuros. |
 | Personalización por conductor | Integrado en `main` | Calibra una línea base tras tres sesiones válidas, compara PERCLOS, parpadeos y atención, persiste el perfil y evita aprender de cambios anormales. Integrado mediante el PR #17. |
 | Confiabilidad explicable por evento | Integrado en `main` | Puntúa la evidencia de cada evento y explica las limitaciones de persistencia, cobertura, FPS o captura. Integrado mediante el PR #18 después de la validación manual inicial. |
-| Análisis histórico avanzado | Implementado en rama de descarga | `descarga/analisis-historico-avanzado`: riesgo, tendencia personal, grupos por vehículo/hora/día, mapa de calor, alarmas por hora activa y comparación de sesiones marcadas. Pendiente prueba en Windows y decisión de integración. |
+| Análisis histórico avanzado | Integrado en `main` | Riesgo, tendencia personal, grupos por vehículo/hora/día, mapa de calor, alarmas por hora activa y comparación de sesiones marcadas. Integrado mediante el PR #22. |
 
 La medición facial fue validada de forma inicial con una cámara Windows. La calibración de umbrales y las pruebas con más cámaras, iluminación y personas siguen pendientes.
 Las métricas oculares avanzadas también fueron validadas manualmente con cámara y están integradas en `main`. Su calibración con más cámaras, condiciones de iluminación y personas sigue pendiente.
@@ -189,10 +189,10 @@ La dificultad de programar una función y la dificultad de hacerla confiable no 
 | Umbrales personalizados | **Media** | Integrado parcialmente en `main` para detectar desviaciones respecto al perfil; no cambia los umbrales físicos de cierre ni alarma. |
 | Comparar sesión actual con el promedio personal | **Media** | Integrado en `main` para PERCLOS, parpadeos y atención. Las nuevas métricas de cabeza y distracción aún no forman parte de la línea base personal. |
 | Detectar cambios anormales | **Media-alta** | Integrado de forma experimental en `main` con mínimos absolutos y variación personal. Pendiente calibración con usuarios reales. |
-| Sesiones más seguras y más riesgosas | **Baja** | Propuesta en rama de descarga: orden por índice experimental 100 − atención cuando la calidad es suficiente. |
-| Comparar por vehículo | **Baja-media** | Propuesta en rama de descarga: métricas agregadas por placa. |
-| Comparar por hora o franja del día | **Baja** | Propuesta en rama de descarga: grupos por hora local de inicio. |
-| Comparar días de la semana | **Baja** | Propuesta en rama de descarga: grupos y mapa de calor por día local. |
+| Sesiones más seguras y más riesgosas | **Baja** | Integrado en `main`: orden por índice experimental 100 − atención cuando la calidad es suficiente. |
+| Comparar por vehículo | **Baja-media** | Integrado en `main`: métricas agregadas por placa. |
+| Comparar por hora o franja del día | **Baja** | Integrado en `main`: grupos por hora local de inicio. |
+| Comparar días de la semana | **Baja** | Integrado en `main`: grupos y mapa de calor por día local. |
 
 ## Seguridad biométrica y prueba de vida
 
@@ -655,7 +655,7 @@ Prioridad alta porque desbloquea los dashboards y evita rehacer el almacenamient
 3. Mostrar las razones del puntaje. **Integrado en `main`** en informe y Excel.
 4. Crear promedios personales. **Integrado en `main`** para parpadeos, PERCLOS y atención mediante el PR #17.
 5. Permitir calibración por conductor. **Integrado en `main`** como línea base automática después de tres sesiones válidas; no modifica los umbrales físicos de alarma.
-6. Comparar sesiones y detectar tendencias. **Integrado parcialmente en `main`** mediante períodos equivalentes y comparación contra el promedio personal; queda pendiente detectar tendencias de atención a más largo plazo.
+6. Comparar sesiones y detectar tendencias. **Integrado en `main`** mediante períodos equivalentes, comparación de sesiones seleccionadas, tendencia cronológica por conductor y comparación contra el promedio personal.
 7. Explicar la confiabilidad de cada evento. **Integrado en `main`** mediante el PR #18 después de la validación manual inicial.
 
 ## Etapa 5: Seguridad y funciones avanzadas
