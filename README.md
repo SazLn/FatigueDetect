@@ -95,6 +95,8 @@ columna estables, fija la fecha al desplazarse horizontalmente y ofrece desplaza
 panel de detalle mantiene visibles su cabecera y sus botones mientras desplaza de forma independiente las
 métricas reales de calidad, ojos y parpadeos, los resúmenes y los eventos. Las consultas, filtros,
 exportación, borrado y ventanas de detalle siguen usando los datos y servicios existentes.
+Las acciones de cabecera y filtros mantienen su alineación, y los textos del resumen ajustan su altura
+para no solaparse con las secciones siguientes al aplicar escalado de Windows.
 
 Al pulsar **Detener monitoreo**, aparece el resumen final de la sesión con su duración,
 el número de alarmas, los episodios sin rostro detectado y los demás eventos destacados

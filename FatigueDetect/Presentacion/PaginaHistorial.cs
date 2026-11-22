@@ -36,7 +36,8 @@ namespace FatigueDetect.Presentacion
             Padding = new Padding(30, 26, 16, 24);
             AutoScaleMode = AutoScaleMode.Dpi;
 
-            var raiz = Tema.TablaFilas(Tema.Fondo, 68, 70, 26, 0);
+            // Reserva separación real entre cabecera y filtros incluso al escalar DPI.
+            var raiz = Tema.TablaFilas(Tema.Fondo, 82, 70, 26, 0);
 
             var encabezado = Tema.TablaFilas(Tema.Fondo, 42, 30);
             encabezado.Controls.Add(Tema.Etiqueta("Historial de sesiones", 20, Tema.Texto, Tema.Fondo, FontStyle.Bold), 0, 0);
@@ -111,6 +112,7 @@ namespace FatigueDetect.Presentacion
 
             Button limpiar = new BotonConfiguracion("Limpiar filtros", fantasma: true);
             limpiar.Dock = DockStyle.Fill;
+            limpiar.Margin = Padding.Empty;
             limpiar.Click += (_, _) =>
             {
                 desde.Checked = hasta.Checked = false;
@@ -119,7 +121,12 @@ namespace FatigueDetect.Presentacion
                 filtroAlarmas.SelectedIndex = filtroCalidad.SelectedIndex = 0;
                 AplicarFiltros();
             };
-            filtros.Controls.Add(limpiar, 6, 0);
+            // Alinea esta acción con los campos; la fila superior conserva el espacio
+            // de etiqueta que tienen el resto de filtros.
+            var contenedorLimpiar = Tema.TablaFilas(Tema.Fondo, 20, 40);
+            contenedorLimpiar.Margin = Padding.Empty;
+            contenedorLimpiar.Controls.Add(limpiar, 0, 1);
+            filtros.Controls.Add(contenedorLimpiar, 6, 0);
             estadoFiltros = Tema.Etiqueta("", 9, Tema.TextoSuave, Tema.Fondo);
 
             desde.ValueChanged += (_, _) => AplicarFiltros();

@@ -9,6 +9,7 @@
 - Presenta la tabla dentro de una tarjeta con encabezado y primera columna fijos, anchos estables, selección resaltada y desplazamiento horizontal y vertical.
 - Mantiene visibles las acciones de la tabla y la cabecera y el pie del detalle; solo el cuerpo de métricas y eventos se desplaza.
 - Reorganiza el detalle en cuadrículas de dos columnas, secciones de calidad y ojos, y tarjetas para resúmenes y eventos, incluidos los estados sin datos.
+- Corrige la alineación vertical de «Limpiar filtros» y evita que notas, duraciones y encabezados de eventos se superpongan al escalar la interfaz.
 
 ### Rediseño adaptable de Configuración en `ui/mejoras-graficas`
 

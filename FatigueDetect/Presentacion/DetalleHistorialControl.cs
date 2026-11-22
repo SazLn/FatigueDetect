@@ -281,7 +281,8 @@ namespace FatigueDetect.Presentacion
 
         private static Control CrearEvento(string titulo, string detalle, string? hora)
         {
-            int alto = hora is null ? 58 : 72;
+            // Incluye el padding de la tarjeta además de todas las filas de texto.
+            int alto = hora is null ? 66 : 82;
             var panel = new PanelRedondeado
             {
                 Height = alto,
@@ -312,7 +313,9 @@ namespace FatigueDetect.Presentacion
         private static Control CrearNota(string texto)
         {
             Label nota = Tema.Etiqueta(texto, 9, Tema.TextoSuave, Tema.Tarjeta);
-            nota.Height = Math.Max(34, ((texto.Length / 48) + 1) * 20);
+            nota.Dock = DockStyle.None;
+            nota.AutoSize = true;
+            nota.MinimumSize = new Size(0, 26);
             nota.Margin = new Padding(0, 0, 0, 5);
             return nota;
         }
@@ -322,7 +325,12 @@ namespace FatigueDetect.Presentacion
             int ancho = Math.Max(120, cuerpo.ClientSize.Width - cuerpo.Padding.Horizontal -
                 (cuerpo.VerticalScroll.Visible ? SystemInformation.VerticalScrollBarWidth : 0));
             foreach (Control control in cuerpo.Controls)
+            {
                 control.Width = ancho;
+                if (control is Label { AutoSize: true } etiqueta)
+                    etiqueta.MaximumSize = new Size(ancho, 0);
+            }
+            cuerpo.PerformLayout();
         }
 
         private void AbrirLineaTemporal()
