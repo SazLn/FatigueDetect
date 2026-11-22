@@ -20,7 +20,7 @@ namespace FatigueDetect.Presentacion
         private readonly TextBox apellidosBox = new TextBox();
         private readonly TextBox tipoCarroBox = new TextBox();
         private readonly ContextMenuStrip menuTipos = new ContextMenuStrip();
-        private readonly Button botonTipos = new Button();
+        private readonly Label botonTipos = new Label();
         private readonly TextBox placaBox = new TextBox();
         private readonly PanelCamara panelCamara = new PanelCamara();
         private readonly EtiquetaEstado estadoCamara = new EtiquetaEstado();
@@ -273,18 +273,17 @@ namespace FatigueDetect.Presentacion
 
             botonTipos.Text = "▾";
             botonTipos.Dock = DockStyle.Right;
-            botonTipos.Width = 26;
-            botonTipos.FlatStyle = FlatStyle.Flat;
-            botonTipos.FlatAppearance.BorderSize = 0;
+            botonTipos.Width = 24;
+            botonTipos.TextAlign = ContentAlignment.MiddleCenter;
             botonTipos.BackColor = Tema.Campo;
-            botonTipos.ForeColor = Tema.Texto;
+            botonTipos.ForeColor = Tema.TextoSuave;
             botonTipos.Font = Tema.Fuente(9);
             botonTipos.Cursor = Cursors.Hand;
             botonTipos.Click += (_, _) => menuTipos.Show(botonTipos, new Point(0, botonTipos.Height));
 
             tipoCarroBox.Dock = DockStyle.Fill;
-            panel.Controls.Add(botonTipos);
             panel.Controls.Add(tipoCarroBox);
+            panel.Controls.Add(botonTipos);
             return panel;
         }
 
@@ -309,8 +308,8 @@ namespace FatigueDetect.Presentacion
             tabla.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
             tabla.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
             tabla.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-            izquierdo.Margin = new Padding(0, 0, 8, 0);
-            derecho.Margin = new Padding(8, 0, 0, 0);
+            izquierdo.Margin = new Padding(0, 0, 10, 0);
+            derecho.Margin = new Padding(10, 0, 0, 0);
             tabla.Controls.Add(izquierdo, 0, 0);
             tabla.Controls.Add(derecho, 1, 0);
             return tabla;

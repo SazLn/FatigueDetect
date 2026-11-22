@@ -33,6 +33,7 @@ namespace FatigueDetect.Presentacion
         protected override void OnPaint(PaintEventArgs e)
         {
             Graphics g = e.Graphics;
+            g.Clear(Parent?.BackColor ?? Tema.Fondo);
             g.SmoothingMode = SmoothingMode.AntiAlias;
 
             var area = new Rectangle(0, 0, Width - 1, Height - 1);
