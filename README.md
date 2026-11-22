@@ -41,9 +41,11 @@ mantenga conexiones internas abiertas y no copia directamente un archivo de base
 La rama `ui/mejoras-graficas` inicia la renovación visual con la pantalla **Configuración**. En ventanas
 amplias presenta sensibilidad y protección de datos a la izquierda y la cámara a la derecha; cuando el
 ancho disponible disminuye, reorganiza las tarjetas en una sola columna y habilita desplazamiento vertical.
-Los controles dependientes se desactivan de forma visible, los tiempos incompatibles se señalan junto al
-campo y la vista previa diferencia los estados vacío, apertura, captura, detención y error sin estirar la
-imagen. Los límites funcionales y la persistencia no cambian. Esta rama debe validarse en Windows a
+La implementación reproduce con controles WinForms nativos los selectores `− / valor / +`, interruptores,
+campos y botones redondeados del prototipo visual. Los controles dependientes se desactivan de forma visible,
+los tiempos incompatibles se señalan junto al campo y la vista previa 16:10, con borde discontinuo e icono de
+cámara, diferencia los estados vacío, apertura, captura, detención y error sin estirar la imagen. Los límites
+funcionales y la persistencia no cambian. Esta rama debe validarse en Windows a
 1366×768, 1920×1080 y 2560×1440 con escalado de 100 %, 125 %, 150 % y, cuando sea posible, 200 % antes de
 integrarse en `main`.
 

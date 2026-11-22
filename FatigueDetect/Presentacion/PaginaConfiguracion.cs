@@ -16,16 +16,18 @@ namespace FatigueDetect.Presentacion
         private readonly PanelCamaraConfiguracion panelCamara;
         private readonly ProteccionDatosService proteccionDatos;
         private readonly PoliticaProteccionRepository politicaRepository;
-        private readonly NumericUpDown somnolientoNum = new();
-        private readonly NumericUpDown alarmaNum = new();
+        private readonly SelectorNumerico somnolientoNum = new();
+        private readonly SelectorNumerico alarmaNum = new();
         private readonly Interruptor sonidoCheck = new() { Text = "Reproducir el sonido de la alarma" };
         private readonly ComboBox salidaAudio = new() { DropDownStyle = ComboBoxStyle.DropDownList, Dock = DockStyle.Fill };
-        private readonly Button probarAudio = Tema.Boton("Probar", Tema.TarjetaClara, Tema.Texto);
+        private readonly BotonConfiguracion probarAudio = new("Probar");
         private readonly Label estadoAudio = Tema.Etiqueta("", 9, Tema.TextoSuave, Tema.Tarjeta);
         private readonly Label estadoSensibilidad = Tema.Etiqueta("", 9, Tema.Ambar, Tema.Tarjeta);
         private readonly Interruptor retencionAutomatica = new() { Text = "Eliminar datos al cumplir el plazo" };
-        private readonly NumericUpDown diasHistorial = new() { Minimum = 30, Maximum = 3650 };
-        private readonly NumericUpDown diasBiometricos = new() { Minimum = 30, Maximum = 3650 };
+        private readonly SelectorNumerico diasHistorial = new()
+            { Minimum = 30, Maximum = 3650, MostrarBotones = false };
+        private readonly SelectorNumerico diasBiometricos = new()
+            { Minimum = 30, Maximum = 3650, MostrarBotones = false };
         private readonly Label estadoDatos = Tema.Etiqueta("", 8.5f, Tema.TextoSuave, Tema.Tarjeta);
         private readonly TableLayoutPanel columnas = new();
         private readonly TableLayoutPanel pagina = new();
@@ -66,10 +68,10 @@ namespace FatigueDetect.Presentacion
             pagina.RowCount = 2;
             pagina.BackColor = Tema.Fondo;
             pagina.Margin = Padding.Empty;
-            pagina.Padding = new Padding(28, 24, 28, 36);
+            pagina.Padding = new Padding(36, 24, 36, 44);
             pagina.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-            pagina.RowStyles.Add(new RowStyle(SizeType.Absolute, Escalar(76)));
-            pagina.RowStyles.Add(new RowStyle(SizeType.Absolute, Escalar(780)));
+            pagina.RowStyles.Add(new RowStyle(SizeType.Absolute, Escalar(89)));
+            pagina.RowStyles.Add(new RowStyle(SizeType.Absolute, Escalar(747)));
 
             var encabezado = Tema.TablaFilas(Tema.Fondo, 42, 30);
             encabezado.Controls.Add(Tema.Etiqueta("Configuración", 20, Tema.Texto, Tema.Fondo,
@@ -103,27 +105,28 @@ namespace FatigueDetect.Presentacion
             {
                 Dock = DockStyle.Fill,
                 ColumnCount = 1,
-                RowCount = 2,
+                RowCount = 3,
                 BackColor = Tema.Fondo,
                 Margin = Padding.Empty
             };
             columna.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-            columna.RowStyles.Add(new RowStyle(SizeType.Absolute, Escalar(455)));
-            columna.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+            columna.RowStyles.Add(new RowStyle(SizeType.Absolute, Escalar(443)));
+            columna.RowStyles.Add(new RowStyle(SizeType.Absolute, Escalar(18)));
+            columna.RowStyles.Add(new RowStyle(SizeType.Absolute, Escalar(286)));
 
             Control sensibilidad = ConstruirSensibilidad();
-            sensibilidad.Margin = new Padding(0, 0, 0, 9);
+            sensibilidad.Margin = Padding.Empty;
             Control datos = ConstruirProteccionDatos();
-            datos.Margin = new Padding(0, 9, 0, 0);
+            datos.Margin = Padding.Empty;
             columna.Controls.Add(sensibilidad, 0, 0);
-            columna.Controls.Add(datos, 0, 1);
+            columna.Controls.Add(datos, 0, 2);
             return columna;
         }
 
         private Control ConstruirSensibilidad()
         {
             var tarjeta = NuevaTarjeta();
-            var tabla = Tema.TablaFilas(Tema.Tarjeta, 30, 28, 22, 42, 22, 42, 28, 38, 22, 42, 34, 52);
+            var tabla = Tema.TablaFilas(Tema.Tarjeta, 28, 26, 20, 40, 20, 40, 24, 36, 20, 40, 32, 48);
             tabla.Controls.Add(Tema.Etiqueta("Sensibilidad de la detección", 12, Tema.Texto, Tema.Tarjeta,
                 FontStyle.Bold), 0, 0);
             tabla.Controls.Add(Tema.Etiqueta("Define cuánto tiempo con los ojos cerrados dispara cada aviso.",
@@ -142,25 +145,25 @@ namespace FatigueDetect.Presentacion
             var audio = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 3, Margin = Padding.Empty };
             audio.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
             audio.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, Escalar(86)));
-            audio.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, Escalar(108)));
+            audio.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, Escalar(106)));
             probarAudio.Dock = DockStyle.Fill;
             probarAudio.Margin = new Padding(8, 0, 0, 0);
-            var recargar = Tema.Boton("Actualizar", Tema.TarjetaClara, Tema.Texto);
+            var recargar = new BotonConfiguracion("Actualizar", fantasma: true);
             recargar.Dock = DockStyle.Fill;
             recargar.Margin = new Padding(8, 0, 0, 0);
             recargar.Click += (_, _) => CargarSalidas((salidaAudio.SelectedItem as SalidaAudio)?.Id);
             probarAudio.Click += async (_, _) => await ProbarSalidaAsync();
-            audio.Controls.Add(salidaAudio, 0, 0);
+            audio.Controls.Add(new MarcoEntrada(salidaAudio) { Dock = DockStyle.Fill }, 0, 0);
             audio.Controls.Add(probarAudio, 1, 0);
             audio.Controls.Add(recargar, 2, 0);
             tabla.Controls.Add(audio, 0, 9);
             tabla.Controls.Add(estadoAudio, 0, 10);
 
             var botones = NuevaBotonera();
-            Button guardar = Tema.Boton("Guardar cambios", Tema.Azul, Tema.TextoSobreAcento);
+            Button guardar = new BotonConfiguracion("Guardar cambios", primario: true);
             guardar.Width = Escalar(142);
             guardar.Click += Guardar_Click;
-            Button restablecer = Tema.Boton("Restablecer", Tema.TarjetaClara, Tema.Texto);
+            Button restablecer = new BotonConfiguracion("Restablecer", fantasma: true);
             restablecer.Width = Escalar(120);
             restablecer.Click += Restablecer_Click;
             botones.Controls.Add(guardar);
@@ -174,7 +177,7 @@ namespace FatigueDetect.Presentacion
         private Control ConstruirProteccionDatos()
         {
             var tarjeta = NuevaTarjeta();
-            var tabla = Tema.TablaFilas(Tema.Tarjeta, 30, 28, 40, 60, 54, 0);
+            var tabla = Tema.TablaFilas(Tema.Tarjeta, 28, 26, 38, 58, 50, 0);
             tabla.Controls.Add(Tema.Etiqueta("Protección y conservación de datos", 11.5f, Tema.Texto,
                 Tema.Tarjeta, FontStyle.Bold), 0, 0);
             tabla.Controls.Add(Tema.Etiqueta("Decide cuánto tiempo se guardan los registros de cada conductor.",
@@ -200,9 +203,9 @@ namespace FatigueDetect.Presentacion
             tabla.Controls.Add(periodos, 0, 3);
 
             var botones = NuevaBotonera();
-            var guardarPolitica = Tema.Boton("Guardar política", Tema.Azul, Tema.TextoSobreAcento);
-            var respaldar = Tema.Boton("Crear respaldo", Tema.TarjetaClara, Tema.Texto);
-            var restaurar = Tema.Boton("Restaurar", Tema.TarjetaClara, Tema.Texto);
+            var guardarPolitica = new BotonConfiguracion("Guardar política", primario: true);
+            var respaldar = new BotonConfiguracion("Crear respaldo");
+            var restaurar = new BotonConfiguracion("Restaurar", fantasma: true);
             guardarPolitica.Width = Escalar(136);
             respaldar.Width = Escalar(126);
             restaurar.Width = Escalar(98);
@@ -245,22 +248,22 @@ namespace FatigueDetect.Presentacion
                 panelCamara.Margin = new Padding(9, 0, 0, 0);
                 columnas.Controls.Add(columnaIzquierda, 0, 0);
                 columnas.Controls.Add(panelCamara, 1, 0);
-                pagina.RowStyles[1].Height = Escalar(780);
-                pagina.Height = Escalar(916);
+                pagina.RowStyles[1].Height = Escalar(747);
+                pagina.Height = Escalar(904);
             }
             else
             {
                 columnas.ColumnCount = 1;
                 columnas.RowCount = 2;
                 columnas.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-                columnas.RowStyles.Add(new RowStyle(SizeType.Absolute, Escalar(780)));
-                columnas.RowStyles.Add(new RowStyle(SizeType.Absolute, Escalar(650)));
+                columnas.RowStyles.Add(new RowStyle(SizeType.Absolute, Escalar(747)));
+                columnas.RowStyles.Add(new RowStyle(SizeType.Absolute, Escalar(850)));
                 columnaIzquierda.Margin = new Padding(0, 0, 0, 9);
                 panelCamara.Margin = new Padding(0, 9, 0, 0);
                 columnas.Controls.Add(columnaIzquierda, 0, 0);
                 columnas.Controls.Add(panelCamara, 0, 1);
-                pagina.RowStyles[1].Height = Escalar(1448);
-                pagina.Height = Escalar(1584);
+                pagina.RowStyles[1].Height = Escalar(1615);
+                pagina.Height = Escalar(1772);
             }
             pagina.Width = Math.Max(0, ClientSize.Width -
                 (VerticalScroll.Visible ? SystemInformation.VerticalScrollBarWidth : 0));
@@ -292,19 +295,14 @@ namespace FatigueDetect.Presentacion
             return campo;
         }
 
-        private static void ConfigurarNumerico(NumericUpDown numerico, decimal minimo, decimal maximo,
+        private static void ConfigurarNumerico(SelectorNumerico numerico, decimal minimo, decimal maximo,
             int decimales)
         {
             numerico.DecimalPlaces = decimales;
             numerico.Increment = decimales == 0 ? 1 : 0.5M;
             numerico.Minimum = minimo;
             numerico.Maximum = maximo;
-            numerico.Font = Tema.Fuente(10);
-            numerico.BackColor = Tema.TarjetaClara;
-            numerico.ForeColor = Tema.Texto;
-            numerico.BorderStyle = BorderStyle.FixedSingle;
             numerico.Dock = DockStyle.Fill;
-            numerico.TextAlign = HorizontalAlignment.Center;
             numerico.Margin = Padding.Empty;
         }
 
@@ -340,7 +338,7 @@ namespace FatigueDetect.Presentacion
                 ? ""
                 : "La alarma debe activarse después de marcar la somnolencia.";
             if (!valido && enfocar)
-                alarmaNum.Focus();
+                alarmaNum.EnfocarEntrada();
             return valido;
         }
 

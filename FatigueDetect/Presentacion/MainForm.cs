@@ -106,14 +106,18 @@ namespace FatigueDetect.Presentacion
                 Dock = DockStyle.Left,
                 Width = 236,
                 BackColor = Tema.Lateral,
-                Padding = new Padding(16, 18, 16, 14)
+                Padding = new Padding(10, 14, 10, 14)
             };
 
             var tabla = Tema.TablaFilas(Tema.Lateral, 96, 214, 0, 64);
 
             var marca = Tema.TablaFilas(Tema.Lateral, 56, 22);
-            marca.Controls.Add(Tema.Etiqueta("Sistema de Detección de Fatiga al Volante", 11, Tema.Texto, Tema.Lateral, FontStyle.Bold), 0, 0);
-            marca.Controls.Add(Tema.Etiqueta("Seguridad vial inteligente", 8.5f, Tema.TextoSuave, Tema.Lateral), 0, 1);
+            Label nombre = Tema.Etiqueta("Sistema de detección de\nfatiga al volante", 11, Tema.Texto,
+                Tema.Lateral, FontStyle.Bold);
+            Label lema = Tema.Etiqueta("Seguridad vial inteligente", 8.5f, Tema.TextoSuave, Tema.Lateral);
+            nombre.Padding = lema.Padding = new Padding(10, 0, 0, 0);
+            marca.Controls.Add(nombre, 0, 0);
+            marca.Controls.Add(lema, 0, 1);
             tabla.Controls.Add(marca, 0, 0);
 
             var menu = new FlowLayoutPanel
@@ -126,14 +130,16 @@ namespace FatigueDetect.Presentacion
             };
             foreach (BotonNavegacion boton in new[] { btnInicio, btnRegistro, btnHistorial, btnConfig })
             {
-                boton.Width = 202;
+                boton.Width = 216;
                 boton.Margin = new Padding(0, 0, 0, 8);
                 menu.Controls.Add(boton);
             }
             tabla.Controls.Add(menu, 0, 1);
 
-            tabla.Controls.Add(Tema.Etiqueta("Conduce seguro.\nLlega seguro.", 9.5f, Tema.TextoSuave, Tema.Lateral,
-                FontStyle.Italic), 0, 3);
+            Label pie = Tema.Etiqueta("Conduce seguro.\nLlega seguro.", 9.5f, Tema.TextoSuave,
+                Tema.Lateral, FontStyle.Italic);
+            pie.Padding = new Padding(10, 0, 0, 0);
+            tabla.Controls.Add(pie, 0, 3);
 
             lateral.Controls.Add(tabla);
             return lateral;

@@ -25,7 +25,7 @@
 | Gráficos de Excel explicativos | Integrado en `main` | Los gráficos incluyen títulos, unidades, leyendas, contexto y conclusiones calculadas a partir de los datos. |
 | Salida de audio para la alarma | Integrado en `main` | Permite seleccionar, probar y guardar una salida de Windows y usa la salida predeterminada como respaldo. |
 | Monitoreo en vivo rediseñado | Integrado en `main` | Reorganiza la pantalla y muestra el estado de la cámara, los FPS recientes y los avisos de fluidez baja. |
-| Configuración adaptable y accesible | Implementada en `ui/mejoras-graficas`; pendiente validación | Tarjetas separadas, diseño de dos o una columna, desplazamiento vertical, foco visible y estados claros de cámara. Debe probarse en Windows de 100 % a 200 % de DPI antes de integrar. |
+| Configuración adaptable y accesible | Implementada en `ui/mejoras-graficas`; pendiente validación | Traslada el prototipo HTML a WinForms con tarjetas, steppers, interruptores, campos y botones redondeados, vista previa 16:10, diseño de dos o una columna, desplazamiento y foco visible. Debe probarse en Windows de 100 % a 200 % de DPI antes de integrar. |
 | Puntos faciales y apertura de ojos | Integrado en `main` | MediaPipe Face Mesh en ONNX y estimación por ojo con calibración inicial. |
 | Parpadeos, cierres prolongados y PERCLOS | Integrado en `main` | Conteos, PERCLOS de 60 s en vivo y acumulado por sesión. |
 | Métricas oculares avanzadas | Integrado en `main` | Parpadeos por minuto y por duración, cierres anómalos, microsueños, tiempos cerrados, diferencia entre ojos y evolución de PERCLOS. |

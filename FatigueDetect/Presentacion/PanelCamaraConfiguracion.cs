@@ -18,12 +18,14 @@ namespace FatigueDetect.Presentacion
         private readonly ComboBox selector = new ComboBox();
         private readonly ComboBox resolucion = new() { DropDownStyle = ComboBoxStyle.DropDownList, Dock = DockStyle.Fill };
         private readonly ComboBox fps = new() { DropDownStyle = ComboBoxStyle.DropDownList, Dock = DockStyle.Fill };
-        private readonly Button actualizar = Tema.Boton("Actualizar lista", Tema.TarjetaClara, Tema.Texto);
-        private readonly Button previsualizar = Tema.Boton("Ver vista previa", Tema.Azul, Color.White);
+        private readonly BotonConfiguracion actualizar = new("Actualizar lista");
+        private readonly BotonConfiguracion previsualizar = new("Ver vista previa", primario: true);
+        private readonly MarcoVistaPrevia marcoVista = new();
         private readonly PictureBox vista = new PictureBox();
-        private readonly Label marcadorVista = new Label();
+        private readonly EstadoVistaCamara marcadorVista = new();
         private readonly Label estado = Tema.Etiqueta("", 10, Tema.TextoSuave, Tema.Tarjeta);
         private readonly System.Windows.Forms.Timer reloj = new System.Windows.Forms.Timer { Interval = 80 };
+        private readonly TableLayoutPanel tabla;
         private CancellationTokenSource? captura;
         private Cuadro? pendiente;
         private bool disponible = true;
@@ -32,7 +34,7 @@ namespace FatigueDetect.Presentacion
         {
             this.config = config;
             this.preferencia = preferencia;
-            Dock = DockStyle.Fill;
+            Dock = DockStyle.Top;
             Margin = Padding.Empty;
             BackColor = Tema.Fondo;
             AutoScaleMode = AutoScaleMode.Dpi;
@@ -43,7 +45,7 @@ namespace FatigueDetect.Presentacion
                 Padding = new Padding(LogicalToDeviceUnits(22)),
                 Radio = LogicalToDeviceUnits(16)
             };
-            var tabla = Tema.TablaFilas(Tema.Tarjeta, 30, 28, 22, 42, 66, 0, 60, 54);
+            tabla = Tema.TablaFilas(Tema.Tarjeta, 28, 26, 20, 40, 64, 288, 36, 48);
             tabla.Controls.Add(Tema.Etiqueta("Cámara", 12, Tema.Texto, Tema.Tarjeta, FontStyle.Bold), 0, 0);
             tabla.Controls.Add(Tema.Etiqueta("Elige el dispositivo y la calidad de captura.", 9,
                 Tema.TextoSuave, Tema.Tarjeta), 0, 1);
@@ -58,7 +60,7 @@ namespace FatigueDetect.Presentacion
             selector.Margin = new Padding(0);
             selector.AccessibleName = "Seleccionar cámara";
             selector.SelectionChangeCommitted += GuardarSeleccion;
-            tabla.Controls.Add(selector, 0, 3);
+            tabla.Controls.Add(new MarcoEntrada(selector) { Dock = DockStyle.Fill }, 0, 3);
 
             foreach (ComboBox control in new[] { resolucion, fps })
             {
@@ -70,20 +72,16 @@ namespace FatigueDetect.Presentacion
             }
 
             tabla.Controls.Add(ConstruirFormato(), 0, 4);
+            marcoVista.Dock = DockStyle.Fill;
+            marcoVista.Margin = new Padding(0, 4, 0, 12);
             vista.Dock = DockStyle.Fill;
             vista.SizeMode = PictureBoxSizeMode.Zoom;
             vista.BackColor = Tema.Lateral;
-            vista.BorderStyle = BorderStyle.FixedSingle;
-            vista.Margin = new Padding(0, 4, 0, 12);
-            marcadorVista.Dock = DockStyle.Fill;
-            marcadorVista.Text = "▣\r\n\r\nLa vista previa aparecerá aquí.";
-            marcadorVista.TextAlign = ContentAlignment.MiddleCenter;
-            marcadorVista.Font = Tema.Fuente(10);
-            marcadorVista.ForeColor = Tema.TextoSuave;
-            marcadorVista.BackColor = Tema.Lateral;
-            marcadorVista.AccessibleName = "Estado de la vista previa de cámara";
+            vista.Margin = Padding.Empty;
+            marcadorVista.Text = "La vista previa aparecerá aquí.";
             vista.Controls.Add(marcadorVista);
-            tabla.Controls.Add(vista, 0, 5);
+            marcoVista.Controls.Add(vista);
+            tabla.Controls.Add(marcoVista, 0, 5);
             tabla.Controls.Add(estado, 0, 6);
 
             var botones = new TableLayoutPanel
@@ -104,9 +102,11 @@ namespace FatigueDetect.Presentacion
 
             tarjeta.Controls.Add(tabla);
             Controls.Add(tarjeta);
+            SizeChanged += (_, _) => AjustarAlturaVista();
             reloj.Tick += (_, _) => MostrarCuadro();
             CargarOpciones(Array.Empty<DispositivoCamara>());
             MostrarEstado("La selección se guarda en este equipo.");
+            AjustarAlturaVista();
         }
 
         private Control ConstruirFormato()
@@ -156,8 +156,21 @@ namespace FatigueDetect.Presentacion
         {
             var campo = Tema.TablaFilas(Tema.Tarjeta, 20, 0);
             campo.Controls.Add(Tema.Etiqueta(titulo, 9, Tema.TextoSuave, Tema.Tarjeta), 0, 0);
-            campo.Controls.Add(control, 0, 1);
+            campo.Controls.Add(new MarcoEntrada(control) { Dock = DockStyle.Fill }, 0, 1);
             return campo;
+        }
+
+        private void AjustarAlturaVista()
+        {
+            if (ClientSize.Width <= 0)
+                return;
+
+            int anchoInterior = Math.Max(LogicalToDeviceUnits(260),
+                ClientSize.Width - LogicalToDeviceUnits(44));
+            int altoVista = anchoInterior * 10 / 16;
+            tabla.RowStyles[5].SizeType = SizeType.Absolute;
+            tabla.RowStyles[5].Height = altoVista;
+            Height = altoVista + LogicalToDeviceUnits(306);
         }
 
         public void Recargar()
@@ -252,7 +265,7 @@ namespace FatigueDetect.Presentacion
             captura?.Cancel();
             reloj.Stop();
             LimpiarVista();
-            marcadorVista.Text = "▣\r\n\r\nLa vista previa aparecerá aquí.";
+            marcadorVista.Text = "La vista previa aparecerá aquí.";
             ActualizarBotones();
         }
 
@@ -307,7 +320,7 @@ namespace FatigueDetect.Presentacion
                     reloj.Stop();
                     LimpiarVista();
                     if (!fallo)
-                        marcadorVista.Text = "▣\r\n\r\nLa vista previa aparecerá aquí.";
+                        marcadorVista.Text = "La vista previa aparecerá aquí.";
                     ActualizarBotones();
                 }
             }

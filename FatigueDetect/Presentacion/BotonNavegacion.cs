@@ -1,37 +1,66 @@
 using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.Windows.Forms;
 
 namespace FatigueDetect.Presentacion
 {
-    /// <summary>Botón del menú lateral; el activo se resalta en azul.</summary>
+    /// <summary>Botón redondeado del menú lateral.</summary>
     public class BotonNavegacion : Button
     {
         private bool activo;
+        private bool encima;
+        private bool presionado;
 
         public bool Activo
         {
-            get { return activo; }
-            set { activo = value; ActualizarEstilo(); }
+            get => activo;
+            set { activo = value; Invalidate(); }
         }
 
         public BotonNavegacion(string texto)
         {
-            Text = "   " + texto;
+            Text = texto;
             FlatStyle = FlatStyle.Flat;
+            FlatAppearance.BorderSize = 0;
             TextAlign = ContentAlignment.MiddleLeft;
-            Height = 46;
+            Padding = new Padding(14, 0, 8, 0);
+            Height = 43;
             Font = Tema.Fuente(10.5f, FontStyle.Bold);
             Cursor = Cursors.Hand;
-            FlatAppearance.BorderSize = 0;
-            ActualizarEstilo();
+            TabStop = true;
+            SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint |
+                ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw, true);
         }
 
-        private void ActualizarEstilo()
+        protected override void OnMouseEnter(EventArgs e) { encima = true; Invalidate(); base.OnMouseEnter(e); }
+        protected override void OnMouseLeave(EventArgs e) { encima = presionado = false; Invalidate(); base.OnMouseLeave(e); }
+        protected override void OnMouseDown(MouseEventArgs e) { presionado = true; Invalidate(); base.OnMouseDown(e); }
+        protected override void OnMouseUp(MouseEventArgs e) { presionado = false; Invalidate(); base.OnMouseUp(e); }
+
+        protected override void OnPaint(PaintEventArgs e)
         {
-            BackColor = activo ? Tema.Azul : Tema.Lateral;
-            ForeColor = activo ? Tema.TextoSobreAcento : Tema.TextoSuave;
-            FlatAppearance.MouseOverBackColor = activo ? Tema.Azul : Tema.TarjetaClara;
-            FlatAppearance.MouseDownBackColor = Tema.AzulOscuro;
+            e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+            e.Graphics.Clear(Tema.Lateral);
+            var rectangulo = new Rectangle(0, 0, Width - 1, Height - 1);
+            Color fondo = activo ? Tema.Azul
+                : presionado ? Tema.Borde
+                : encima ? Tema.Tarjeta : Tema.Lateral;
+            if (fondo.ToArgb() != Tema.Lateral.ToArgb())
+            {
+                using GraphicsPath ruta = PanelRedondeado.CrearRuta(rectangulo, 12);
+                using var relleno = new SolidBrush(fondo);
+                e.Graphics.FillPath(relleno, ruta);
+            }
+
+            var texto = new Rectangle(Padding.Left, 0,
+                Math.Max(0, Width - Padding.Horizontal), Height);
+            TextRenderer.DrawText(e.Graphics, Text, Font, texto,
+                activo ? Tema.TextoSobreAcento : encima ? Tema.Texto : Tema.TextoSuave,
+                TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis |
+                TextFormatFlags.NoPrefix);
+            if (Focused && ShowFocusCues)
+                ControlPaint.DrawFocusRectangle(e.Graphics, Rectangle.Inflate(rectangulo, -3, -3),
+                    activo ? Tema.TextoSobreAcento : Tema.Texto, fondo);
         }
     }
 }
